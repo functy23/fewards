@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fewards</string>
+
+    <!-- 底栏 -->
+    <string name="home">首页</string>
+    <string name="account">账号</string>
+    <string name="settings">设置</string>
+    <string name="nav_rail_expand">展开</string>
+    <string name="nav_rail_collapse">收起</string>
+
+    <!-- 主页 -->
+    <string name="home_tasks_all_done">已完成</string>
+    <string name="home_tasks_not_done">未完成</string>
+    <string name="home_task_status_done">已完成</string>
+    <string name="home_task_status_undone">未完成</string>
+    <string name="home_task_status_unconfigured">未配置</string>
+    <string name="home_will_run_checked">将执行勾选的任务</string>
+    <string name="home_start_execute">开始执行</string>
+    <string name="home_running">执行中…</string>
+    <string name="home_log_title">日志</string>
+    <string name="home_no_logs">暂无日志</string>
+    <string name="home_support_title">支持项目</string>
+    <string name="home_support_content">Fewards 是一款免费开源的自动签到工具，如果它对你有帮助，欢迎支持开发者。</string>
+    <string name="home_learn_more">了解更多</string>
+    <string name="home_learn_more_content">了解 Fewards 的使用方式与自动签到的实现原理。</string>
+    <string name="workbuddy">WorkBuddy</string>
+    <string name="miyoushe">米游社</string>
+
+    <!-- 账号页 -->
+    <string name="account_title">账号</string>
+    <string name="miyoushe_login_qr">扫码登录</string>
+    <string name="miyoushe_login_cookie">Cookie 登录</string>
+    <string name="miyoushe_status_logged_in">已登录</string>
+    <string name="miyoushe_status_not_logged_in">未登录</string>
+    <string name="miyoushe_cookie_hint">粘贴米游社 Cookie（需含 stoken v2 与 mid）</string>
+    <string name="miyoushe_cookie_import">导入</string>
+    <string name="miyoushe_logout">退出登录</string>
+    <string name="miyoushe_qr_generate">生成二维码</string>
+    <string name="miyoushe_qr_wait_scan">等待扫码…</string>
+    <string name="miyoushe_qr_scanned">已扫码，请在手机上确认</string>
+    <string name="miyoushe_qr_confirmed">已确认，正在获取凭证…</string>
+    <string name="miyoushe_qr_expired">二维码已过期，请重新生成</string>
+    <string name="miyoushe_qr_refresh">刷新二维码</string>
+    <string name="miyoushe_qr_cancel">取消</string>
+    <string name="miyoushe_cookie_invalid">Cookie 无效：缺少 stoken 或 mid</string>
+    <string name="miyoushe_cookie_imported">Cookie 导入成功</string>
+    <string name="workbuddy_token_hint">粘贴 WorkBuddy accessToken</string>
+    <string name="workbuddy_token_import">导入</string>
+    <string name="workbuddy_logout">删除</string>
+    <string name="workbuddy_status_logged_in">已导入 Token</string>
+    <string name="workbuddy_status_not_logged_in">未配置</string>
+
+    <!-- 设置 -->
+    <string name="settings_ui_mode">界面风格</string>
+    <string name="settings_ui_mode_summary">选择 Miuix 或 Material You 界面。</string>
+    <string name="settings_theme">主题</string>
+    <string name="settings_theme_summary">选择应用主题模式。</string>
+    <string name="settings_theme_mode_system">跟随系统</string>
+    <string name="settings_theme_mode_light">浅色</string>
+    <string name="settings_theme_mode_dark">深色</string>
+    <string name="settings_monet">启用 Monet</string>
+    <string name="settings_key_color">关键色</string>
+    <string name="settings_key_color_default">默认</string>
+    <string name="settings_color_style">色彩风格</string>
+    <string name="settings_color_spec">色彩规范</string>
+    <string name="settings_enable_blur">模糊效果</string>
+    <string name="settings_enable_blur_summary">为顶栏与底栏启用模糊效果。</string>
+    <string name="settings_floating_bottom_bar">悬浮底栏</string>
+    <string name="settings_floating_bottom_bar_summary">使用 Apple 风格的悬浮底栏。</string>
+    <string name="settings_enable_glass">液态玻璃</string>
+    <string name="settings_enable_glass_summary">为悬浮底栏启用液态玻璃效果。</string>
+    <string name="settings_navigation_badge">导航徽标</string>
+    <string name="settings_navigation_badge_summary">在导航栏上显示任务与账号相关角标。</string>
+    <string name="settings_enable_predictive_back">预测性返回手势</string>
+    <string name="settings_enable_predictive_back_summary">启用预测性返回手势支持。</string>
+    <string name="settings_page_scale">页面缩放</string>
+    <string name="settings_page_scale_summary">调整全局显示缩放。</string>
+
+    <string name="settings_mhy_master">米游社自动签到总开关</string>
+    <string name="settings_mhy_master_summary">关闭后米游社所有子项均停用。</string>
+    <string name="settings_mhy_game_sign">游戏社区签到</string>
+    <string name="settings_mhy_game_sign_summary">为已绑定的游戏角色执行每日签到。</string>
+    <string name="settings_mhy_bbs_sign">米游币社区签到</string>
+    <string name="settings_mhy_bbs_sign_summary">在大别野等分区完成社区签到。</string>
+    <string name="settings_mhy_read">看帖任务</string>
+    <string name="settings_mhy_read_summary">自动浏览帖子获取米游币。</string>
+    <string name="settings_mhy_like">点赞任务</string>
+    <string name="settings_mhy_like_summary">自动点赞帖子，完成后可自动取消。</string>
+    <string name="settings_mhy_cancel_like">点赞后自动取消</string>
+    <string name="settings_mhy_share">分享任务</string>
+    <string name="settings_mhy_share_summary">自动分享帖子获取米游币。</string>
+    <string name="settings_mhy_games">签到游戏</string>
+    <string name="settings_mhy_forums">社区签到分区</string>
+    <string name="settings_mhy_captcha">验证码处理策略</string>
+    <string name="settings_mhy_captcha_skip">跳过并记录（默认）</string>
+    <string name="settings_mhy_captcha_api">调用打码接口</string>
+    <string name="settings_mhy_captcha_api_url">打码接口地址</string>
+    <string name="settings_mhy_captcha_api_url_summary">接口返回 validate 字段即视为打码成功。</string>
+
+    <string name="settings_wb_master">WorkBuddy 自动签到总开关</string>
+    <string name="settings_wb_master_summary">关闭后 WorkBuddy 签到停用。</string>
+
+    <string name="settings_schedule_time">定时执行时间</string>
+    <string name="settings_schedule_summary">每天在设定时间自动执行已勾选任务。</string>
+    <string name="settings_notification">任务进度通知</string>
+    <string name="settings_notification_summary">执行签到时发出系统通知。</string>
+
+    <string name="send_log">发送日志</string>
+    <string name="save_log">保存日志</string>
+    <string name="log_saved">日志已保存</string>
+    <string name="processing">处理中…</string>
+    <string name="confirm">确定</string>
+    <string name="cancel">取消</string>
+    <string name="ok">好</string>
+    <string name="about">关于</string>
+
+    <!-- 颜色名 -->
+    <string name="color_red">红色</string>
+    <string name="color_pink">粉色</string>
+    <string name="color_purple">紫色</string>
+    <string name="color_deep_purple">深紫</string>
+    <string name="color_indigo">靛蓝</string>
+    <string name="color_blue">蓝色</string>
+    <string name="color_cyan">青色</string>
+    <string name="color_teal">蓝绿</string>
+    <string name="color_green">绿色</string>
+    <string name="color_yellow">黄色</string>
+    <string name="color_amber">琥珀</string>
+    <string name="color_orange">橙色</string>
+    <string name="color_brown">棕色</string>
+    <string name="color_blue_grey">蓝灰</string>
+    <string name="color_sakura">樱色</string>
+    <string name="about_source_code"><![CDATA[查看源代码：%1$s<br/>%2$s]]></string>
+</resources>
