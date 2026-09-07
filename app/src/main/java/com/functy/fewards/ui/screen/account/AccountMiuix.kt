@@ -75,21 +75,45 @@ fun AccountPagerMiuix(
     val state by accountViewModel.uiState.collectAsStateWithLifecycle()
     val actions = accountViewModel.accountActions
 
-    // 二维码弹窗：Loading/Waiting/Scanned 时弹出，Confirmed/Error/Expired/Idle 关闭
+    // 二维码弹窗：showQrDialog 独立控制（dismiss 动画走完再卸载）。
+    // 取消 = show=false → WindowDialog 自带下滑淡出动画 → onDismissFinished 后才真正清状态/停轮询。
     var showQrDialog by remember { mutableStateOf(false) }
+    var dialogReady by remember { mutableStateOf(false) } // 弹窗弹出动画结束后才开始加载二维码
+
     LaunchedEffect(state.qrState) {
-        showQrDialog = when (state.qrState) {
-            AccountUiState.QrState.Loading,
+        when (state.qrState) {
             AccountUiState.QrState.Waiting,
-            AccountUiState.QrState.Scanned -> true
-            else -> false
+            AccountUiState.QrState.Scanned -> showQrDialog = true
+            AccountUiState.QrState.Idle,
+            AccountUiState.QrState.Expired,
+            AccountUiState.QrState.Error,
+            AccountUiState.QrState.Confirmed -> showQrDialog = false
+            AccountUiState.QrState.Loading -> {}
         }
     }
-    if (showQrDialog) {
+    LaunchedEffect(showQrDialog) {
+        if (showQrDialog) {
+            kotlinx.coroutines.delay(450) // 等弹出动画（folme spring）基本完成
+            if (showQrDialog) dialogReady = true
+        }
+    }
+    LaunchedEffect(dialogReady) {
+        if (dialogReady && showQrDialog &&
+            (state.qrState == AccountUiState.QrState.Idle || state.qrState == AccountUiState.QrState.Loading)
+        ) {
+            accountViewModel.startQrLogin() // 弹窗已完全弹出，才开始生成/加载二维码
+        }
+    }
+    if (showQrDialog || state.qrState != AccountUiState.QrState.Idle) {
         WindowDialog(
-            show = true,
+            show = showQrDialog,
             title = stringResource(R.string.miyoushe_login_qr),
             onDismissRequest = {
+                // 只触发关闭动画；动画完成后在 onDismissFinished 里清理
+                showQrDialog = false
+            },
+            onDismissFinished = {
+                dialogReady = false
                 actions.onCancelQr()
             },
             content = {
@@ -97,7 +121,7 @@ fun AccountPagerMiuix(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    // 固定 240dp 二维码区：Loading 时显示加载提示 + 加载动画，加载完成原位替换二维码
+                    // 固定 240dp 二维码区：弹出动画结束后才请求二维码；加载中显示加载动画
                     Box(
                         modifier = Modifier.size(240.dp),
                         contentAlignment = Alignment.Center,
@@ -132,7 +156,7 @@ fun AccountPagerMiuix(
                     Spacer(Modifier.height(14.dp))
                     TextButton(
                         text = stringResource(R.string.cancel),
-                        onClick = { actions.onCancelQr() },
+                        onClick = { showQrDialog = false }, // 触发下滑淡出动画，onDismissFinished 里清理
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -210,9 +234,10 @@ fun AccountPagerMiuix(
                                             else -> R.string.miyoushe_qr_generate
                                         }
                                     ),
-                                    onClick = actions.onStartQr,
-                                    enabled = state.qrState != AccountUiState.QrState.Waiting &&
-                                        state.qrState != AccountUiState.QrState.Scanned,
+                                    onClick = { showQrDialog = true },
+                                    enabled = state.qrState == AccountUiState.QrState.Idle ||
+                                        state.qrState == AccountUiState.QrState.Expired ||
+                                        state.qrState == AccountUiState.QrState.Error || state.qrState == AccountUiState.QrState.Confirmed,
                                     colors = ButtonDefaults.textButtonColorsPrimary(),
                                     modifier = Modifier.fillMaxWidth(),
                                 )

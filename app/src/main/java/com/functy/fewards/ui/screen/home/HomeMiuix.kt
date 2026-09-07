@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
@@ -362,15 +364,23 @@ private fun LogCard(
                     color = colorScheme.onSurfaceVariantSummary,
                 )
             } else {
+                // 可滚动日志区：高度随内容实时增长，超过 260dp 后内部滚动，自动吸底到最新一条
+                val logScrollState = rememberScrollState()
+                androidx.compose.runtime.LaunchedEffect(logs.size) {
+                    if (logScrollState.maxValue > 0) {
+                        logScrollState.animateScrollTo(logScrollState.maxValue)
+                    }
+                }
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 260.dp)
                         .background(colorScheme.surfaceContainer.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                        .verticalScroll(logScrollState)
                         .padding(10.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    logs.takeLast(30).forEach { line ->
+                    logs.takeLast(200).forEach { line ->
                         Text(
                             text = line,
                             fontSize = 11.sp,

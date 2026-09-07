@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -141,12 +142,22 @@ fun HomePagerMaterial(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    logs.takeLast(30).forEach { entry ->
-                        Text(
-                            text = entry.format(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    val logScrollState = androidx.compose.foundation.rememberScrollState()
+                    androidx.compose.runtime.LaunchedEffect(logs.size) {
+                        if (logScrollState.maxValue > 0) logScrollState.animateScrollTo(logScrollState.maxValue)
+                    }
+                    Column(
+                        modifier = Modifier
+                            .heightIn(max = 260.dp)
+                            .verticalScroll(logScrollState)
+                    ) {
+                        logs.takeLast(200).forEach { entry ->
+                            Text(
+                                text = entry.format(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
