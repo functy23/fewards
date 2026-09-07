@@ -76,6 +76,17 @@ import com.functy.fewards.ui.viewmodel.MainPagerConfig
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class MainActivity : ComponentActivity() {
@@ -141,12 +152,40 @@ class MainActivity : ComponentActivity() {
                     }
 
                     val navDisplay = @Composable {
+                        // miuix NavTransitionEasing(0.8, 0.95) 同公式（internal 类，逐字自实现）
+                        val navEasing = remember {
+                            val response = 0.8
+                            val damping = 0.95
+                            val omega = 2.0 * Math.PI / response
+                            val k = omega * omega
+                            val c = damping * 4.0 * Math.PI / response
+                            val w = Math.sqrt(4.0 * k - c * c) / 2.0
+                            val r = -c / 2.0
+                            val c2 = r / w
+                            Easing { fraction ->
+                                val t = fraction.toDouble()
+                                val decay = Math.exp(r * t)
+                                ((decay * (-Math.cos(w * t) + c2 * Math.sin(w * t))) + 1.0).toFloat()
+                            }
+                        }
+                        val pushSpec: ContentTransform =
+                            slideInHorizontally(tween(500, easing = navEasing)) { it } togetherWith
+                                slideOutHorizontally(tween(500, easing = navEasing)) { -it / 4 }
+                        val popSpec: ContentTransform =
+                            slideInHorizontally(tween(500, easing = navEasing)) { -it / 4 } togetherWith
+                                slideOutHorizontally(tween(500, easing = navEasing)) { it }
+                        val predictivePopSpec: ContentTransform =
+                            slideInHorizontally(tween(550, easing = LinearEasing)) { -it / 4 } togetherWith
+                                slideOutHorizontally(tween(550, easing = LinearEasing)) { it }
                         NavDisplay(
                             backStack = navigator.backStack,
                             entryDecorators = listOf(
                                 rememberSaveableStateHolderNavEntryDecorator(),
                                 rememberViewModelStoreNavEntryDecorator()
                             ),
+                            transitionSpec = { pushSpec },
+                            popTransitionSpec = { popSpec },
+                            predictivePopTransitionSpec = { predictivePopSpec },
                             onBack = { navigator.pop() },
                             entryProvider = entryProvider {
                                 entry<Route.Main> { mainScreenEntry() }

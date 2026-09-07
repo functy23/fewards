@@ -231,7 +231,7 @@ private fun TaskRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SquircleIcon(resId = resId, size = 32.dp)
+        SquircleIcon(resId = resId, size = 28.dp)
         Spacer(Modifier.size(12.dp))
         Text(
             text = name,
@@ -285,16 +285,15 @@ private fun PickerRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SquircleIcon(resId = resId, size = 22.dp, modifier = Modifier.padding(end = 6.dp))
+        SquircleIcon(resId = resId, size = 28.dp, modifier = Modifier.padding(end = 10.dp))
         Text(
             text = name,
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             color = colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
+            modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.width(6.dp))
         Checkbox(
             state = androidx.compose.ui.state.ToggleableState(checked),
             onClick = { onCheckedChange(!checked) },

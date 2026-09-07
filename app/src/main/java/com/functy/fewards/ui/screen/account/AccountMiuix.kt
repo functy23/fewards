@@ -2,6 +2,7 @@ package com.functy.fewards.ui.screen.account
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,7 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.functy.fewards.R
-import com.functy.fewards.ui.component.miuix.EditText
+import com.functy.fewards.ui.component.miuix.MultilineInputField
+import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import com.functy.fewards.ui.viewmodel.AccountViewModel
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
@@ -95,28 +97,44 @@ fun AccountPagerMiuix(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    when (state.qrState) {
-                        AccountUiState.QrState.Loading -> {
-                            Text(
-                                stringResource(R.string.processing),
-                                fontSize = 14.sp,
-                                color = colorScheme.onSurfaceVariantSummary,
-                            )
-                        }
-                        AccountUiState.QrState.Waiting, AccountUiState.QrState.Scanned -> {
+                    // 固定 240dp 二维码区：Loading 时显示加载提示 + 加载动画，加载完成原位替换二维码
+                    Box(
+                        modifier = Modifier.size(240.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (state.qrContent.isNotEmpty() &&
+                            (state.qrState == AccountUiState.QrState.Waiting || state.qrState == AccountUiState.QrState.Scanned)
+                        ) {
                             QrImage(content = state.qrContent)
-                            Spacer(Modifier.height(10.dp))
-                            Text(
-                                text = stringResource(
-                                    if (state.qrState == AccountUiState.QrState.Scanned) R.string.miyoushe_qr_scanned
-                                    else R.string.miyoushe_qr_wait_scan
-                                ),
-                                fontSize = 13.sp,
-                                color = colorScheme.onSurfaceVariantSummary,
-                            )
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                InfiniteProgressIndicator(color = colorScheme.primary)
+                                Spacer(Modifier.height(12.dp))
+                                Text(
+                                    text = stringResource(R.string.processing),
+                                    fontSize = 14.sp,
+                                    color = colorScheme.onSurfaceVariantSummary,
+                                )
+                            }
                         }
-                        else -> {}
                     }
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        text = stringResource(
+                            when (state.qrState) {
+                                AccountUiState.QrState.Scanned -> R.string.miyoushe_qr_scanned
+                                else -> R.string.miyoushe_qr_wait_scan
+                            }
+                        ),
+                        fontSize = 13.sp,
+                        color = colorScheme.onSurfaceVariantSummary,
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    TextButton(
+                        text = stringResource(R.string.cancel),
+                        onClick = { actions.onCancelQr() },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         )
@@ -255,10 +273,10 @@ fun AccountPagerMiuix(
                             )
                             Spacer(Modifier.height(12.dp))
                             var wbToken by rememberSaveable { mutableStateOf("") }
-                            EditText(
-                                title = stringResource(R.string.workbuddy_token_hint),
+                            MultilineInputField(
                                 value = wbToken,
                                 onValueChange = { wbToken = it },
+                                label = stringResource(R.string.workbuddy_token_hint),
                             )
                             Spacer(Modifier.height(8.dp))
                             Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
@@ -317,10 +335,10 @@ private fun CookieSection(
 ) {
     Column {
         var cookie by rememberSaveable { mutableStateOf("") }
-        EditText(
-            title = stringResource(R.string.miyoushe_cookie_hint),
+        MultilineInputField(
             value = cookie,
             onValueChange = { cookie = it },
+            label = stringResource(R.string.miyoushe_cookie_hint),
         )
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {

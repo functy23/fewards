@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.functy.fewards.R
 import com.functy.fewards.ui.UiMode
-import com.functy.fewards.ui.component.miuix.EditText
+import com.functy.fewards.ui.component.miuix.MultilineInputField
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.functy.fewards.ui.viewmodel.ConfigTransferViewModel
 import com.functy.fewards.ui.theme.LocalEnableBlur
@@ -273,11 +273,12 @@ fun SettingPagerMiuix(
                             onSelectedIndexChange = actions.onSetMhyCaptchaPolicy
                         )
                         if (uiState.mhyCaptchaPolicy == 1) {
-                            EditText(
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                title = stringResource(id = R.string.settings_mhy_captcha_api_url),
+                            MultilineInputField(
                                 value = uiState.mhyCaptchaApiUrl,
                                 onValueChange = actions.onSetMhyCaptchaApiUrl,
+                                label = stringResource(id = R.string.settings_mhy_captcha_api_url),
+                                singleLine = true,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                             )
                         }
                     }
@@ -392,11 +393,11 @@ fun SettingPagerMiuix(
                                 modifier = Modifier.weight(1f),
                             )
                         }
-                        EditText(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            title = "或粘贴配置 JSON / Cookie / Token 导入",
+                        MultilineInputField(
                             value = importText,
                             onValueChange = { importText = it },
+                            label = "或粘贴配置 JSON / Cookie / Token 导入",
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
                         Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                             TextButton(

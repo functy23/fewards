@@ -33,7 +33,7 @@
     <string name="miyoushe_login_cookie">Cookie 登录</string>
     <string name="miyoushe_status_logged_in">已登录</string>
     <string name="miyoushe_status_not_logged_in">未登录</string>
-    <string name="miyoushe_cookie_hint">粘贴米游社 Cookie（需含 stoken v2 与 mid）</string>
+    <string name="miyoushe_cookie_hint">粘贴米游社 Cookie（需包含 stoken v2 与 mid）</string>
     <string name="miyoushe_cookie_import">导入</string>
     <string name="miyoushe_logout">退出登录</string>
     <string name="miyoushe_qr_generate">生成二维码</string>
