@@ -45,8 +45,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import top.yukonga.miuix.kmp.nav.core.NavCornerClipMode
 import top.yukonga.miuix.kmp.nav.core.NavDisplay
 import top.yukonga.miuix.kmp.nav.core.NavDisplayEffects
-import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
-import top.yukonga.miuix.kmp.nav.core.NavBackStack
+import top.yukonga.miuix.kmp.nav.core.navBackStackOf
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -120,7 +119,9 @@ class MainActivity : ComponentActivity() {
                 onDispose { }
             }
 
-            val backStack = rememberNavBackStack(Route.Main)
+            // 不用 rememberNavBackStack（rememberSaveable 恢复版）：recreate 后恢复栈与初始值
+            // 叠加会触发 NavDisplay「Duplicate contentKey」崩溃。改为进程内保存，recreate 重置主页。
+            val backStack = remember { top.yukonga.miuix.kmp.nav.core.navBackStackOf(Route.Main) }
             val navigator = remember(backStack) { Navigator(backStack) }
             val systemDensity = LocalDensity.current
             val density = remember(systemDensity, uiState.pageScale) {
@@ -171,9 +172,6 @@ class MainActivity : ComponentActivity() {
                             entry<Route.Main> { mainScreenEntry() }
                             entry<Route.About> { AboutScreen() }
                             entry<Route.ColorPalette> { ColorPaletteScreen() }
-                            entry<Route.Home> { mainScreenEntry() }
-                            entry<Route.Account> { mainScreenEntry() }
-                            entry<Route.Settings> { mainScreenEntry() }
                         }
                     }
 
