@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -24,6 +25,14 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Gamepad
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Notifications
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.functy.fewards.fewardsApp
+import com.functy.fewards.work.TaskNotifier
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Recommend
@@ -34,6 +43,7 @@ import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -58,6 +68,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -312,41 +323,6 @@ fun SettingPagerMiuix(
                             .fillMaxWidth(),
                     ) {
                         SwitchPreference(
-                            title = stringResource(id = R.string.settings_schedule_time),
-                            summary = stringResource(id = R.string.settings_schedule_summary),
-                            startAction = {
-                                Icon(
-                                    Icons.Rounded.Schedule,
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    contentDescription = stringResource(id = R.string.settings_schedule_time),
-                                    tint = colorScheme.onBackground
-                                )
-                            },
-                            checked = uiState.scheduleEnabled,
-                            onCheckedChange = actions.onSetScheduleEnabled
-                        )
-                        if (uiState.scheduleEnabled) {
-                            OverlayDropdownPreference(
-                                title = stringResource(id = R.string.settings_schedule_time),
-                                items = (0..23).flatMap { h ->
-                                    listOf("00", "30").map { m -> "%02d:%s".format(h, m) }
-                                },
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.Schedule,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = null,
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                selectedIndex = (uiState.scheduleHour * 2 + if (uiState.scheduleMinute >= 30) 1 else 0)
-                                    .coerceIn(0, 47),
-                                onSelectedIndexChange = { index ->
-                                    actions.onSetScheduleTime(index / 2, if (index % 2 == 1) 30 else 0)
-                                },
-                            )
-                        }
-                        SwitchPreference(
                             title = stringResource(id = R.string.settings_notification),
                             summary = stringResource(id = R.string.settings_notification_summary),
                             startAction = {
@@ -359,6 +335,42 @@ fun SettingPagerMiuix(
                             },
                             checked = uiState.taskNotification,
                             onCheckedChange = actions.onSetTaskNotification
+                        )
+                        val context = LocalContext.current
+                        var granted = remember {
+                            mutableStateOf(
+                                ContextCompat.checkSelfPermission(fewardsApp, Manifest.permission.POST_NOTIFICATIONS) ==
+                                    PackageManager.PERMISSION_GRANTED
+                            )
+                        }
+                        val launcher = rememberLauncherForActivityResult(
+                            ActivityResultContracts.RequestPermission()
+                        ) { result -> granted.value = result }
+                        ArrowPreference(
+                            title = stringResource(id = R.string.settings_request_notification),
+                            summary = stringResource(
+                                if (granted.value) R.string.settings_notification_granted
+                                else R.string.settings_notification_denied
+                            ),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Notifications,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_request_notification),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            onClick = {
+                                if (android.os.Build.VERSION.SDK_INT >= 33 && !granted.value) {
+                                    launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        context.getString(R.string.settings_notification_granted),
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
                         )
                     }
 
@@ -393,13 +405,17 @@ fun SettingPagerMiuix(
                                 modifier = Modifier.weight(1f),
                             )
                         }
-                        MultilineInputField(
-                            value = importText,
-                            onValueChange = { importText = it },
-                            label = "或粘贴配置 JSON / Cookie / Token 导入",
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        )
-                        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            MultilineInputField(
+                                value = importText,
+                                onValueChange = { importText = it },
+                                label = "粘贴配置 JSON / Cookie / Token 导入",
+                                modifier = Modifier.weight(1f),
+                            )
+                            Spacer(Modifier.width(12.dp))
                             TextButton(
                                 text = "导入",
                                 onClick = {

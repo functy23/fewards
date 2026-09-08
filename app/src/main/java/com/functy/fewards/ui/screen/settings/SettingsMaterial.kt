@@ -169,19 +169,10 @@ fun SettingPagerMaterial(
                 )
             )
 
-            // 定时
+            // 通知
             SegmentedColumn(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
                 content = listOf(
-                    {
-                        SegmentedSwitchItem(
-                            icon = Icons.Filled.Schedule,
-                            title = stringResource(id = R.string.settings_schedule_time),
-                            summary = stringResource(id = R.string.settings_schedule_summary),
-                            checked = uiState.scheduleEnabled,
-                            onCheckedChange = actions.onSetScheduleEnabled
-                        )
-                    },
                     {
                         SegmentedSwitchItem(
                             icon = Icons.Filled.Notifications,

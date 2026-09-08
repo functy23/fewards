@@ -132,4 +132,11 @@
     <string name="color_blue_grey">蓝灰</string>
     <string name="color_sakura">樱色</string>
     <string name="about_source_code"><![CDATA[查看源代码：%1$s<br/>%2$s]]></string>
+    <string name="notify_running">正在执行签到任务</string>
+    <string name="notify_all_done">今日任务全部完成</string>
+    <string name="notify_done_with_error">签到完成（存在失败项）</string>
+    <string name="settings_request_notification">请求通知权限</string>
+    <string name="settings_request_notification_summary">推送任务进度通知（Android 13+ 需授权）。</string>
+    <string name="settings_notification_granted">已授权</string>
+    <string name="settings_notification_denied">未授权，点击请求</string>
 </resources>

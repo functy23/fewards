@@ -135,15 +135,16 @@ class MihoyoEngine(
         emit("正在获取${game.name}绑定角色")
         val rolesData = api.getJson(
             MihoyoConstants.ACCOUNT_ROLES_URL,
-            gameHeaders(account, game, deviceId) + mapOf("DS" to DsSign.ds(web = true))
+            gameHeaders(account, game, deviceId) + mapOf("DS" to DsSign.ds(web = true)),
+            params = mapOf("game_biz" to game.gameBiz)
         ).let { data ->
             if (data.optInt("retcode") == MihoyoConstants.RET_COOKIE_EXPIRED && !retried) {
                 val newCookie = api.refreshCookieToken(account)
                 if (newCookie != null) {
-                    account.cookie.let { }
                     api.getJson(
                         MihoyoConstants.ACCOUNT_ROLES_URL,
-                        gameHeaders(account.copy(cookie = newCookie), game, deviceId)
+                        gameHeaders(account.copy(cookie = newCookie), game, deviceId),
+                        params = mapOf("game_biz" to game.gameBiz)
                     )
                 } else data
             } else data
@@ -161,7 +162,8 @@ class MihoyoEngine(
         emit("正在获取${game.name}签到奖励列表")
         val awardsData = api.getJson(
             game.homeUrl,
-            gameHeaders(account, game, deviceId) + mapOf("act_id" to game.actId)
+            gameHeaders(account, game, deviceId),
+            params = mapOf("act_id" to game.actId)
         )
         val awards = if (awardsData.optInt("retcode") == 0) {
             awardsData.optJSONObject("data")?.optJSONArray("awards") ?: JSONArray()
@@ -177,10 +179,12 @@ class MihoyoEngine(
 
             val infoData = api.getJson(
                 game.infoUrl,
-                gameHeaders(account, game, deviceId) + mapOf(
+                gameHeaders(account, game, deviceId),
+                params = mapOf(
                     "act_id" to game.actId,
                     "region" to region,
                     "uid" to uid,
+                    "lang" to "zh-cn",
                 )
             )
             if (infoData.optInt("retcode") != 0) {
@@ -365,7 +369,8 @@ class MihoyoEngine(
                 emit("正在浏览: $title")
                 val data = api.getJson(
                     MihoyoConstants.BBS_DETAIL_URL,
-                    appHeaders(account, deviceId, deviceFp) + mapOf("post_id" to postId)
+                    appHeaders(account, deviceId, deviceFp),
+                    params = mapOf("post_id" to postId)
                 )
                 if (data.optString("message") == "OK") emit("阅读成功: $title") else {
                     emit("阅读失败: $title (${data.optString("message")})")
@@ -412,13 +417,15 @@ class MihoyoEngine(
                 // web 通道优先，403/失败退避后 app 通道重试一次（可根据实际抓包微调）
                 var data = api.getJson(
                     MihoyoConstants.BBS_SHARE_URL,
-                    webHeaders(account, deviceId) + mapOf("entity_id" to postId, "entity_type" to "1")
+                    webHeaders(account, deviceId),
+                    params = mapOf("entity_id" to postId, "entity_type" to "1")
                 )
                 if (data.optString("message") != "OK") {
                     delay(800)
                     data = api.getJson(
                         MihoyoConstants.BBS_SHARE_URL,
-                        appHeaders(account, deviceId, deviceFp) + mapOf("entity_id" to postId, "entity_type" to "1")
+                        appHeaders(account, deviceId, deviceFp),
+                        params = mapOf("entity_id" to postId, "entity_type" to "1")
                     )
                 }
                 if (data.optString("message") == "OK") emit("分享成功: $title") else {
@@ -439,13 +446,14 @@ class MihoyoEngine(
     /** 任务状态（web 裸头无 DS；-100 刷 cookie_token 重试一次）。 */
     private suspend fun taskState(account: AccountRepository.MihoyoAccount, deviceId: String): JSONObject? {
         val web = webHeaders(account, deviceId)
-        var data = api.getJson(MihoyoConstants.BBS_TASKS_URL, web + mapOf("point_sn" to "myb"))
+        var data = api.getJson(MihoyoConstants.BBS_TASKS_URL, web, params = mapOf("point_sn" to "myb"))
         if (data.optInt("retcode") == MihoyoConstants.RET_COOKIE_EXPIRED) {
             val newCookie = api.refreshCookieToken(account) ?: return null
             account.cookie.let { }
             data = api.getJson(
                 MihoyoConstants.BBS_TASKS_URL,
-                webHeaders(account.copy(cookie = newCookie), deviceId) + mapOf("point_sn" to "myb")
+                webHeaders(account.copy(cookie = newCookie), deviceId),
+                params = mapOf("point_sn" to "myb")
             )
         }
         return if (data.optInt("retcode") == 0) data.optJSONObject("data") else null
@@ -489,7 +497,8 @@ class MihoyoEngine(
         val forum = MihoyoConstants.BBS_FORUMS[forumGids.firstOrNull() ?: 5] ?: return emptyList()
         val data = api.getJson(
             MihoyoConstants.BBS_POST_LIST_URL,
-            appHeaders(account, deviceId, DsSign.deviceFp(deviceId)) + mapOf(
+            appHeaders(account, deviceId, DsSign.deviceFp(deviceId)),
+            params = mapOf(
                 "forum_id" to forum.forumId,
                 "is_good" to "false",
                 "is_hot" to "false",

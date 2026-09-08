@@ -10,6 +10,7 @@ import com.functy.fewards.core.mihoyo.MihoyoEngine
 import com.functy.fewards.core.workbuddy.WorkBuddyEngine
 import com.functy.fewards.data.repository.AccountRepository
 import com.functy.fewards.data.repository.SettingsRepositoryImpl
+import com.functy.fewards.work.TaskNotifier
 import com.functy.fewards.work.TaskWorker
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -78,11 +79,23 @@ object TaskRunner {
     suspend fun execute(runWb: Boolean, runMhy: Boolean): String {
         if (_state.value.running) return "已有任务在执行中"
         _state.value = _state.value.copy(running = true)
+        val totalSteps = listOf(runWb, runMhy).count { it }
+        var doneSteps = 0
+        if (totalSteps > 0) {
+            TaskNotifier.notifyProgress(0, "正在执行…", finished = false, ok = false)
+        }
         val summaries = mutableListOf<String>()
         try {
             coroutineScope {
-                val wbJob: Job = if (runWb) launchJobWb(summaries) else Job()
-                val mhyJob: Job = if (runMhy) launchJobMhy(summaries) else Job()
+                fun onStepDone(ok: Boolean) {
+                    doneSteps++
+                    TaskNotifier.notifyProgress(
+                        doneSteps, summaries.joinToString("；"),
+                        finished = doneSteps >= totalSteps, ok = ok
+                    )
+                }
+                val wbJob: Job = if (runWb) launchJobWb(summaries, ::onStepDone) else Job()
+                val mhyJob: Job = if (runMhy) launchJobMhy(summaries, ::onStepDone) else Job()
                 listOf(wbJob, mhyJob).filter { it.isActive || it.isCompleted }.forEach { }
                 // 等待两个并行分支结束
                 if (runWb) wbJob.join()
@@ -104,7 +117,7 @@ object TaskRunner {
         value = value.copy(mhyRunning = v)
     }
 
-    private suspend fun launchJobWb(summaries: MutableList<String>): Job =
+    private suspend fun launchJobWb(summaries: MutableList<String>, onStepDone: (Boolean) -> Unit): Job =
         kotlinx.coroutines.coroutineScope {
             val deferred = async {
                 _state.value = _state.value.copy(wbRunning = true, wbStatus = TaskStatus.QUERYING)
@@ -123,6 +136,7 @@ object TaskRunner {
                         wbStatus = if (ok) TaskStatus.DONE else TaskStatus.NOT_DONE
                     )
                     summaries.add("WorkBuddy: ${if (ok) "完成" else "存在失败项"}")
+                    onStepDone(ok)
                 } catch (t: Throwable) {
                     AppLog.e("WB", "WorkBuddy 执行异常: ${t.message}")
                     _state.value = _state.value.copy(wbRunning = false, wbStatus = TaskStatus.NOT_DONE)
@@ -132,7 +146,7 @@ object TaskRunner {
             deferred
         }
 
-    private suspend fun launchJobMhy(summaries: MutableList<String>): Job =
+    private suspend fun launchJobMhy(summaries: MutableList<String>, onStepDone: (Boolean) -> Unit): Job =
         kotlinx.coroutines.coroutineScope {
             val deferred = async {
                 _state.value = _state.value.copy(mhyRunning = true, mhyStatus = TaskStatus.QUERYING)
@@ -151,6 +165,7 @@ object TaskRunner {
                         mhyStatus = if (ok) TaskStatus.DONE else TaskStatus.NOT_DONE
                     )
                     summaries.add("米游社: ${if (ok) "完成" else "存在失败项"}")
+                    onStepDone(ok)
                 } catch (t: Throwable) {
                     AppLog.e("MHY", "米游社执行异常: ${t.message}")
                     _state.value = _state.value.copy(mhyRunning = false, mhyStatus = TaskStatus.NOT_DONE)

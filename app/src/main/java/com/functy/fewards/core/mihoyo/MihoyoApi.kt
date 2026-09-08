@@ -22,19 +22,27 @@ class MihoyoApi(private val client: OkHttpClient) {
 
     // ==================== 基础请求 ====================
 
-    suspend fun getJson(url: String, headers: Map<String, String>): JSONObject =
-        requestJson("GET", url, null, headers)
+    suspend fun getJson(url: String, headers: Map<String, String>, params: Map<String, String> = emptyMap()): JSONObject =
+        requestJson("GET", url, null, headers, params)
 
-    suspend fun postJson(url: String, body: String, headers: Map<String, String>): JSONObject =
-        requestJson("POST", url, body, headers)
+    suspend fun postJson(url: String, body: String, headers: Map<String, String>, params: Map<String, String> = emptyMap()): JSONObject =
+        requestJson("POST", url, body, headers, params)
 
     private suspend fun requestJson(
         method: String,
         url: String,
         body: String?,
         headers: Map<String, String>,
+        params: Map<String, String>,
     ): JSONObject = withContext(Dispatchers.IO) {
-        val builder = Request.Builder().url(url)
+        val fullUrl = if (params.isEmpty()) url else buildString {
+            append(url)
+            append(if (url.contains('?')) '&' else '?')
+            append(params.entries.joinToString("&") { (k, v) ->
+                "${java.net.URLEncoder.encode(k, "UTF-8")}=${java.net.URLEncoder.encode(v, "UTF-8")}"
+            })
+        }
+        val builder = Request.Builder().url(fullUrl)
         headers.forEach { (k, v) -> builder.header(k, v) }
         when (method) {
             "POST" -> builder.post((body ?: "{}").toRequestBody(jsonMedia))

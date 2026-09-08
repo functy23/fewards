@@ -56,7 +56,8 @@ import top.yukonga.miuix.kmp.basic.TabRowDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
-import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -252,7 +253,7 @@ fun AccountPagerMiuix(
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column {
                                 state.mihoyoAccounts.forEach { account ->
-                                    ArrowPreference(
+                                    BasicComponent(
                                         title = account.nickname,
                                         summary = "stuid=${account.stuid}",
                                         startAction = {
@@ -264,14 +265,18 @@ fun AccountPagerMiuix(
                                             )
                                         },
                                         endActions = {
-                                            Icon(
-                                                Icons.Rounded.Delete,
-                                                modifier = Modifier.padding(end = 6.dp),
-                                                contentDescription = stringResource(R.string.miyoushe_logout),
-                                                tint = colorScheme.onSurfaceVariantSummary,
-                                            )
+                                            // 仅垃圾桶按钮可删除；整行点击不响应
+                                            IconButton(
+                                                onClick = { actions.onRemoveMihoyo(account.id) },
+                                            ) {
+                                                Icon(
+                                                    Icons.Rounded.Delete,
+                                                    contentDescription = stringResource(R.string.miyoushe_logout),
+                                                    tint = colorScheme.onSurfaceVariantSummary,
+                                                )
+                                            }
                                         },
-                                        onClick = { actions.onRemoveMihoyo(account.id) },
+                                        onClick = null,
                                     )
                                 }
                             }
@@ -321,7 +326,7 @@ fun AccountPagerMiuix(
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column {
                                 state.wbAccounts.forEach { account ->
-                                    ArrowPreference(
+                                    BasicComponent(
                                         title = account.label,
                                         summary = "token=${account.token.take(6)}****",
                                         startAction = {
@@ -333,14 +338,18 @@ fun AccountPagerMiuix(
                                             )
                                         },
                                         endActions = {
-                                            Icon(
-                                                Icons.Rounded.Delete,
-                                                modifier = Modifier.padding(end = 6.dp),
-                                                contentDescription = stringResource(R.string.workbuddy_logout),
-                                                tint = colorScheme.onSurfaceVariantSummary,
-                                            )
+                                            // 仅垃圾桶按钮可删除；整行点击不响应
+                                            IconButton(
+                                                onClick = { actions.onRemoveWb(account.id) },
+                                            ) {
+                                                Icon(
+                                                    Icons.Rounded.Delete,
+                                                    contentDescription = stringResource(R.string.workbuddy_logout),
+                                                    tint = colorScheme.onSurfaceVariantSummary,
+                                                )
+                                            }
                                         },
-                                        onClick = { actions.onRemoveWb(account.id) },
+                                        onClick = null,
                                     )
                                 }
                             }
