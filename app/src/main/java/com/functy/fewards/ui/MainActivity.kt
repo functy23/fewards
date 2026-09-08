@@ -152,19 +152,16 @@ class MainActivity : ComponentActivity() {
                             UiMode.Material -> MaterialTheme.colorScheme.surfaceContainer
                             UiMode.Miuix -> MiuixTheme.colorScheme.surface
                         }
-                        val animation = remember {
-                            PredictiveBackAnimation.entries[
-                                com.functy.fewards.data.repository.SettingsRepositoryImpl().predictiveBackAnimation
-                                    .coerceIn(0, PredictiveBackAnimation.entries.lastIndex)
-                            ]
-                        }
+                        val animation = PredictiveBackAnimation.entries[
+                            uiState.predictiveBackAnimation.coerceIn(0, PredictiveBackAnimation.entries.lastIndex)
+                        ]
                         val roundAllCorners = animation == PredictiveBackAnimation.AOSP ||
                             animation == PredictiveBackAnimation.Scale ||
                             animation == PredictiveBackAnimation.Classic
-                        val effects = remember(navCornerRadius, backdropColor, roundAllCorners) {
+                        val effects = remember(navCornerRadius, backdropColor, roundAllCorners, animation) {
                             NavDisplayEffects(
                                 enableCornerClip = true,
-                                cornerClipRadius = if (navCornerRadius <= 0.dp) 32.dp else navCornerRadius,
+                                cornerClipRadius = if (roundAllCorners && navCornerRadius <= 0.dp) 32.dp else navCornerRadius,
                                 cornerClipMode = if (roundAllCorners) NavCornerClipMode.All else NavCornerClipMode.Leading,
                                 dimAmount = 0.5f,
                                 backdropColor = backdropColor,

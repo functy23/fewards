@@ -9,7 +9,6 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
-import com.functy.fewards.FewardsApplication
 import com.functy.fewards.ui.LocalUiMode
 import com.functy.fewards.ui.UiMode
 import com.functy.fewards.ui.navigation.LocalNavigator
@@ -51,11 +50,6 @@ fun ColorPaletteScreen() {
         onSetEnableFloatingBottomBar = viewModel::setEnableFloatingBottomBar,
         onSetEnableFloatingBottomBarBlur = viewModel::setEnableFloatingBottomBarBlur,
         onSetEnableNavigationBadge = viewModel::setEnableNavigationBadge,
-        onSetEnablePredictiveBack = {
-            viewModel.setEnablePredictiveBack(it)
-            // 写入进程 attach 信息，下次启动生效；不 recreate，保持页面与动画连续
-            FewardsApplication.setEnableOnBackInvokedCallback(context.applicationInfo, it)
-        },
         onSetPredictiveBackAnimation = viewModel::setPredictiveBackAnimation,
         onSetPageScale = viewModel::setPageScale,
     )

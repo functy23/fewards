@@ -277,39 +277,26 @@ fun ColorPaletteScreenMaterial(
                     )
                 )
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    SegmentedColumn(
-                        modifier = Modifier.padding(top = 4.dp),
-                        content = buildList {
-                            add {
-                                SegmentedSwitchItem(
-                                    icon = Icons.AutoMirrored.Rounded.MenuOpen,
-                                    title = stringResource(id = R.string.settings_enable_predictive_back),
-                                    summary = stringResource(id = R.string.settings_enable_predictive_back_summary),
-                                    checked = uiState.enablePredictiveBack,
-                                    onCheckedChange = actions.onSetEnablePredictiveBack
-                                )
-                            }
-                            if (uiState.enablePredictiveBack) {
-                                add {
-                                    SegmentedDropdownItem(
-                                        icon = Icons.AutoMirrored.Rounded.MenuOpen,
-                                        title = stringResource(id = R.string.settings_back_animation),
-                                        items = listOf(
-                                            stringResource(id = R.string.back_anim_none),
-                                            stringResource(id = R.string.back_anim_miux),
-                                            stringResource(id = R.string.back_anim_aosp),
-                                            stringResource(id = R.string.back_anim_scale),
-                                            stringResource(id = R.string.back_anim_classic),
-                                        ),
-                                        selectedIndex = uiState.predictiveBackAnimation.coerceIn(0, 4),
-                                        onItemSelected = actions.onSetPredictiveBackAnimation
-                                    )
-                                }
-                            }
+                SegmentedColumn(
+                    modifier = Modifier.padding(top = 4.dp),
+                    content = listOf(
+                        {
+                            SegmentedDropdownItem(
+                                icon = Icons.AutoMirrored.Rounded.MenuOpen,
+                                title = stringResource(id = R.string.settings_back_animation),
+                                items = listOf(
+                                    stringResource(id = R.string.back_anim_none),
+                                    stringResource(id = R.string.back_anim_miux),
+                                    stringResource(id = R.string.back_anim_aosp),
+                                    stringResource(id = R.string.back_anim_scale),
+                                    stringResource(id = R.string.back_anim_classic),
+                                ),
+                                selectedIndex = uiState.predictiveBackAnimation.coerceIn(0, 4),
+                                onItemSelected = actions.onSetPredictiveBackAnimation
+                            )
                         }
                     )
-                }
+                )
 
                 TonalCard(modifier = Modifier.padding(top = 4.dp)) {
                     var sliderValue by remember(uiState.pageScale) { mutableFloatStateOf(uiState.pageScale) }

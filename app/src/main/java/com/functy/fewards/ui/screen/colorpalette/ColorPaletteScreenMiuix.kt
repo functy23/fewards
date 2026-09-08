@@ -358,27 +358,7 @@ fun ColorPaletteScreenMiuix(
                             .padding(top = 12.dp)
                             .fillMaxWidth(),
                     ) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_enable_predictive_back),
-                                summary = stringResource(id = R.string.settings_enable_predictive_back_summary),
-                                startAction = {
-                                    Icon(
-                                        Icons.AutoMirrored.Rounded.MenuOpen,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_enable_predictive_back),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                checked = uiState.enablePredictiveBack,
-                                onCheckedChange = {
-                                    actions.onSetEnablePredictiveBack(it)
-                                }
-                            )
-                        }
-
-                        if (uiState.enablePredictiveBack) {
-                            OverlayDropdownPreference(
+                        OverlayDropdownPreference(
                                 title = stringResource(id = R.string.settings_back_animation),
                                 items = listOf(
                                     stringResource(id = R.string.back_anim_none),
@@ -398,7 +378,6 @@ fun ColorPaletteScreenMiuix(
                                 selectedIndex = uiState.predictiveBackAnimation.coerceIn(0, 4),
                                 onSelectedIndexChange = actions.onSetPredictiveBackAnimation
                             )
-                        }
 
                         var sliderValue by remember(uiState.pageScale) { mutableFloatStateOf(uiState.pageScale) }
                         ArrowPreference(
