@@ -73,7 +73,13 @@
     <string name="settings_navigation_badge">导航徽标</string>
     <string name="settings_navigation_badge_summary">在导航栏上显示任务与账号相关角标。</string>
     <string name="settings_enable_predictive_back">预测性返回手势</string>
-    <string name="settings_enable_predictive_back_summary">启用预测性返回手势支持。</string>
+    <string name="settings_enable_predictive_back_summary">启用预测性返回手势支持（重启应用后生效）。</string>
+    <string name="settings_back_animation">返回手势动画</string>
+    <string name="back_anim_none">无</string>
+    <string name="back_anim_miux">MIUIX</string>
+    <string name="back_anim_aosp">AOSP</string>
+    <string name="back_anim_scale">缩放</string>
+    <string name="back_anim_classic">经典</string>
     <string name="settings_page_scale">页面缩放</string>
     <string name="settings_page_scale_summary">调整全局显示缩放。</string>
 

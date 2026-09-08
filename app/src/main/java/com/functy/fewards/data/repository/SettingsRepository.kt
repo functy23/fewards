@@ -15,6 +15,7 @@ interface SettingsRepository {
     var navigationRailExpanded: Boolean
     var pageScale: Float
     var enablePredictiveBack: Boolean
+    var predictiveBackAnimation: Int // 0 None 1 MIUIX 2 AOSP 3 Scale 4 Classic
 
     // 调度
     var scheduleEnabled: Boolean

@@ -67,6 +67,10 @@ class SettingsRepositoryImpl : SettingsRepository {
         get() = prefs.getBoolean("enable_predictive_back", false)
         set(value) = prefs.edit { putBoolean("enable_predictive_back", value) }
 
+    override var predictiveBackAnimation: Int
+        get() = prefs.getInt("predictive_back_animation", 2) // 默认 AOSP
+        set(value) = prefs.edit { putInt("predictive_back_animation", value) }
+
     override var scheduleEnabled: Boolean
         get() = prefs.getBoolean("schedule_enabled", false)
         set(value) = prefs.edit { putBoolean("schedule_enabled", value) }

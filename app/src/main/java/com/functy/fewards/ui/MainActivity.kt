@@ -152,17 +152,26 @@ class MainActivity : ComponentActivity() {
                             UiMode.Material -> MaterialTheme.colorScheme.surfaceContainer
                             UiMode.Miuix -> MiuixTheme.colorScheme.surface
                         }
-                        val effects = remember(navCornerRadius, backdropColor) {
+                        val animation = remember {
+                            PredictiveBackAnimation.entries[
+                                com.functy.fewards.data.repository.SettingsRepositoryImpl().predictiveBackAnimation
+                                    .coerceIn(0, PredictiveBackAnimation.entries.lastIndex)
+                            ]
+                        }
+                        val roundAllCorners = animation == PredictiveBackAnimation.AOSP ||
+                            animation == PredictiveBackAnimation.Scale ||
+                            animation == PredictiveBackAnimation.Classic
+                        val effects = remember(navCornerRadius, backdropColor, roundAllCorners) {
                             NavDisplayEffects(
                                 enableCornerClip = true,
                                 cornerClipRadius = if (navCornerRadius <= 0.dp) 32.dp else navCornerRadius,
-                                cornerClipMode = NavCornerClipMode.All,
+                                cornerClipMode = if (roundAllCorners) NavCornerClipMode.All else NavCornerClipMode.Leading,
                                 dimAmount = 0.5f,
                                 backdropColor = backdropColor,
                                 blockInputDuringTransition = false,
                             )
                         }
-                        val transition = remember { installerNavTransition(PredictiveBackAnimation.AOSP) }
+                        val transition = remember(animation) { installerNavTransition(animation) }
                         NavDisplay(
                             backStack = backStack,
                             onBack = { navigator.pop() },

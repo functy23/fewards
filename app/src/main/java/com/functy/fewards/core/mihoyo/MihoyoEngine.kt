@@ -222,7 +222,7 @@ class MihoyoEngine(
             }
 
             emit("正在为${label}签到")
-            val signData = api.postJson(
+            var signData = api.postJson(
                 game.signUrl,
                 JSONObject()
                     .put("act_id", game.actId)
@@ -231,6 +231,22 @@ class MihoyoEngine(
                     .toString(),
                 gameHeaders(account, game, deviceId)
             )
+            if (signData.optInt("retcode") == MihoyoConstants.RET_COOKIE_EXPIRED) {
+                // -100：cookie_token 过期/失效，刷新后重试一次
+                val newCookie = api.refreshCookieToken(account)
+                if (newCookie != null) {
+                    emit("$label 登录态已刷新，重试签到")
+                    signData = api.postJson(
+                        game.signUrl,
+                        JSONObject()
+                            .put("act_id", game.actId)
+                            .put("region", region)
+                            .put("uid", uid)
+                            .toString(),
+                        gameHeaders(account.copy(cookie = newCookie), game, deviceId)
+                    )
+                }
+            }
             when {
                 signData.optInt("retcode") == MihoyoConstants.RET_ALREADY_SIGNED -> {
                     emit("$label 今日已签到，奖励 ${describeAward(awards, dayIndex)}")

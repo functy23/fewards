@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
@@ -258,12 +259,21 @@ fun AccountPagerMiuix(
                                         title = account.nickname,
                                         summary = "stuid=${account.stuid}",
                                         startAction = {
-                                            Icon(
-                                                Icons.Rounded.Person,
-                                                modifier = Modifier.padding(end = 6.dp),
-                                                contentDescription = account.nickname,
-                                                tint = colorScheme.onBackground,
-                                            )
+                                            if (account.avatarUrl.isNotEmpty()) {
+                                                UrlImage(
+                                                    url = account.avatarUrl,
+                                                    size = 36.dp,
+                                                    contentDescription = account.nickname,
+                                                    modifier = Modifier.padding(end = 6.dp),
+                                                )
+                                            } else {
+                                                Icon(
+                                                    Icons.Rounded.Person,
+                                                    modifier = Modifier.padding(end = 6.dp),
+                                                    contentDescription = account.nickname,
+                                                    tint = colorScheme.onBackground,
+                                                )
+                                            }
                                         },
                                         endActions = {
                                             // 仅垃圾桶按钮可删除；整行点击不响应
@@ -393,6 +403,46 @@ private fun CookieSection(
                 colors = ButtonDefaults.textButtonColorsPrimary(),
             )
         }
+    }
+}
+
+/** 网络头像：OkHttp 拉取 + G2 圆角裁剪。 */
+@Composable
+private fun UrlImage(
+    url: String,
+    size: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null,
+) {
+    var bitmap by remember(url) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    androidx.compose.runtime.LaunchedEffect(url) {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                com.functy.fewards.fewardsApp.okhttpClient.newCall(
+                    okhttp3.Request.Builder().url(url).build()
+                ).execute().use { resp ->
+                    resp.body?.bytes()?.let { bytes ->
+                        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    }
+                }
+            }.getOrNull()?.let { bitmap = it }
+        }
+    }
+    val shape = remember { com.functy.fewards.ui.component.G2SquircleShape() }
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap!!.asImageBitmap(),
+            contentDescription = contentDescription,
+            modifier = modifier.size(size).clip(shape),
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+        )
+    } else {
+        Icon(
+            Icons.Rounded.Person,
+            modifier = modifier.size(size),
+            contentDescription = contentDescription,
+            tint = colorScheme.onBackground,
+        )
     }
 }
 

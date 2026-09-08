@@ -25,6 +25,7 @@ class AccountRepository {
         val stuid: String,
         val mid: String,
         val cookie: String, // web cookie（含 cookie_token 等）
+        val avatarUrl: String = "", // 米游社头像（getUserFullInfo）
     )
 
     fun mihoyoAccounts(): List<MihoyoAccount> {
@@ -40,6 +41,7 @@ class AccountRepository {
                     stuid = o.optString("stuid"),
                     mid = o.optString("mid"),
                     cookie = o.optString("cookie"),
+                    avatarUrl = o.optString("avatarUrl"),
                 )
             }
         }.getOrDefault(emptyList())
@@ -67,6 +69,7 @@ class AccountRepository {
                     .put("stuid", a.stuid)
                     .put("mid", a.mid)
                     .put("cookie", a.cookie)
+                    .put("avatarUrl", a.avatarUrl)
             )
         }
         prefs.edit { putString("sec.mhy.accounts", arr.toString()) }

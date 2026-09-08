@@ -298,14 +298,16 @@ class MihoyoApi(private val client: OkHttpClient) {
         }.getOrNull()
     }
 
-    /** 获取米游社账号昵称（getUserFullInfo，app 通道 DS）。 */
-    suspend fun fetchNickname(
+    data class UserInfo(val nickname: String, val avatarUrl: String)
+
+    /** 获取米游社账号昵称与头像（getUserFullInfo，app 通道 DS）。 */
+    suspend fun fetchUserInfo(
         stoken: String,
         stuid: String,
         mid: String,
         deviceId: String,
         deviceFp: String,
-    ): String? = withContext(Dispatchers.IO) {
+    ): UserInfo? = withContext(Dispatchers.IO) {
         runCatching {
             val cookie = "stuid=$stuid;stoken=$stoken;mid=$mid"
             val headers = mapOf(
@@ -327,9 +329,13 @@ class MihoyoApi(private val client: OkHttpClient) {
                 "https://bbs-api.miyoushe.com/user/api/getUserFullInfo", headers,
                 params = mapOf("gids" to "2")
             )
-            if (resp.optInt("retcode") == 0)
-                resp.optJSONObject("data")?.optJSONObject("user_info")?.optString("nickname")?.ifEmpty { null }
-            else null
+            if (resp.optInt("retcode") == 0) {
+                val ui = resp.optJSONObject("data")?.optJSONObject("user_info")
+                UserInfo(
+                    nickname = ui?.optString("nickname").orEmpty(),
+                    avatarUrl = ui?.optString("avatar_url").orEmpty(),
+                )
+            } else null
         }.getOrNull()
     }
 

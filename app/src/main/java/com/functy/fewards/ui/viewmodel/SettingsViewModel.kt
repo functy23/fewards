@@ -37,6 +37,7 @@ class SettingsViewModel(
                     miuixMonet = repo.miuixMonet,
                     keyColor = repo.keyColor,
                     enablePredictiveBack = repo.enablePredictiveBack,
+                    predictiveBackAnimation = repo.predictiveBackAnimation,
                     enableBlur = repo.enableBlur,
                     enableFloatingBottomBar = repo.enableFloatingBottomBar,
                     enableFloatingBottomBarBlur = repo.enableFloatingBottomBarBlur,
@@ -145,6 +146,11 @@ class SettingsViewModel(
     fun setEnablePredictiveBack(enabled: Boolean) {
         repo.enablePredictiveBack = enabled
         _uiState.update { it.copy(enablePredictiveBack = enabled) }
+    }
+
+    fun setPredictiveBackAnimation(index: Int) {
+        repo.predictiveBackAnimation = index
+        _uiState.update { it.copy(predictiveBackAnimation = index) }
     }
 
     fun setEnableBlur(enabled: Boolean) {

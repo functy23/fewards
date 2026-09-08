@@ -123,11 +123,13 @@ object TaskRunner {
                 _state.value = _state.value.copy(wbRunning = true, wbStatus = TaskStatus.QUERYING)
                 try {
                     var list = accounts.workBuddyAccounts()
-                    // WB label 规范化（历史遗留命名统一为「Work Buddy 账号」）
+                    // WB label：优先用 JWT 内实际昵称；历史占位名一并更新
                     list.forEach { acc ->
-                        if (acc.label == "WorkBuddy 账号") {
-                            val fixed = acc.copy(label = "Work Buddy 账号")
-                            accounts.addWorkBuddyAccount(fixed)
+                        if (acc.label == "WorkBuddy 账号" || acc.label == "Work Buddy 账号") {
+                            val real = com.functy.fewards.core.workbuddy.WorkBuddyLabel.decode(acc.token)
+                            if (real != null) {
+                                accounts.addWorkBuddyAccount(acc.copy(label = real))
+                            }
                         }
                     }
                     if (list.isEmpty() || !repo.wbMasterEnabled) {
@@ -174,11 +176,18 @@ object TaskRunner {
                             val full = api.fetchWebCookie(acc.stoken, acc.stuid, acc.mid, deviceId, deviceFp)
                             if (full != null) fixed = fixed.copy(cookie = full)
                         }
-                        if (acc.nickname.startsWith("账号")) {
+                        if (acc.nickname.startsWith("账号") || acc.avatarUrl.isEmpty()) {
                             val deviceId = com.functy.fewards.core.mihoyo.DsSign.deviceId(acc.stoken + acc.stuid)
                             val deviceFp = com.functy.fewards.core.mihoyo.DsSign.deviceFp(deviceId)
-                            val nick = api.fetchNickname(acc.stoken, acc.stuid, acc.mid, deviceId, deviceFp)
-                            if (nick != null) fixed = fixed.copy(nickname = nick)
+                            val info = api.fetchUserInfo(acc.stoken, acc.stuid, acc.mid, deviceId, deviceFp)
+                            if (info != null) {
+                                if (info.nickname.isNotEmpty() && acc.nickname.startsWith("账号")) {
+                                    fixed = fixed.copy(nickname = info.nickname)
+                                }
+                                if (info.avatarUrl.isNotEmpty() && fixed.avatarUrl.isEmpty()) {
+                                    fixed = fixed.copy(avatarUrl = info.avatarUrl)
+                                }
+                            }
                         }
                         if (fixed != acc) accounts.addMihoyoAccount(fixed)
                         fixed

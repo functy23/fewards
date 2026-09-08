@@ -377,6 +377,29 @@ fun ColorPaletteScreenMiuix(
                             )
                         }
 
+                        if (uiState.enablePredictiveBack) {
+                            OverlayDropdownPreference(
+                                title = stringResource(id = R.string.settings_back_animation),
+                                items = listOf(
+                                    stringResource(id = R.string.back_anim_none),
+                                    stringResource(id = R.string.back_anim_miux),
+                                    stringResource(id = R.string.back_anim_aosp),
+                                    stringResource(id = R.string.back_anim_scale),
+                                    stringResource(id = R.string.back_anim_classic),
+                                ),
+                                startAction = {
+                                    Icon(
+                                        Icons.AutoMirrored.Rounded.MenuOpen,
+                                        modifier = Modifier.padding(end = 6.dp),
+                                        contentDescription = stringResource(id = R.string.settings_back_animation),
+                                        tint = colorScheme.onBackground
+                                    )
+                                },
+                                selectedIndex = uiState.predictiveBackAnimation.coerceIn(0, 4),
+                                onSelectedIndexChange = actions.onSetPredictiveBackAnimation
+                            )
+                        }
+
                         var sliderValue by remember(uiState.pageScale) { mutableFloatStateOf(uiState.pageScale) }
                         ArrowPreference(
                             title = stringResource(id = R.string.settings_page_scale),

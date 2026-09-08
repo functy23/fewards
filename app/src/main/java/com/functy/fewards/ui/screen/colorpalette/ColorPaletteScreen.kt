@@ -53,9 +53,10 @@ fun ColorPaletteScreen() {
         onSetEnableNavigationBadge = viewModel::setEnableNavigationBadge,
         onSetEnablePredictiveBack = {
             viewModel.setEnablePredictiveBack(it)
+            // 写入进程 attach 信息，下次启动生效；不 recreate，保持页面与动画连续
             FewardsApplication.setEnableOnBackInvokedCallback(context.applicationInfo, it)
-            activity?.recreate()
         },
+        onSetPredictiveBackAnimation = viewModel::setPredictiveBackAnimation,
         onSetPageScale = viewModel::setPageScale,
     )
 
