@@ -37,14 +37,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
-import androidx.navigation3.ui.NavDisplay
+import top.yukonga.miuix.kmp.nav.core.NavCornerClipMode
+import top.yukonga.miuix.kmp.nav.core.NavDisplay
+import top.yukonga.miuix.kmp.nav.core.NavDisplayEffects
+import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
+import top.yukonga.miuix.kmp.nav.core.NavBackStack
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -54,10 +56,9 @@ import com.functy.fewards.ui.component.bottombar.NavigationBadgeState
 import com.functy.fewards.ui.component.bottombar.SideRail
 import com.functy.fewards.ui.component.bottombar.rememberMainPagerState
 import com.functy.fewards.ui.component.bottombar.useNavigationRail
-import com.functy.fewards.ui.navigation3.LocalNavigator
-import com.functy.fewards.ui.navigation3.Navigator
-import com.functy.fewards.ui.navigation3.Route
-import com.functy.fewards.ui.navigation3.rememberNavigator
+import com.functy.fewards.ui.navigation.LocalNavigator
+import com.functy.fewards.ui.navigation.Navigator
+import com.functy.fewards.ui.navigation.Route
 import com.functy.fewards.ui.screen.account.AccountPager
 import com.functy.fewards.ui.screen.about.AboutScreen
 import com.functy.fewards.ui.screen.colorpalette.ColorPaletteScreen
@@ -69,16 +70,16 @@ import com.functy.fewards.ui.theme.LocalEnableBlur
 import com.functy.fewards.ui.theme.LocalEnableFloatingBottomBar
 import com.functy.fewards.ui.theme.LocalEnableFloatingBottomBarBlur
 import com.functy.fewards.ui.theme.LocalEnableNavigationBadge
+import com.functy.fewards.ui.animation.predictiveback.PredictiveBackAnimation
+import com.functy.fewards.ui.animation.predictiveback.installerNavTransition
 import com.functy.fewards.ui.util.rememberBlurBackdrop
 import com.functy.fewards.ui.util.rememberContentReady
+import com.functy.fewards.ui.util.rememberDeviceCornerRadius
 import com.functy.fewards.ui.viewmodel.MainActivityViewModel
 import com.functy.fewards.ui.viewmodel.MainPagerConfig
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.TweenSpec
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class MainActivity : ComponentActivity() {
@@ -119,7 +120,8 @@ class MainActivity : ComponentActivity() {
                 onDispose { }
             }
 
-            val navigator = rememberNavigator(Route.Main)
+            val backStack = rememberNavBackStack(Route.Main)
+            val navigator = remember(backStack) { Navigator(backStack) }
             val systemDensity = LocalDensity.current
             val density = remember(systemDensity, uiState.pageScale) {
                 Density(systemDensity.density * uiState.pageScale, systemDensity.fontScale)
@@ -144,22 +146,35 @@ class MainActivity : ComponentActivity() {
                     }
 
                     val navDisplay = @Composable {
+                        val navCornerRadius = rememberDeviceCornerRadius()
+                        val backdropColor = when (uiMode) {
+                            UiMode.Material -> MaterialTheme.colorScheme.surfaceContainer
+                            UiMode.Miuix -> MiuixTheme.colorScheme.surface
+                        }
+                        val effects = remember(navCornerRadius, backdropColor) {
+                            NavDisplayEffects(
+                                enableCornerClip = true,
+                                cornerClipRadius = if (navCornerRadius <= 0.dp) 32.dp else navCornerRadius,
+                                cornerClipMode = NavCornerClipMode.All,
+                                dimAmount = 0.5f,
+                                backdropColor = backdropColor,
+                                blockInputDuringTransition = false,
+                            )
+                        }
+                        val transition = remember { installerNavTransition(PredictiveBackAnimation.AOSP) }
                         NavDisplay(
-                            backStack = navigator.backStack,
-                            entryDecorators = listOf(
-                                rememberSaveableStateHolderNavEntryDecorator(),
-                                rememberViewModelStoreNavEntryDecorator()
-                            ),
+                            backStack = backStack,
                             onBack = { navigator.pop() },
-                            entryProvider = entryProvider {
-                                entry<Route.Main> { mainScreenEntry() }
-                                entry<Route.About> { AboutScreen() }
-                                entry<Route.ColorPalette> { ColorPaletteScreen() }
-                                entry<Route.Home> { mainScreenEntry() }
-                                entry<Route.Account> { mainScreenEntry() }
-                                entry<Route.Settings> { mainScreenEntry() }
-                            }
-                        )
+                            transition = transition,
+                            effects = effects,
+                        ) {
+                            entry<Route.Main> { mainScreenEntry() }
+                            entry<Route.About> { AboutScreen() }
+                            entry<Route.ColorPalette> { ColorPaletteScreen() }
+                            entry<Route.Home> { mainScreenEntry() }
+                            entry<Route.Account> { mainScreenEntry() }
+                            entry<Route.Settings> { mainScreenEntry() }
+                        }
                     }
 
                     when (uiMode) {

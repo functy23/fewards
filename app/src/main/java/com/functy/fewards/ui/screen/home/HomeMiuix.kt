@@ -287,15 +287,15 @@ private fun PickerRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SquircleIcon(resId = resId, size = 28.dp, modifier = Modifier.padding(end = 10.dp))
+        SquircleIcon(resId = resId, size = 28.dp, modifier = Modifier.padding(end = 8.dp))
         Text(
             text = name,
             fontSize = 14.sp,
             color = colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
         )
+        Spacer(Modifier.weight(1f))
         Checkbox(
             state = androidx.compose.ui.state.ToggleableState(checked),
             onClick = { onCheckedChange(!checked) },

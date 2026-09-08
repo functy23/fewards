@@ -249,6 +249,90 @@ class MihoyoApi(private val client: OkHttpClient) {
         throw RuntimeException("扫码登录超时")
     }
 
+    /**
+     * 由 stoken 换取完整 web cookie（ltoken + cookie_token），与电脑端实测脚本逐字同源。
+     * 扫码登录后必须调用，否则 luna 等接口会报「请登录后重试」。
+     */
+    suspend fun fetchWebCookie(
+        stoken: String,
+        stuid: String,
+        mid: String,
+        deviceId: String,
+        deviceFp: String,
+    ): String? = withContext(Dispatchers.IO) {
+        runCatching {
+            // 1) ltoken（passport 通道，X4 DS）
+            val ltokenHeaders = mapOf(
+                "user-agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) miHoYoBBS/" + DsSign.BBS_VERSION,
+                "x-rpc-app_version" to DsSign.BBS_VERSION,
+                "x-rpc-client_type" to "5",
+                "x-requested-with" to "com.mihoyo.hyperion",
+                "referer" to "https://webstatic.mihoyo.com",
+                "x-rpc-device_id" to deviceId,
+                "x-rpc-device_fp" to deviceFp,
+                "cookie" to "mid=$mid;stoken=$stoken",
+                "DS" to DsSign.dsX4(query = "stoken=$stoken"),
+            )
+            val ltokenResp = getJson(
+                MihoyoConstants.LTOKEN_BY_STOKEN_URL, ltokenHeaders,
+                params = mapOf("stoken" to stoken)
+            )
+            val ltoken = if (ltokenResp.optInt("retcode") == 0)
+                ltokenResp.optJSONObject("data")?.optString("ltoken").orEmpty() else ""
+
+            // 2) cookie_token（passport 通道，X4 DS）
+            val cookieTokenHeaders = ltokenHeaders + mapOf("x-rpc-client_type" to "2")
+            val cookieTokenResp = getJson(
+                MihoyoConstants.COOKIE_TOKEN_BY_STOKEN_URL, cookieTokenHeaders,
+                params = mapOf("stoken" to stoken)
+            )
+            val cookieToken = if (cookieTokenResp.optInt("retcode") == 0)
+                cookieTokenResp.optJSONObject("data")?.optString("cookie_token").orEmpty() else ""
+
+            buildString {
+                append("account_id=$stuid; account_id_v2=$stuid; account_mid_v2=$mid; ")
+                if (cookieToken.isNotEmpty()) append("cookie_token=${'$'}cookie_token; ")
+                if (ltoken.isNotEmpty()) append("ltoken=$ltoken; ")
+                append("ltmid_v2=$mid; ltuid=$stuid; ltuid_v2=$stuid; login_uid=$stuid")
+            }
+        }.getOrNull()
+    }
+
+    /** 获取米游社账号昵称（getUserFullInfo，app 通道 DS）。 */
+    suspend fun fetchNickname(
+        stoken: String,
+        stuid: String,
+        mid: String,
+        deviceId: String,
+        deviceFp: String,
+    ): String? = withContext(Dispatchers.IO) {
+        runCatching {
+            val cookie = "stuid=$stuid;stoken=$stoken;mid=$mid"
+            val headers = mapOf(
+                "DS" to DsSign.ds(web = false),
+                "cookie" to cookie,
+                "x-rpc-client_type" to "2",
+                "x-rpc-app_version" to DsSign.BBS_VERSION,
+                "x-rpc-sys_version" to "12",
+                "x-rpc-channel" to "miyousheluodi",
+                "x-rpc-device_id" to deviceId,
+                "x-rpc-device_name" to "Xiaomi MI 6",
+                "x-rpc-device_model" to "Mi 6",
+                "x-rpc-h265_supported" to "1",
+                "Referer" to "https://app.mihoyo.com",
+                "x-rpc-verify_key" to DsSign.PASSPORT_APP_ID,
+                "User-Agent" to "okhttp/4.9.3",
+            )
+            val resp = getJson(
+                "https://bbs-api.miyoushe.com/user/api/getUserFullInfo", headers,
+                params = mapOf("gids" to "2")
+            )
+            if (resp.optInt("retcode") == 0)
+                resp.optJSONObject("data")?.optJSONObject("user_info")?.optString("nickname")?.ifEmpty { null }
+            else null
+        }.getOrNull()
+    }
+
     /** stoken 验证 + 换 web cookie（老接口）。retcode==0 即有效。 */
     suspend fun validateStoken(account: AccountRepository.MihoyoAccount): Boolean {
         val cookie = runCatching { stokenCookie(account) }.getOrNull() ?: return false

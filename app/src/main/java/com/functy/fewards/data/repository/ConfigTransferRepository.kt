@@ -92,7 +92,7 @@ class ConfigTransferRepository(
                         accounts.addWorkBuddyAccount(
                             AccountRepository.WorkBuddyAccount(
                                 id = o.optString("id").ifEmpty { "wb_${System.currentTimeMillis()}_$i" },
-                                label = o.optString("label").ifEmpty { "WorkBuddy 账号" },
+                                label = o.optString("label").ifEmpty { "Work Buddy 账号" },
                                 token = token,
                             )
                         )
@@ -114,7 +114,7 @@ class ConfigTransferRepository(
                     accounts.addWorkBuddyAccount(
                         AccountRepository.WorkBuddyAccount(
                             id = "wb_${System.currentTimeMillis()}",
-                            label = "WorkBuddy 账号",
+                            label = "Work Buddy 账号",
                             token = json.trim(),
                         )
                     )

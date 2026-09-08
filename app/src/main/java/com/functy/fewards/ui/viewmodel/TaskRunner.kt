@@ -122,7 +122,14 @@ object TaskRunner {
             val deferred = async {
                 _state.value = _state.value.copy(wbRunning = true, wbStatus = TaskStatus.QUERYING)
                 try {
-                    val list = accounts.workBuddyAccounts()
+                    var list = accounts.workBuddyAccounts()
+                    // WB label 规范化（历史遗留命名统一为「Work Buddy 账号」）
+                    list.forEach { acc ->
+                        if (acc.label == "WorkBuddy 账号") {
+                            val fixed = acc.copy(label = "Work Buddy 账号")
+                            accounts.addWorkBuddyAccount(fixed)
+                        }
+                    }
                     if (list.isEmpty() || !repo.wbMasterEnabled) {
                         if (list.isEmpty()) AppLog.w("WB", "WorkBuddy 未配置账号，跳过")
                         _state.value = _state.value.copy(wbRunning = false, wbStatus = TaskStatus.UNCONFIGURED)
@@ -157,7 +164,26 @@ object TaskRunner {
                         _state.value = _state.value.copy(mhyRunning = false, mhyStatus = TaskStatus.UNCONFIGURED)
                         return@async
                     }
-                    val engine = MihoyoEngine(MihoyoApi(MihoyoApi.defaultClient()), repo, list)
+                    // self-heal：旧版导入的账号缺 cookie_token/ltoken，先补全再执行
+                    val api = MihoyoApi(MihoyoApi.defaultClient())
+                    val healed = list.map { acc ->
+                        var fixed = acc
+                        if (!acc.cookie.contains("cookie_token")) {
+                            val deviceId = com.functy.fewards.core.mihoyo.DsSign.deviceId(acc.stoken + acc.stuid)
+                            val deviceFp = com.functy.fewards.core.mihoyo.DsSign.deviceFp(deviceId)
+                            val full = api.fetchWebCookie(acc.stoken, acc.stuid, acc.mid, deviceId, deviceFp)
+                            if (full != null) fixed = fixed.copy(cookie = full)
+                        }
+                        if (acc.nickname.startsWith("账号")) {
+                            val deviceId = com.functy.fewards.core.mihoyo.DsSign.deviceId(acc.stoken + acc.stuid)
+                            val deviceFp = com.functy.fewards.core.mihoyo.DsSign.deviceFp(deviceId)
+                            val nick = api.fetchNickname(acc.stoken, acc.stuid, acc.mid, deviceId, deviceFp)
+                            if (nick != null) fixed = fixed.copy(nickname = nick)
+                        }
+                        if (fixed != acc) accounts.addMihoyoAccount(fixed)
+                        fixed
+                    }
+                    val engine = MihoyoEngine(api, repo, healed)
                     val ok = engine.runAll()
                     if (ok) accounts.markDoneToday("mhy")
                     _state.value = _state.value.copy(

@@ -1,6 +1,5 @@
 package com.functy.fewards.ui.component.miuix
 
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -29,7 +28,6 @@ fun MultilineInputField(
         singleLine = singleLine,
         maxLines = maxLines,
         modifier = modifier
-            .fillMaxWidth()
             .heightIn(min = 56.dp)
             .padding(vertical = 4.dp),
     )

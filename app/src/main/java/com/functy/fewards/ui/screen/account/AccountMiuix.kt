@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.functy.fewards.R
 import com.functy.fewards.ui.component.miuix.MultilineInputField
+import androidx.compose.foundation.layout.width
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import com.functy.fewards.ui.viewmodel.AccountViewModel
 import com.google.zxing.BarcodeFormat
@@ -303,13 +304,17 @@ fun AccountPagerMiuix(
                             )
                             Spacer(Modifier.height(12.dp))
                             var wbToken by rememberSaveable { mutableStateOf("") }
-                            MultilineInputField(
-                                value = wbToken,
-                                onValueChange = { wbToken = it },
-                                label = stringResource(R.string.workbuddy_token_hint),
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                MultilineInputField(
+                                    value = wbToken,
+                                    onValueChange = { wbToken = it },
+                                    label = stringResource(R.string.workbuddy_token_hint),
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Spacer(Modifier.width(12.dp))
                                 TextButton(
                                     text = stringResource(R.string.workbuddy_token_import),
                                     onClick = {
@@ -373,6 +378,7 @@ private fun CookieSection(
             value = cookie,
             onValueChange = { cookie = it },
             label = stringResource(R.string.miyoushe_cookie_hint),
+            modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {

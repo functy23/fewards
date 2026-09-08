@@ -12,7 +12,7 @@ import com.materialkolor.dynamiccolor.ColorSpec
 import com.functy.fewards.FewardsApplication
 import com.functy.fewards.ui.LocalUiMode
 import com.functy.fewards.ui.UiMode
-import com.functy.fewards.ui.navigation3.LocalNavigator
+import com.functy.fewards.ui.navigation.LocalNavigator
 import com.functy.fewards.ui.theme.ColorMode
 import com.functy.fewards.ui.viewmodel.SettingsViewModel
 

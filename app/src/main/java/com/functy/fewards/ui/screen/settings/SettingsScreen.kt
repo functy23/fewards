@@ -8,8 +8,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.functy.fewards.ui.LocalUiMode
 import com.functy.fewards.ui.UiMode
-import com.functy.fewards.ui.navigation3.Navigator
-import com.functy.fewards.ui.navigation3.Route
+import com.functy.fewards.ui.navigation.Navigator
+import com.functy.fewards.ui.navigation.Route
 import com.functy.fewards.ui.viewmodel.SettingsViewModel
 
 @Composable

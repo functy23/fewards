@@ -7,10 +7,8 @@ enum class UiMode(val value: String) {
     Material("material");
 
     companion object {
-        fun fromValue(value: String): UiMode = when (value) {
-            Material.value -> Material
-            else -> Miuix
-        }
+        /** MD3 已按需求整体移除：无论存储值为何，固定使用 Miuix。 */
+        fun fromValue(value: String): UiMode = Miuix
 
         val DEFAULT_VALUE = Miuix.value
     }

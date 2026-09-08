@@ -82,7 +82,7 @@ dependencies {
     implementation(libs.miuix.icons)
     implementation(libs.miuix.preference)
     implementation(libs.miuix.blur)
-    implementation(libs.miuix.navigation3.ui)
+    implementation(libs.miuix.nav)
     implementation(libs.miuix.squircle)
 
     implementation(platform(libs.okhttp.bom))

@@ -127,21 +127,6 @@ fun SettingPagerMiuix(
                             .padding(top = 12.dp)
                             .fillMaxWidth(),
                     ) {
-                        OverlayDropdownPreference(
-                            title = stringResource(id = R.string.settings_ui_mode),
-                            summary = stringResource(id = R.string.settings_ui_mode_summary),
-                            items = UiMode.entries.map { it.name },
-                            startAction = {
-                                Icon(
-                                    Icons.Rounded.Shield,
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    contentDescription = stringResource(id = R.string.settings_ui_mode),
-                                    tint = colorScheme.onBackground
-                                )
-                            },
-                            selectedIndex = if (uiState.uiMode == UiMode.Material.value) 1 else 0,
-                            onSelectedIndexChange = actions.onSetUiModeIndex
-                        )
                         ArrowPreference(
                             title = stringResource(id = R.string.settings_theme),
                             summary = stringResource(id = R.string.settings_theme_summary),
@@ -289,7 +274,7 @@ fun SettingPagerMiuix(
                                 onValueChange = actions.onSetMhyCaptchaApiUrl,
                                 label = stringResource(id = R.string.settings_mhy_captcha_api_url),
                                 singleLine = true,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                             )
                         }
                     }

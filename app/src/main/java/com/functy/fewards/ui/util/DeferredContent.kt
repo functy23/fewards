@@ -1,36 +1,17 @@
 package com.functy.fewards.ui.util
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.withFrameNanos
-import androidx.navigation3.ui.LocalNavAnimatedContentScope
+import androidx.compose.runtime.setValue
 
 /**
- * Returns true only after the navigation transition animation has completed
- * and an additional buffer frame has passed.
- *
- * Timeline:
- * - During animation: returns false → page shows lightweight placeholder (smooth animation)
- * - Animation ends + 1 frame: returns true → heavy content composes
- *   (stutter is invisible because the page is already static)
- *
- * The value is sticky — once true it never reverts to false,
- * so content stays visible during exit transitions.
+ * 轻量内容就绪开关：迁移到 InstallerX-Revived 的 miuix-nav 导航体系后，
+ * 转场为 graphics 层驱动，无需延迟占位；保留接口兼容，恒为 true。
  */
 @Composable
 fun rememberContentReady(): Boolean {
-    val scope = LocalNavAnimatedContentScope.current
-    val transitionRunning = scope.transition.isRunning
-    val ready = remember { mutableStateOf(false) }
-
-    LaunchedEffect(transitionRunning) {
-        if (!transitionRunning && !ready.value) {
-            withFrameNanos { }
-            ready.value = true
-        }
-    }
-
-    return ready.value
+    var ready by remember { mutableStateOf(true) }
+    return ready
 }

@@ -129,7 +129,7 @@ class AccountViewModel : ViewModel() {
         accounts.addWorkBuddyAccount(
             AccountRepository.WorkBuddyAccount(
                 id = "wb_${System.currentTimeMillis()}",
-                label = "WorkBuddy 账号",
+                label = "Work Buddy 账号",
                 token = trimmed,
             )
         )

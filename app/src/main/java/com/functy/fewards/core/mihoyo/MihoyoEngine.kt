@@ -177,7 +177,7 @@ class MihoyoEngine(
             val region = role.optString("region")
             val label = "${game.name} $nickname($uid)"
 
-            val infoData = api.getJson(
+            val infoData0 = api.getJson(
                 game.infoUrl,
                 gameHeaders(account, game, deviceId),
                 params = mapOf(
@@ -187,6 +187,23 @@ class MihoyoEngine(
                     "lang" to "zh-cn",
                 )
             )
+            var infoData = infoData0
+            if (infoData.optInt("retcode") != 0) {
+                // 疑似登录态问题：刷 cookie_token 后重试一次
+                val newCookie = api.refreshCookieToken(account)
+                if (newCookie != null) {
+                    infoData = api.getJson(
+                        game.infoUrl,
+                        gameHeaders(account.copy(cookie = newCookie), game, deviceId),
+                        params = mapOf(
+                            "act_id" to game.actId,
+                            "region" to region,
+                            "uid" to uid,
+                            "lang" to "zh-cn",
+                        )
+                    )
+                }
+            }
             if (infoData.optInt("retcode") != 0) {
                 emit("$label 查询签到状态失败: ${infoData.optString("message")}")
                 ok = false
