@@ -12,13 +12,22 @@ Agent instructions for **Fewards** (`com.functy.fewards`). Product surface and u
 
 ## Build
 
-Ship **release + R8**. Debug first-frame composition hitch is expected; do not paper over it with enter delays.
+Ship **release + R8** (`optimization.enable`). Debug first-frame composition hitch is expected; do not paper over it with enter delays. A compile-only check is not a delivery.
+
+Every user-facing / comparison APK:
+
+1. Bump `fewardsVersionCode` / `fewardsVersionName` (patch +1) **before** assembling.
+2. Assemble:
 
 ```bash
 ./gradlew :app:assembleRelease
 ```
 
-Every user-facing APK bumps `fewardsVersionCode` / `fewardsVersionName` (patch +1) and the filename (`Fewards-<version>-release.apk`).
+3. Copy the artifact to `~/Downloads` with the version in the filename. Do not leave it only under `app/build/outputs/`.
+
+```bash
+cp app/build/outputs/apk/release/app-release.apk ~/Downloads/Fewards-<version>-release.apk
+```
 
 Toolchain facts: AGP 9.4 / Kotlin 2.4 / miuix 0.9.3 (`-android` artifact suffix) / miuix-nav 0.9.4-rc01 / minSdk 31 / Java 21. Room stays on a version the Aliyun/Google mirrors actually serve. Maven Central is not reachable; use the Aliyun mirror chain in `settings.gradle.kts`.
 
