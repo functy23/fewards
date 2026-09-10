@@ -29,4 +29,5 @@ data class ColorPaletteScreenActions(
     val onSetEnableNavigationBadge: (Boolean) -> Unit,
     val onSetPredictiveBackAnimation: (Int) -> Unit,
     val onSetPageScale: (Float) -> Unit,
+    val onSetUiMode: (String) -> Unit,
 )

@@ -56,6 +56,7 @@ fun ColorPaletteScreen() {
         onSetEnableNavigationBadge = viewModel::setEnableNavigationBadge,
         onSetPredictiveBackAnimation = viewModel::setPredictiveBackAnimation,
         onSetPageScale = viewModel::setPageScale,
+        onSetUiMode = viewModel::setUiMode,
     )
 
     when (LocalUiMode.current) {

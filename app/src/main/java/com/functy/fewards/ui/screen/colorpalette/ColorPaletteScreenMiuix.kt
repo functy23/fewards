@@ -175,7 +175,19 @@ fun ColorPaletteScreenMiuix(
             ) {
                 item {
                     Spacer(modifier = Modifier.height(12.dp))
-
+                    WindowSpinnerPreference(
+                        title = stringResource(id = R.string.settings_ui_engine),
+                        items = listOf(
+                            stringResource(id = R.string.settings_ui_miuix),
+                            stringResource(id = R.string.settings_ui_material),
+                        ).map { DropdownItem(title = it) },
+                        selectedIndex = if (uiState.uiMode == "material") 1 else 0,
+                        onSelectedIndexChange = { index ->
+                            actions.onSetUiMode(if (index == 0) "miuix" else "material")
+                        },
+                    )
+                }
+                item {
                     val themeItems = listOf(
                         stringResource(id = R.string.settings_theme_mode_system),
                         stringResource(id = R.string.settings_theme_mode_light),

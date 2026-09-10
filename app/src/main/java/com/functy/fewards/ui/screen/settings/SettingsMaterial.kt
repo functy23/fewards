@@ -80,7 +80,10 @@ fun SettingPagerMaterial(
                             icon = Icons.Filled.Shield,
                             title = stringResource(id = R.string.settings_ui_mode),
                             summary = stringResource(id = R.string.settings_ui_mode_summary),
-                            items = UiMode.entries.map { it.name },
+                            items = listOf(
+                                stringResource(id = R.string.settings_ui_miuix),
+                                stringResource(id = R.string.settings_ui_material),
+                            ),
                             selectedIndex = if (uiState.uiMode == UiMode.Material.value) 1 else 0,
                             onItemSelected = actions.onSetUiModeIndex
                         )

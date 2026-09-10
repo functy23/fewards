@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.Brightness3
 import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.Brightness7
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DesignServices
@@ -150,6 +151,29 @@ fun ColorPaletteScreenMaterial(
                 isAmoled = isAmoled,
                 paletteStyle = colorStyle,
                 colorSpec = colorSpec,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            SegmentedColumn(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                content = listOf(
+                    {
+                        SegmentedDropdownItem(
+                            icon = Icons.Filled.Style,
+                            title = stringResource(id = R.string.settings_ui_engine),
+                            summary = stringResource(id = R.string.settings_ui_mode_summary),
+                            items = listOf(
+                                stringResource(id = R.string.settings_ui_miuix),
+                                stringResource(id = R.string.settings_ui_material),
+                            ),
+                            selectedIndex = if (uiState.uiMode == "material") 1 else 0,
+                            onItemSelected = { index ->
+                                actions.onSetUiMode(if (index == 0) "miuix" else "material")
+                            },
+                        )
+                    },
+                ),
             )
 
             Spacer(modifier = Modifier.height(8.dp))

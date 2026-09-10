@@ -1,6 +1,12 @@
 # Fewards
 
-Android 自动签到：**米游社**（游戏签到 + 米游币任务）和 **WorkBuddy**（每日积分）。Kotlin + Jetpack Compose，双 UI（Miuix / Material 3）。UI 骨架来自 [KernelSU manager](https://github.com/tiann/KernelSU)。
+Android 自动签到：**米游社**（游戏签到 + 米游币任务）和 **WorkBuddy**（每日积分）。Kotlin + Jetpack Compose，**Material 3 Expressive** 与 **Miuix** 两套界面（设置 → 主题 → 界面引擎切换）。
+
+参考：
+
+- UI：[KernelSU manager](https://github.com/tiann/KernelSU)、[InstallerX Revived](https://github.com/wxxsfxyzm/InstallerX-Revived)（双 UI / 导航 / 主题页）
+- 米游社：[MiyoQian](https://github.com/Womsxd/MiyoQian)
+- WorkBuddy：公开 HTTP 接口（`copilot.tencent.com/billing/meter`）
 
 这是当前维护的版本。早期同功能仓库已归档，请只用本仓库：
 
