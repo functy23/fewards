@@ -11,6 +11,7 @@
 
     <!-- 主页 -->
     <string name="home_tasks_all_done">已完成</string>
+    <string name="home_tasks_running">执行中</string>
     <string name="home_tasks_not_done">未完成</string>
     <string name="home_task_status_done">已完成</string>
     <string name="home_task_status_undone">未完成</string>
@@ -111,6 +112,20 @@
     <string name="settings_schedule_summary">每天在设定时间自动执行已勾选任务。</string>
     <string name="settings_notification">任务进度通知</string>
     <string name="settings_notification_summary">执行签到时发出系统通知。</string>
+    <string name="settings_overview">完成总览</string>
+    <string name="settings_overview_auto">完成后自动消失</string>
+    <string name="settings_overview_auto_summary">关闭后，完成态会展开并显示确认按钮，直到你点确认或划掉。</string>
+    <string name="settings_overview_hold">总览停留时间</string>
+    <string name="settings_overview_hold_summary">自动消失前，完成态停留的时长。</string>
+    <string name="settings_overview_hold_custom">自定义</string>
+    <string name="settings_overview_hold_custom_title">自定义停留时间</string>
+    <string name="settings_overview_hold_custom_hint">秒</string>
+    <string name="settings_overview_hold_seconds">%1$s 秒</string>
+    <string name="notify_live_channel">签到实时活动</string>
+    <string name="notify_live_channel_summary">在状态栏 / 锁屏以实时活动显示签到进度。</string>
+    <string name="notify_live_short_running">签到中</string>
+    <string name="notify_live_short_done">已完成</string>
+    <string name="notify_live_short_error">有失败项</string>
 
     <string name="send_log">发送日志</string>
     <string name="save_log">保存日志</string>

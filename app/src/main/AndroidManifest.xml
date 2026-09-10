@@ -35,6 +35,10 @@
         </activity>
 
         <receiver
+            android:name=".work.NotificationActionReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".work.BootReceiver"
             android:enabled="true"
             android:exported="false">

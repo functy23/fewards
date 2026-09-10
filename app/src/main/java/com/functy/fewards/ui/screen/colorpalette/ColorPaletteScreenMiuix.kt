@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuOpen
@@ -42,13 +43,17 @@ import androidx.compose.material.icons.rounded.Pin
 import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.WaterDrop
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,21 +77,22 @@ import com.functy.fewards.ui.theme.keyColorOptions
 import com.functy.fewards.ui.util.BlurredBar
 import com.functy.fewards.ui.util.rememberBlurBackdrop
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.SliderDefaults
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
+import top.yukonga.miuix.kmp.preference.WindowSpinnerPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -97,20 +103,37 @@ fun ColorPaletteScreenMiuix(
     actions: ColorPaletteScreenActions,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    val enableBlurState = LocalEnableBlur.current
-    val backdrop = rememberBlurBackdrop(enableBlurState)
-    val blurActive = backdrop != null
-    val barColor = if (blurActive) Color.Transparent else colorScheme.surface
+    val lazyListState = rememberLazyListState()
+    val enableBlur = LocalEnableBlur.current
+    val barBlurBackdrop = rememberBlurBackdrop(enableBlur)
+    val scrolled by remember {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 8
+        }
+    }
+    // 对齐关于页：进场不要立刻 textureBlur，否则和位移抢帧。
+    val blurActive = barBlurBackdrop != null && scrolled
+    val barColor = if (blurActive) {
+        Color.Transparent
+    } else {
+        if (scrolled) colorScheme.surface else Color.Transparent
+    }
     val uiState = state.uiState
-    val currentColorMode = state.currentColorMode
-    val isDark = currentColorMode.isDark || currentColorMode.isSystem && isSystemInDarkTheme()
+    var extrasReady by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        withFrameNanos { }
+        extrasReady = true
+    }
 
     Scaffold(
         topBar = {
-            BlurredBar(backdrop) {
-                TopAppBar(
-                    color = barColor,
+            BlurredBar(backdrop = barBlurBackdrop, blurActive = blurActive) {
+                SmallTopAppBar(
                     title = stringResource(R.string.settings_theme),
+                    scrollBehavior = scrollBehavior,
+                    color = barColor,
+                    titleColor = colorScheme.onSurface,
                     navigationIcon = {
                         IconButton(
                             onClick = actions.onBack
@@ -126,19 +149,23 @@ fun ColorPaletteScreenMiuix(
                             )
                         }
                     },
-                    scrollBehavior = scrollBehavior,
                 )
             }
         },
-        popupHost = { },
         contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         val showScaleDialog = rememberSaveable { mutableStateOf(false) }
 
-        Box(modifier = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colorScheme.surface)
+                .then(if (barBlurBackdrop != null) Modifier.layerBackdrop(barBlurBackdrop) else Modifier),
+        ) {
             LazyColumn(
+                state = lazyListState,
                 modifier = Modifier
-                    .fillMaxHeight()
+                    .fillMaxSize()
                     .scrollEndHaptic()
                     .overScrollVertical()
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
@@ -147,17 +174,7 @@ fun ColorPaletteScreenMiuix(
                 overscrollEffect = null,
             ) {
                 item {
-                    Spacer(modifier = Modifier.height(32.dp))
-                    ThemePreviewCardMiuix(
-                        keyColor = uiState.keyColor,
-                        isDark = isDark,
-                        miuixMonet = uiState.miuixMonet,
-                        enableFloatingBottomBar = uiState.enableFloatingBottomBar,
-                        enableFloatingBottomBarBlur = uiState.enableFloatingBottomBarBlur,
-                        paletteStyle = state.currentPaletteStyle,
-                        colorSpec = state.currentColorSpec,
-                    )
-                    Spacer(modifier = Modifier.height(72.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     val themeItems = listOf(
                         stringResource(id = R.string.settings_theme_mode_system),
@@ -171,7 +188,21 @@ fun ColorPaletteScreenMiuix(
                             actions.onSetThemeMode(index)
                         },
                     )
-
+                }
+                item {
+                    val isDark = state.currentColorMode.isDark ||
+                        state.currentColorMode.isSystem && isSystemInDarkTheme()
+                    ThemePreviewCardMiuix(
+                        keyColor = uiState.keyColor,
+                        isDark = isDark,
+                        miuixMonet = uiState.miuixMonet,
+                        enableFloatingBottomBar = uiState.enableFloatingBottomBar,
+                        enableFloatingBottomBarBlur = uiState.enableFloatingBottomBarBlur,
+                        paletteStyle = state.currentPaletteStyle,
+                        colorSpec = state.currentColorSpec,
+                    )
+                }
+                item {
                     Card(
                         modifier = Modifier
                             .padding(top = 12.dp)
@@ -194,7 +225,7 @@ fun ColorPaletteScreenMiuix(
                         )
 
                         AnimatedVisibility(
-                            visible = uiState.miuixMonet
+                            visible = uiState.miuixMonet && extrasReady
                         ) {
                             Column {
                                 val colorItems = listOf(
@@ -216,9 +247,9 @@ fun ColorPaletteScreenMiuix(
                                     stringResource(id = R.string.color_sakura),
                                 )
                                 val colorValues = listOf(0) + keyColorOptions
-                                OverlayDropdownPreference(
+                                WindowSpinnerPreference(
                                     title = stringResource(id = R.string.settings_key_color),
-                                    items = colorItems,
+                                    items = colorItems.map { DropdownItem(title = it) },
                                     startAction = {
                                         Icon(
                                             Icons.Rounded.Colorize,
@@ -238,7 +269,7 @@ fun ColorPaletteScreenMiuix(
                                 ) {
                                     Column {
                                         val styles = PaletteStyle.entries
-                                        OverlayDropdownPreference(
+                                        WindowSpinnerPreference(
                                             title = stringResource(R.string.settings_color_style),
                                             startAction = {
                                                 Icon(
@@ -248,7 +279,7 @@ fun ColorPaletteScreenMiuix(
                                                     tint = colorScheme.onBackground
                                                 )
                                             },
-                                            items = styles.map { it.name },
+                                            items = styles.map { DropdownItem(title = it.name) },
                                             selectedIndex = styles.indexOfFirst { it.name == uiState.colorStyle }.coerceAtLeast(0),
                                             onSelectedIndexChange = { index ->
                                                 actions.onSetColorStyle(styles[index].name)
@@ -256,7 +287,7 @@ fun ColorPaletteScreenMiuix(
                                         )
 
                                         val specs = ColorSpec.SpecVersion.entries
-                                        OverlayDropdownPreference(
+                                        WindowSpinnerPreference(
                                             title = stringResource(R.string.settings_color_spec),
                                             startAction = {
                                                 Icon(
@@ -266,7 +297,7 @@ fun ColorPaletteScreenMiuix(
                                                     tint = colorScheme.onBackground
                                                 )
                                             },
-                                            items = specs.map { it.name },
+                                            items = specs.map { DropdownItem(title = it.name) },
                                             selectedIndex = specs.indexOfFirst { it.name == uiState.colorSpec }.coerceAtLeast(0),
                                             onSelectedIndexChange = { index ->
                                                 actions.onSetColorSpec(specs[index].name)
@@ -277,7 +308,8 @@ fun ColorPaletteScreenMiuix(
                             }
                         }
                     }
-
+                }
+                item {
                     Card(
                         modifier = Modifier
                             .padding(top = 12.dp)
@@ -352,13 +384,14 @@ fun ColorPaletteScreenMiuix(
                             }
                         )
                     }
-
+                }
+                item {
                     Card(
                         modifier = Modifier
                             .padding(top = 12.dp)
                             .fillMaxWidth(),
                     ) {
-                        OverlayDropdownPreference(
+                        WindowSpinnerPreference(
                                 title = stringResource(id = R.string.settings_back_animation),
                                 items = listOf(
                                     stringResource(id = R.string.back_anim_none),
@@ -366,7 +399,7 @@ fun ColorPaletteScreenMiuix(
                                     stringResource(id = R.string.back_anim_aosp),
                                     stringResource(id = R.string.back_anim_scale),
                                     stringResource(id = R.string.back_anim_classic),
-                                ),
+                                ).map { DropdownItem(title = it) },
                                 startAction = {
                                     Icon(
                                         Icons.AutoMirrored.Rounded.MenuOpen,

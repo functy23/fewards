@@ -1,10 +1,9 @@
 package com.functy.fewards
 
 import android.app.Application
-import android.os.Build
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
+import com.functy.fewards.ui.viewmodel.TaskRunner
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
@@ -24,6 +23,9 @@ class FewardsApplication : Application(), ViewModelStoreOwner {
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
+
+        // 进程冷启动时从本地完成标记恢复今日状态，避免主页被 TaskRunner 内存默认值盖成「未完成」。
+        TaskRunner.refreshStatus()
     }
 
     override val viewModelStore: ViewModelStore

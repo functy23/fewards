@@ -25,6 +25,13 @@ class MihoyoEngine(
 
     private fun emit(message: String) = AppLog.i("MHY", message)
 
+    private fun isAlreadyDone(retcode: Int, message: String): Boolean {
+        if (retcode == MihoyoConstants.RET_ALREADY_SIGNED) return true
+        val m = message
+        return m.contains("已签") || m.contains("已完成") || m.contains("重复") ||
+            m.contains("已经") || m.contains("already", ignoreCase = true)
+    }
+
     private suspend fun sleep() {
         delay(Random.nextLong(1000, 3000))
     }
@@ -252,8 +259,12 @@ class MihoyoEngine(
                     emit("$label 今日已签到，奖励 ${describeAward(awards, dayIndex)}")
                 }
                 signData.optInt("retcode") != 0 -> {
-                    emit("$label 签到失败: ${signData.optString("message")}(${signData.optInt("retcode")})")
-                    ok = false
+                    if (isAlreadyDone(signData.optInt("retcode"), signData.optString("message"))) {
+                        emit("$label 今日已签到，奖励 ${describeAward(awards, dayIndex)}")
+                    } else {
+                        emit("$label 签到失败: ${signData.optString("message")}(${signData.optInt("retcode")})")
+                        ok = false
+                    }
                 }
                 (signData.optJSONObject("data") ?: JSONObject()).optInt("success") == 1 -> {
                     // 触发验证码：默认跳过并记录；可选打码接口（可根据实际抓包微调）
@@ -371,9 +382,11 @@ class MihoyoEngine(
                     MihoyoConstants.BBS_SIGN_URL, body,
                     headers + mapOf("DS" to DsSign.dsX6(body = body))
                 )
-                when (data.optInt("retcode")) {
-                    MihoyoConstants.RET_OK -> emit("${forum.name} 社区签到成功")
-                    MihoyoConstants.RET_CAPTCHA -> emit("${forum.name} 社区签到触发验证码，已跳过")
+                when {
+                    data.optInt("retcode") == MihoyoConstants.RET_OK -> emit("${forum.name} 社区签到成功")
+                    data.optInt("retcode") == MihoyoConstants.RET_CAPTCHA -> emit("${forum.name} 社区签到触发验证码，已跳过")
+                    isAlreadyDone(data.optInt("retcode"), data.optString("message")) ->
+                        emit("${forum.name} 社区签到已完成，跳过")
                     else -> {
                         emit("${forum.name} 社区签到失败: ${data.optString("message")}")
                         ok = false
@@ -405,7 +418,9 @@ class MihoyoEngine(
                     appHeaders(account, deviceId, deviceFp),
                     params = mapOf("post_id" to postId)
                 )
-                if (data.optString("message") == "OK") emit("阅读成功: $title") else {
+                if (data.optString("message") == "OK" || isAlreadyDone(data.optInt("retcode"), data.optString("message"))) {
+                    emit("阅读成功: $title")
+                } else {
                     emit("阅读失败: $title (${data.optString("message")})")
                     ok = false
                 }
@@ -436,6 +451,8 @@ class MihoyoEngine(
                     }
                 } else if (data.optInt("retcode") == MihoyoConstants.RET_CAPTCHA) {
                     emit("点赞触发验证码，已跳过: $title")
+                } else if (isAlreadyDone(data.optInt("retcode"), data.optString("message"))) {
+                    emit("点赞已完成: $title")
                 } else {
                     emit("点赞失败: $title (${data.optString("message")})")
                     ok = false
@@ -461,7 +478,9 @@ class MihoyoEngine(
                         params = mapOf("entity_id" to postId, "entity_type" to "1")
                     )
                 }
-                if (data.optString("message") == "OK") emit("分享成功: $title") else {
+                if (data.optString("message") == "OK" || isAlreadyDone(data.optInt("retcode"), data.optString("message"))) {
+                    emit("分享成功: $title")
+                } else {
                     emit("分享失败: $title (${data.optString("message")})")
                     ok = false
                 }
@@ -472,7 +491,10 @@ class MihoyoEngine(
         // 汇总
         state = taskState(account, deviceId) ?: state
         val finalReceived = state.optInt("already_received_points", received)
+        val finalCanGet = state.optInt("can_get_points", canGet)
         emit("社区任务结束：今日已得 $finalReceived，当前总计 ${state.optInt("total_points", total)}")
+        // 今日额度已拿满视为成功，避免「已完成再跑一遍」被个别步骤误判成失败。
+        if (finalCanGet == 0) return true
         return ok
     }
 

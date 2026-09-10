@@ -62,6 +62,8 @@ class SettingsViewModel(
                     scheduleHour = repo.scheduleHour,
                     scheduleMinute = repo.scheduleMinute,
                     taskNotification = repo.taskNotification,
+                    overviewAutoDismiss = repo.overviewAutoDismiss,
+                    overviewHoldSeconds = repo.overviewHoldSeconds,
                 )
             }
         }
@@ -267,6 +269,16 @@ class SettingsViewModel(
     fun setTaskNotification(enabled: Boolean) {
         repo.taskNotification = enabled
         _uiState.update { it.copy(taskNotification = enabled) }
+    }
+
+    fun setOverviewAutoDismiss(enabled: Boolean) {
+        repo.overviewAutoDismiss = enabled
+        _uiState.update { it.copy(overviewAutoDismiss = enabled) }
+    }
+
+    fun setOverviewHoldSeconds(seconds: Float) {
+        repo.overviewHoldSeconds = seconds.coerceIn(0.05f, 30f)
+        _uiState.update { it.copy(overviewHoldSeconds = repo.overviewHoldSeconds) }
     }
 
     private fun toast(message: String) {

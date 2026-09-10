@@ -7,6 +7,7 @@ import com.functy.fewards.data.repository.AccountRepository
 import com.functy.fewards.data.repository.SettingsRepositoryImpl
 import com.functy.fewards.ui.screen.home.HomeActions
 import com.functy.fewards.ui.screen.home.HomeUiState
+import com.functy.fewards.work.TaskNotifier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +26,9 @@ class TaskViewModel : ViewModel() {
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
+        // TaskRunner.state 初始值是 UNCONFIGURED；必须先从 prefs 水合，否则 collect 会把
+        // refresh() 读到的「已完成」立刻盖回「未完成/未配置」。
+        TaskRunner.refreshStatus()
         refresh()
         // 执行状态跟随 TaskRunner（Worker 在另一协程里跑，完成后这里同步状态卡）
         viewModelScope.launch {
@@ -44,10 +48,23 @@ class TaskViewModel : ViewModel() {
     }
 
     fun refresh() {
+        val runner = TaskRunner.state.value
         _uiState.update {
             it.copy(
-                wbStatus = resolveStatus(accounts.workBuddyConfigured(), accounts.isDoneToday("wb")),
-                mhyStatus = resolveStatus(accounts.mihoyoConfigured(), accounts.isDoneToday("mhy")),
+                wbStatus = if (runner.wbRunning) {
+                    runner.wbStatus
+                } else {
+                    resolveStatus(accounts.workBuddyConfigured(), accounts.isDoneToday("wb"))
+                },
+                mhyStatus = if (runner.mhyRunning) {
+                    runner.mhyStatus
+                } else {
+                    resolveStatus(accounts.mihoyoConfigured(), accounts.isDoneToday("mhy"))
+                },
+                wbRunning = runner.wbRunning,
+                mhyRunning = runner.mhyRunning,
+                running = runner.running,
+                lastRunSummary = runner.lastRunSummary,
                 wbChecked = it.wbChecked,
                 mhyChecked = it.mhyChecked,
             )
@@ -70,6 +87,7 @@ class TaskViewModel : ViewModel() {
 
     val homeActions = HomeActions(
         onRun = { runWb, runMhy ->
+            TaskNotifier.startRun("正在执行…")
             viewModelScope.launch {
                 AppLog.i("SYS", "开始执行：WorkBuddy=$runWb 米游社=$runMhy")
                 TaskRunner.execute(runWb, runMhy)

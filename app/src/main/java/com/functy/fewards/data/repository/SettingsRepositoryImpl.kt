@@ -87,6 +87,14 @@ class SettingsRepositoryImpl : SettingsRepository {
         get() = prefs.getBoolean("task_notification", true)
         set(value) = prefs.edit { putBoolean("task_notification", value) }
 
+    override var overviewAutoDismiss: Boolean
+        get() = prefs.getBoolean("overview_auto_dismiss", true)
+        set(value) = prefs.edit { putBoolean("overview_auto_dismiss", value) }
+
+    override var overviewHoldSeconds: Float
+        get() = prefs.getFloat("overview_hold_seconds", 0.5f)
+        set(value) = prefs.edit { putFloat("overview_hold_seconds", value) }
+
     override var mhyMasterEnabled: Boolean
         get() = prefs.getBoolean("mhy_master_enabled", true)
         set(value) = prefs.edit { putBoolean("mhy_master_enabled", value) }

@@ -24,6 +24,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Gamepad
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material.icons.rounded.HourglassBottom
 import androidx.compose.material.icons.rounded.Notifications
 import android.Manifest
 import android.content.pm.PackageManager
@@ -67,6 +74,8 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -74,8 +83,10 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
+import top.yukonga.miuix.kmp.preference.OverlaySpinnerPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -106,7 +117,6 @@ fun SettingPagerMiuix(
                 )
             }
         },
-        popupHost = { },
         contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal),
     ) { innerPadding ->
         Box(modifier = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier) {
@@ -162,6 +172,12 @@ fun SettingPagerMiuix(
                             checked = uiState.mhyMasterEnabled,
                             onCheckedChange = actions.onSetMhyMaster
                         )
+                        AnimatedVisibility(
+                            visible = uiState.mhyMasterEnabled,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically(),
+                        ) {
+                            Column {
                         SwitchPreference(
                             title = stringResource(id = R.string.settings_mhy_game_sign),
                             summary = stringResource(id = R.string.settings_mhy_game_sign_summary),
@@ -170,10 +186,9 @@ fun SettingPagerMiuix(
                                     Icons.Rounded.Gamepad,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_game_sign),
-                                    tint = if (uiState.mhyMasterEnabled) colorScheme.onBackground else colorScheme.disabledOnSecondaryVariant
+                                    tint = colorScheme.onBackground
                                 )
                             },
-                            enabled = uiState.mhyMasterEnabled,
                             checked = uiState.mhyGameSign,
                             onCheckedChange = actions.onSetMhyGameSign
                         )
@@ -185,10 +200,9 @@ fun SettingPagerMiuix(
                                     Icons.Rounded.WorkspacePremium,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_bbs_sign),
-                                    tint = if (uiState.mhyMasterEnabled) colorScheme.onBackground else colorScheme.disabledOnSecondaryVariant
+                                    tint = colorScheme.onBackground
                                 )
                             },
-                            enabled = uiState.mhyMasterEnabled,
                             checked = uiState.mhyBbsSign,
                             onCheckedChange = actions.onSetMhyBbsSign
                         )
@@ -200,10 +214,9 @@ fun SettingPagerMiuix(
                                     Icons.Rounded.Visibility,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_read),
-                                    tint = if (uiState.mhyMasterEnabled) colorScheme.onBackground else colorScheme.disabledOnSecondaryVariant
+                                    tint = colorScheme.onBackground
                                 )
                             },
-                            enabled = uiState.mhyMasterEnabled,
                             checked = uiState.mhyRead,
                             onCheckedChange = actions.onSetMhyRead
                         )
@@ -215,13 +228,17 @@ fun SettingPagerMiuix(
                                     Icons.Rounded.ThumbUp,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_like),
-                                    tint = if (uiState.mhyMasterEnabled) colorScheme.onBackground else colorScheme.disabledOnSecondaryVariant
+                                    tint = colorScheme.onBackground
                                 )
                             },
-                            enabled = uiState.mhyMasterEnabled,
                             checked = uiState.mhyLike,
                             onCheckedChange = actions.onSetMhyLike
                         )
+                        AnimatedVisibility(
+                            visible = uiState.mhyLike,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically(),
+                        ) {
                         SwitchPreference(
                             title = stringResource(id = R.string.settings_mhy_cancel_like),
                             startAction = {
@@ -229,13 +246,13 @@ fun SettingPagerMiuix(
                                     Icons.Rounded.Recommend,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_cancel_like),
-                                    tint = if (uiState.mhyMasterEnabled && uiState.mhyLike) colorScheme.onBackground else colorScheme.disabledOnSecondaryVariant
+                                    tint = colorScheme.onBackground
                                 )
                             },
-                            enabled = uiState.mhyMasterEnabled && uiState.mhyLike,
                             checked = uiState.mhyCancelLike,
                             onCheckedChange = actions.onSetMhyCancelLike
                         )
+                        }
                         SwitchPreference(
                             title = stringResource(id = R.string.settings_mhy_share),
                             startAction = {
@@ -243,10 +260,9 @@ fun SettingPagerMiuix(
                                     Icons.Rounded.Person,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_share),
-                                    tint = if (uiState.mhyMasterEnabled) colorScheme.onBackground else colorScheme.disabledOnSecondaryVariant
+                                    tint = colorScheme.onBackground
                                 )
                             },
-                            enabled = uiState.mhyMasterEnabled,
                             checked = uiState.mhyShare,
                             onCheckedChange = actions.onSetMhyShare
                         )
@@ -261,10 +277,9 @@ fun SettingPagerMiuix(
                                     Icons.Rounded.Shield,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_captcha),
-                                    tint = if (uiState.mhyMasterEnabled) colorScheme.onBackground else colorScheme.disabledOnSecondaryVariant
+                                    tint = colorScheme.onBackground
                                 )
                             },
-                            enabled = uiState.mhyMasterEnabled,
                             selectedIndex = uiState.mhyCaptchaPolicy,
                             onSelectedIndexChange = actions.onSetMhyCaptchaPolicy
                         )
@@ -276,6 +291,8 @@ fun SettingPagerMiuix(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                             )
+                        }
+                            }
                         }
                     }
 
@@ -357,6 +374,59 @@ fun SettingPagerMiuix(
                                 }
                             },
                         )
+                        SwitchPreference(
+                            title = stringResource(id = R.string.settings_overview_auto),
+                            summary = stringResource(id = R.string.settings_overview_auto_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.HourglassBottom,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_overview),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.overviewAutoDismiss,
+                            onCheckedChange = actions.onSetOverviewAutoDismiss
+                        )
+                        var showCustomHold by rememberSaveable { mutableStateOf(false) }
+                        val holdLabels = OVERVIEW_HOLD_PRESETS.map { seconds ->
+                            stringResource(R.string.settings_overview_hold_seconds, formatHoldSeconds(seconds))
+                        } + stringResource(R.string.settings_overview_hold_custom)
+                        val holdSelected = OVERVIEW_HOLD_PRESETS.indexOfFirst { it == uiState.overviewHoldSeconds }
+                            .takeIf { it >= 0 } ?: OVERVIEW_HOLD_PRESETS.size
+                        OverlaySpinnerPreference(
+                            title = stringResource(id = R.string.settings_overview_hold),
+                            summary = stringResource(
+                                R.string.settings_overview_hold_seconds,
+                                formatHoldSeconds(uiState.overviewHoldSeconds),
+                            ),
+                            items = holdLabels.map { DropdownItem(title = it) },
+                            selectedIndex = holdSelected,
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Schedule,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_overview_hold),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            onSelectedIndexChange = { index ->
+                                if (index in OVERVIEW_HOLD_PRESETS.indices) {
+                                    actions.onSetOverviewHoldSeconds(OVERVIEW_HOLD_PRESETS[index])
+                                } else {
+                                    showCustomHold = true
+                                }
+                            },
+                        )
+                        OverviewHoldCustomDialog(
+                            show = showCustomHold,
+                            currentSeconds = uiState.overviewHoldSeconds,
+                            onConfirm = {
+                                actions.onSetOverviewHoldSeconds(it)
+                                showCustomHold = false
+                            },
+                            onDismiss = { showCustomHold = false },
+                        )
                     }
 
                     // ==================== 导入 / 导出 ====================
@@ -436,4 +506,54 @@ fun SettingPagerMiuix(
             }
         }
     }
+}
+
+@Composable
+private fun OverviewHoldCustomDialog(
+    show: Boolean,
+    currentSeconds: Float,
+    onConfirm: (Float) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var text by remember(show) { mutableStateOf(formatHoldSeconds(currentSeconds)) }
+    OverlayDialog(
+        show = show,
+        title = stringResource(R.string.settings_overview_hold_custom_title),
+        onDismissRequest = onDismiss,
+        content = {
+            TextField(
+                modifier = Modifier.padding(bottom = 16.dp),
+                value = text,
+                maxLines = 1,
+                trailingIcon = {
+                    Text(
+                        text = stringResource(R.string.settings_overview_hold_custom_hint),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = colorScheme.onSurfaceVariantActions,
+                    )
+                },
+                onValueChange = { incoming ->
+                    if (incoming.isEmpty() || incoming.matches(Regex("^\\d*\\.?\\d*$"))) {
+                        text = incoming
+                    }
+                },
+            )
+            Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                TextButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(20.dp))
+                TextButton(
+                    text = stringResource(R.string.ok),
+                    onClick = {
+                        text.toFloatOrNull()?.let { onConfirm(it) } ?: onDismiss()
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                )
+            }
+        },
+    )
 }

@@ -1,24 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- KSU 白底深色几何：小尺寸居中的圆角 F + 点。 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- stem -->
     <path
-        android:fillColor="@color/ic_launcher_foreground"
+        android:fillColor="#FF000000"
         android:pathData="M44,38h7c1.7,0 3,1.3 3,3v26c0,1.7 -1.3,3 -3,3h-7c-1.7,0 -3,-1.3 -3,-3V41c0,-1.7 1.3,-3 3,-3z" />
-    <!-- top bar -->
     <path
-        android:fillColor="@color/ic_launcher_foreground"
+        android:fillColor="#FF000000"
         android:pathData="M44,38h22c1.7,0 3,1.3 3,3v1c0,1.7 -1.3,3 -3,3H44V38z" />
-    <!-- middle bar -->
     <path
-        android:fillColor="@color/ic_launcher_foreground"
+        android:fillColor="#FF000000"
         android:pathData="M44,52h12c1.7,0 3,1.3 3,3v1c0,1.7 -1.3,3 -3,3H44V52z" />
-    <!-- 点 -->
     <path
-        android:fillColor="@color/ic_launcher_foreground"
+        android:fillColor="#FF000000"
         android:pathData="M64,55.5m-3.6,0a3.6,3.6 0,1 1,7.2 0a3.6,3.6 0,1 1,-7.2 0" />
 </vector>

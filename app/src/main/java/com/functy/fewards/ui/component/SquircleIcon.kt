@@ -148,14 +148,14 @@ class G2SquircleShape(private val cornerFraction: Float = 0.30f) : Shape {
     }
 }
 
-/** Squircle 图标：drawable png + G2 连续圆角裁剪（圆角 = size * 0.30，与 Flutter 版一致）。 */
+/** Squircle 图标：drawable png + G2 连续圆角。圆角半径取 size*0.18，避免 0.30 把四角吃进图形。 */
 @Composable
 fun SquircleIcon(
     resId: Int,
     size: Dp,
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
-    cornerFraction: Float = 0.30f,
+    cornerFraction: Float = 0.18f,
 ) {
     val shape = remember(cornerFraction) { G2SquircleShape(cornerFraction) }
     Image(
@@ -164,6 +164,6 @@ fun SquircleIcon(
         modifier = modifier
             .size(size)
             .clip(shape),
-        contentScale = ContentScale.Crop,
+        contentScale = ContentScale.Fit,
     )
 }

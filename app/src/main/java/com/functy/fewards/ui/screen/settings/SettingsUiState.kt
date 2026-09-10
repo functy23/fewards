@@ -42,6 +42,8 @@ data class SettingsUiState(
     val scheduleHour: Int = 8,
     val scheduleMinute: Int = 0,
     val taskNotification: Boolean = true,
+    val overviewAutoDismiss: Boolean = true,
+    val overviewHoldSeconds: Float = 0.5f,
 )
 
 @Immutable
@@ -64,6 +66,19 @@ data class SettingsScreenActions(
     val onSetScheduleEnabled: (Boolean) -> Unit,
     val onSetScheduleTime: (Int, Int) -> Unit,
     val onSetTaskNotification: (Boolean) -> Unit,
+    val onSetOverviewAutoDismiss: (Boolean) -> Unit,
+    val onSetOverviewHoldSeconds: (Float) -> Unit,
     // 其他
     val onOpenAbout: () -> Unit,
 )
+
+internal val OVERVIEW_HOLD_PRESETS = listOf(0.1f, 0.3f, 0.5f, 1.0f)
+
+internal fun formatHoldSeconds(seconds: Float): String {
+    val value = if (seconds == seconds.toLong().toFloat()) {
+        seconds.toLong().toString()
+    } else {
+        seconds.toString().trimEnd('0').trimEnd('.')
+    }
+    return value
+}

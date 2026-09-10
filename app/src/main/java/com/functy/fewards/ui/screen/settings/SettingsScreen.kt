@@ -1,5 +1,7 @@
 package com.functy.fewards.ui.screen.settings
 
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.Dp
@@ -17,7 +19,12 @@ fun SettingPager(
     navigator: Navigator,
     bottomInnerPadding: Dp
 ) {
-    val viewModel = viewModel<SettingsViewModel>()
+    val activity = LocalActivity.current as? ComponentActivity
+    val viewModel = if (activity != null) {
+        viewModel<SettingsViewModel>(viewModelStoreOwner = activity)
+    } else {
+        viewModel<SettingsViewModel>()
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LifecycleResumeEffect(Unit) {
@@ -43,6 +50,8 @@ fun SettingPager(
         onSetScheduleEnabled = viewModel::setScheduleEnabled,
         onSetScheduleTime = viewModel::setScheduleTime,
         onSetTaskNotification = viewModel::setTaskNotification,
+        onSetOverviewAutoDismiss = viewModel::setOverviewAutoDismiss,
+        onSetOverviewHoldSeconds = viewModel::setOverviewHoldSeconds,
         onOpenAbout = { navigator.push(Route.About) },
     )
 

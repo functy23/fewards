@@ -35,6 +35,25 @@ android {
         }
     }
 
+    buildTypes {
+        release {
+            optimization.enable = true
+            signingConfig = signingConfigs.getByName("debug")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+        }
+        debug {
+            optimization.enable = false
+        }
+    }
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     lint {
         abortOnError = false
         checkReleaseBuilds = false

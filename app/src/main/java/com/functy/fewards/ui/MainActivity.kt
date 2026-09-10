@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
@@ -176,18 +178,28 @@ class MainActivity : ComponentActivity() {
                             effects = effects,
                         ) {
                             entry<Route.Main> { mainScreenEntry() }
-                            entry<Route.About> { AboutScreen() }
-                            entry<Route.ColorPalette> { ColorPaletteScreen() }
+                            // 入场层第一帧就铺满 surface，盖住库 scrim 首帧 alpha=1 的全黑。
+                            entry<Route.About> {
+                                Box(Modifier.fillMaxSize().background(backdropColor)) { AboutScreen() }
+                            }
+                            entry<Route.ColorPalette> {
+                                Box(Modifier.fillMaxSize().background(backdropColor)) { ColorPaletteScreen() }
+                            }
                         }
                     }
 
-                    when (uiMode) {
-                        UiMode.Material -> androidx.compose.material3.Scaffold(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer
-                        ) { navDisplay() }
-
-                        UiMode.Miuix -> Scaffold { navDisplay() }
-                    }
+                    // 与 InstallerX 一致：NavDisplay 直接铺在 surface 上，不再套一层空 Scaffold。
+                    // 空 Scaffold 在二级页入场首帧会露出默认深色窗体，表现为「闪一下」。
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                when (uiMode) {
+                                    UiMode.Material -> MaterialTheme.colorScheme.surfaceContainer
+                                    UiMode.Miuix -> MiuixTheme.colorScheme.surface
+                                }
+                            ),
+                    ) { navDisplay() }
                     SideEffect { contentReady = true }
                 }
             }
@@ -268,64 +280,66 @@ fun MainScreen(
             }
         }
 
-        if (useNavigationRail) {
-            val startInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
-                .only(WindowInsetsSides.Start)
-            val navBarBottomPadding = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
+        Box(Modifier.fillMaxSize()) {
+            if (useNavigationRail) {
+                val startInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+                    .only(WindowInsetsSides.Start)
+                val navBarBottomPadding = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
 
-            when (uiMode) {
-                UiMode.Material -> androidx.compose.material3.Scaffold(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                ) {
-                    Row {
-                        SideRail(navigationBadge)
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .consumeWindowInsets(startInsets)
-                        ) {
-                            pagerContent(navBarBottomPadding)
+                when (uiMode) {
+                    UiMode.Material -> androidx.compose.material3.Scaffold(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    ) {
+                        Row {
+                            SideRail(navigationBadge)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .consumeWindowInsets(startInsets)
+                            ) {
+                                pagerContent(navBarBottomPadding)
+                            }
+                        }
+                    }
+
+                    UiMode.Miuix -> Scaffold { _ ->
+                        Row {
+                            SideRail(navigationBadge)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .consumeWindowInsets(startInsets)
+                            ) {
+                                pagerContent(navBarBottomPadding)
+                            }
                         }
                     }
                 }
-
-                UiMode.Miuix -> Scaffold { _ ->
-                    Row {
-                        SideRail(navigationBadge)
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .consumeWindowInsets(startInsets)
-                        ) {
-                            pagerContent(navBarBottomPadding)
-                        }
+            } else {
+                val bottomBar = @Composable {
+                    Box(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        BottomBar(
+                            blurBackdrop = blurBackdrop,
+                            backdrop = backdrop,
+                            navigationBadge = navigationBadge,
+                            modifier = Modifier.align(Alignment.BottomCenter),
+                        )
                     }
                 }
-            }
-        } else {
-            val bottomBar = @Composable {
-                Box(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    BottomBar(
-                        blurBackdrop = blurBackdrop,
-                        backdrop = backdrop,
-                        navigationBadge = navigationBadge,
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                    )
-                }
-            }
 
-            when (uiMode) {
-                UiMode.Material -> androidx.compose.material3.Scaffold(
-                    bottomBar = bottomBar,
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                ) { innerPadding ->
-                    pagerContent(innerPadding.calculateBottomPadding())
-                }
+                when (uiMode) {
+                    UiMode.Material -> androidx.compose.material3.Scaffold(
+                        bottomBar = bottomBar,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    ) { innerPadding ->
+                        pagerContent(innerPadding.calculateBottomPadding())
+                    }
 
-                UiMode.Miuix -> Scaffold(bottomBar = bottomBar) { innerPadding ->
-                    pagerContent(innerPadding.calculateBottomPadding())
+                    UiMode.Miuix -> Scaffold(bottomBar = bottomBar) { innerPadding ->
+                        pagerContent(innerPadding.calculateBottomPadding())
+                    }
                 }
             }
         }

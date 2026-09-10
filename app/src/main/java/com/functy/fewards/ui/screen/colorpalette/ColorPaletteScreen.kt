@@ -1,9 +1,9 @@
 package com.functy.fewards.ui.screen.colorpalette
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -18,9 +18,13 @@ import com.functy.fewards.ui.viewmodel.SettingsViewModel
 @Composable
 fun ColorPaletteScreen() {
     val navigator = LocalNavigator.current
-    val context = LocalContext.current
-    val activity = LocalActivity.current
-    val viewModel = viewModel<SettingsViewModel>()
+    val activity = LocalActivity.current as? ComponentActivity
+    // 与设置页共用 Activity 级 VM，避免每次进主题页新建 SettingsViewModel + 动态色预览导致卡顿。
+    val viewModel = if (activity != null) {
+        viewModel<SettingsViewModel>(viewModelStoreOwner = activity)
+    } else {
+        viewModel<SettingsViewModel>()
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentPaletteStyle = try {
         PaletteStyle.valueOf(uiState.colorStyle)

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Error
+import androidx.compose.material.icons.rounded.Sync
 import com.functy.fewards.R
 import com.functy.fewards.ui.component.SquircleIcon
 import androidx.compose.material3.Button
@@ -76,6 +77,7 @@ fun HomePagerMaterial(
     ) {
         TopBar(scrollBehavior = scrollBehavior)
         StatusCardMaterial(
+            running = state.running,
             allDone = state.wbStatus == TaskRunner.TaskStatus.DONE && state.mhyStatus == TaskRunner.TaskStatus.DONE,
             hasAnyConfigured = state.wbStatus != TaskRunner.TaskStatus.UNCONFIGURED ||
                 state.mhyStatus != TaskRunner.TaskStatus.UNCONFIGURED,
@@ -83,7 +85,10 @@ fun HomePagerMaterial(
         TaskListCardMaterial(state)
         Row(horizontalArrangement = Arrangement.spacedBy(13.dp)) {
             TonalCard(modifier = Modifier.weight(1f)) {
-                Column(modifier = Modifier.padding(16.dp, 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp, 12.dp),
+                    verticalArrangement = Arrangement.Center,
+                ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.workbuddy)) },
                         leadingContent = { SquircleIcon(resId = R.drawable.workbuddy, size = 24.dp) },
@@ -178,19 +183,29 @@ private fun TopBar(scrollBehavior: TopAppBarScrollBehavior? = null) {
 }
 
 @Composable
-private fun StatusCardMaterial(allDone: Boolean, hasAnyConfigured: Boolean) {
+private fun StatusCardMaterial(running: Boolean, allDone: Boolean, hasAnyConfigured: Boolean) {
     val done = allDone && hasAnyConfigured
-    val containerColor = if (done) {
-        MaterialTheme.colorScheme.secondaryContainer
-    } else {
-        MaterialTheme.colorScheme.errorContainer
+    val containerColor = when {
+        running -> MaterialTheme.colorScheme.primaryContainer
+        done -> MaterialTheme.colorScheme.secondaryContainer
+        else -> MaterialTheme.colorScheme.errorContainer
     }
-    val statusIcon = if (done) Icons.Rounded.CheckCircle else Icons.Rounded.Error
+    val statusIcon = when {
+        running -> Icons.Rounded.Sync
+        done -> Icons.Rounded.CheckCircle
+        else -> Icons.Rounded.Error
+    }
     TonalCard(containerColor = containerColor) {
         ListItem(
             headlineContent = {
                 Text(
-                    stringResource(if (done) R.string.home_tasks_all_done else R.string.home_tasks_not_done),
+                    stringResource(
+                        when {
+                            running -> R.string.home_tasks_running
+                            done -> R.string.home_tasks_all_done
+                            else -> R.string.home_tasks_not_done
+                        }
+                    ),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )

@@ -22,6 +22,8 @@ interface SettingsRepository {
     var scheduleHour: Int
     var scheduleMinute: Int
     var taskNotification: Boolean
+    var overviewAutoDismiss: Boolean
+    var overviewHoldSeconds: Float
 
     // 米游社
     var mhyMasterEnabled: Boolean

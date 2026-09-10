@@ -31,6 +31,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.material.icons.rounded.CheckCircleOutline
 import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -104,6 +105,7 @@ fun HomePagerMiuix(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     StatusCard(
+                        running = state.running,
                         allDone = state.wbStatus == TaskRunner.TaskStatus.DONE &&
                             state.mhyStatus == TaskRunner.TaskStatus.DONE,
                         hasAnyConfigured = state.wbStatus != TaskRunner.TaskStatus.UNCONFIGURED ||
@@ -146,15 +148,29 @@ fun HomePagerMiuix(
  */
 @Composable
 private fun StatusCard(
+    running: Boolean,
     allDone: Boolean,
     hasAnyConfigured: Boolean,
 ) {
     val done = allDone && hasAnyConfigured
+    val container = when {
+        running -> Color(0xFFE8F1FF)
+        done -> Color(0xFFDFFAE4)
+        else -> Color(0xFFFDEBEA)
+    }
+    val accent = when {
+        running -> Color(0xFF1A73E8)
+        done -> Color(0xFF36D167)
+        else -> Color(0xFFEA4335)
+    }
+    val titleColor = when {
+        running -> Color(0xFF0D47A1)
+        done -> Color(0xFF1A3825)
+        else -> Color(0xFF5C1A17)
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.defaultColors(
-            color = if (done) Color(0xFFDFFAE4) else Color(0xFFFDEBEA)
-        ),
+        colors = CardDefaults.defaultColors(color = container),
     ) {
         Box {
             Box(
@@ -165,8 +181,12 @@ private fun StatusCard(
             ) {
                 Icon(
                     modifier = Modifier.size(110.dp),
-                    imageVector = if (done) Icons.Rounded.CheckCircleOutline else Icons.Rounded.ErrorOutline,
-                    tint = if (done) Color(0xFF36D167) else Color(0xFFEA4335),
+                    imageVector = when {
+                        running -> Icons.Rounded.Sync
+                        done -> Icons.Rounded.CheckCircleOutline
+                        else -> Icons.Rounded.ErrorOutline
+                    },
+                    tint = accent,
                     contentDescription = null
                 )
             }
@@ -179,17 +199,21 @@ private fun StatusCard(
                 Column {
                     Text(
                         text = stringResource(
-                            if (done) R.string.home_tasks_all_done else R.string.home_tasks_not_done
+                            when {
+                                running -> R.string.home_tasks_running
+                                done -> R.string.home_tasks_all_done
+                                else -> R.string.home_tasks_not_done
+                            }
                         ),
                         fontSize = 22.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (done) Color(0xFF1A3825) else Color(0xFF5C1A17),
+                        color = titleColor,
                     )
                     Spacer(Modifier.height(1.dp))
                     Text(
                         text = stringResource(R.string.app_name),
                         fontSize = 15.sp,
-                        color = if (done) Color(0xFF1A3825) else Color(0xFF5C1A17),
+                        color = titleColor,
                     )
                 }
             }
@@ -259,7 +283,13 @@ private fun TaskPickerCard(
     modifier: Modifier = Modifier,
 ) {
     Card(modifier = modifier.fillMaxHeight()) {
-        Column(modifier = Modifier.padding(12.dp, 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(12.dp, 10.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             PickerRow(
                 resId = R.drawable.workbuddy,
                 name = stringResource(R.string.workbuddy),

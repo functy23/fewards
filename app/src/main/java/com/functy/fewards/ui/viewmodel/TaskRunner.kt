@@ -78,21 +78,24 @@ object TaskRunner {
     /** 直接执行（Worker 调用；wb 与 mhy 并行）。 */
     suspend fun execute(runWb: Boolean, runMhy: Boolean): String {
         if (_state.value.running) return "已有任务在执行中"
-        _state.value = _state.value.copy(running = true)
+        _state.value = _state.value.copy(
+            running = true,
+            wbStatus = if (runWb && _state.value.wbStatus != TaskStatus.UNCONFIGURED) TaskStatus.QUERYING else _state.value.wbStatus,
+            mhyStatus = if (runMhy && _state.value.mhyStatus != TaskStatus.UNCONFIGURED) TaskStatus.QUERYING else _state.value.mhyStatus,
+        )
         val totalSteps = listOf(runWb, runMhy).count { it }
         var doneSteps = 0
+        var allOk = true
         if (totalSteps > 0) {
-            TaskNotifier.notifyProgress(0, "正在执行…", finished = false, ok = false)
+            TaskNotifier.startRun("正在执行…")
         }
         val summaries = mutableListOf<String>()
         try {
             coroutineScope {
                 fun onStepDone(ok: Boolean) {
                     doneSteps++
-                    TaskNotifier.notifyProgress(
-                        doneSteps, summaries.joinToString("；"),
-                        finished = doneSteps >= totalSteps, ok = ok
-                    )
+                    if (!ok) allOk = false
+                    TaskNotifier.onStep(doneSteps, totalSteps, summaries.joinToString("；"))
                 }
                 val wbJob: Job = if (runWb) launchJobWb(summaries, ::onStepDone) else Job()
                 val mhyJob: Job = if (runMhy) launchJobMhy(summaries, ::onStepDone) else Job()
@@ -106,6 +109,9 @@ object TaskRunner {
         }
         val summary = summaries.joinToString("；").ifEmpty { "未选择任何任务" }
         _state.value = _state.value.copy(lastRunSummary = summary)
+        if (totalSteps > 0) {
+            TaskNotifier.complete(allOk, summary)
+        }
         return summary
     }
 
