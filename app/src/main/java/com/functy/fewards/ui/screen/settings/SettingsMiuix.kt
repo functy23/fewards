@@ -62,7 +62,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.functy.fewards.R
-import com.functy.fewards.ui.UiMode
 import com.functy.fewards.ui.component.miuix.MultilineInputField
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.functy.fewards.ui.viewmodel.ConfigTransferViewModel
@@ -345,35 +344,39 @@ fun SettingPagerMiuix(
                                     PackageManager.PERMISSION_GRANTED
                             )
                         }
+                        val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+                        androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+                            val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                                    granted.value = android.os.Build.VERSION.SDK_INT < 33 ||
+                                        ContextCompat.checkSelfPermission(
+                                            fewardsApp, Manifest.permission.POST_NOTIFICATIONS
+                                        ) == PackageManager.PERMISSION_GRANTED
+                                }
+                            }
+                            lifecycleOwner.lifecycle.addObserver(observer)
+                            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+                        }
                         val launcher = rememberLauncherForActivityResult(
                             ActivityResultContracts.RequestPermission()
                         ) { result -> granted.value = result }
-                        ArrowPreference(
-                            title = stringResource(id = R.string.settings_request_notification),
-                            summary = stringResource(
-                                if (granted.value) R.string.settings_notification_granted
-                                else R.string.settings_notification_denied
-                            ),
-                            startAction = {
-                                Icon(
-                                    Icons.Rounded.Notifications,
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    contentDescription = stringResource(id = R.string.settings_request_notification),
-                                    tint = colorScheme.onBackground
-                                )
-                            },
-                            onClick = {
-                                if (android.os.Build.VERSION.SDK_INT >= 33 && !granted.value) {
+                        if (uiState.taskNotification && !granted.value && android.os.Build.VERSION.SDK_INT >= 33) {
+                            ArrowPreference(
+                                title = stringResource(id = R.string.settings_request_notification),
+                                summary = stringResource(R.string.settings_notification_denied),
+                                startAction = {
+                                    Icon(
+                                        Icons.Rounded.Notifications,
+                                        modifier = Modifier.padding(end = 6.dp),
+                                        contentDescription = stringResource(id = R.string.settings_request_notification),
+                                        tint = colorScheme.onBackground
+                                    )
+                                },
+                                onClick = {
                                     launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                } else {
-                                    android.widget.Toast.makeText(
-                                        context,
-                                        context.getString(R.string.settings_notification_granted),
-                                        android.widget.Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            },
-                        )
+                                },
+                            )
+                        }
                         SwitchPreference(
                             title = stringResource(id = R.string.settings_overview_auto),
                             summary = stringResource(id = R.string.settings_overview_auto_summary),

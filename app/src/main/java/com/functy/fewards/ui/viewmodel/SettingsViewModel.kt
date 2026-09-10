@@ -7,7 +7,6 @@ import com.functy.fewards.R
 import com.functy.fewards.data.repository.SettingsRepository
 import com.functy.fewards.data.repository.SettingsRepositoryImpl
 import com.functy.fewards.fewardsApp
-import com.functy.fewards.ui.UiMode
 import com.functy.fewards.ui.screen.settings.SettingsUiState
 import com.functy.fewards.ui.theme.ColorMode
 import com.functy.fewards.work.TaskScheduler
@@ -32,7 +31,6 @@ class SettingsViewModel(
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
-                    uiMode = repo.uiMode,
                     themeMode = repo.themeMode,
                     miuixMonet = repo.miuixMonet,
                     keyColor = repo.keyColor,
@@ -71,39 +69,8 @@ class SettingsViewModel(
 
     // ==================== 界面 ====================
 
-    fun setUiMode(mode: String) {
-        val oldMode = repo.uiMode
-        val currentThemeMode = repo.themeMode
-
-        val newThemeMode = when (oldMode) {
-            "material" if mode == "miuix" -> {
-                val colorMode = ColorMode.fromValue(currentThemeMode)
-                val baseMode = if (colorMode == ColorMode.DARK_AMOLED) 2 else currentThemeMode
-                if (repo.miuixMonet && !colorMode.isMonet) {
-                    ColorMode.fromValue(baseMode).toMonetMode()
-                } else if (!repo.miuixMonet && colorMode.isMonet) {
-                    ColorMode.fromValue(baseMode).toNonMonetMode()
-                } else baseMode
-            }
-
-            "miuix" if mode == "material" -> {
-                val colorMode = ColorMode.fromValue(currentThemeMode)
-                if (colorMode.isMonet) {
-                    colorMode.toNonMonetMode()
-                } else currentThemeMode
-            }
-
-            else -> currentThemeMode
-        }
-
-        repo.uiMode = mode
-        repo.themeMode = newThemeMode
-        _uiState.update { it.copy(uiMode = mode, themeMode = newThemeMode) }
-    }
-
     fun setThemeMode(mode: Int) {
-        val currentUiMode = repo.uiMode
-        val effectiveMode = if (currentUiMode == "miuix" && _uiState.value.miuixMonet) {
+        val effectiveMode = if (_uiState.value.miuixMonet) {
             mode + 3
         } else {
             mode

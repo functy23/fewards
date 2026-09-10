@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import com.functy.fewards.data.repository.SettingsRepository
 import com.functy.fewards.data.repository.SettingsRepositoryImpl
 import com.functy.fewards.fewardsApp
-import com.functy.fewards.ui.UiMode
 import com.functy.fewards.ui.theme.ThemeController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,7 +49,7 @@ class MainActivityViewModel(
             enableFloatingBottomBar = settingRepo.enableFloatingBottomBar,
             enableFloatingBottomBarBlur = settingRepo.enableFloatingBottomBarBlur,
             enableNavigationBadge = settingRepo.enableNavigationBadge,
-            predictiveBackAnimation = settingRepo.predictiveBackAnimation,            uiMode = UiMode.fromValue(settingRepo.uiMode),
+            predictiveBackAnimation = settingRepo.predictiveBackAnimation,
         )
     }
 
@@ -67,7 +66,6 @@ class MainActivityViewModel(
             "enable_floating_bottom_bar_blur",
             "enable_navigation_badge",
             "predictive_back_animation",
-            "ui_mode",
         )
     }
 }

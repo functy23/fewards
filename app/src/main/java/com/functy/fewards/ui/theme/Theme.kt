@@ -8,8 +8,6 @@ import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.functy.fewards.data.repository.SettingsRepository
 import com.functy.fewards.data.repository.SettingsRepositoryImpl
-import com.functy.fewards.ui.LocalUiMode
-import com.functy.fewards.ui.UiMode
 
 enum class ColorMode(val value: Int) {
     SYSTEM(0),
@@ -66,19 +64,15 @@ fun ColorSpec.SpecVersion.effectiveFor(style: PaletteStyle): ColorSpec.SpecVersi
 
 object ThemeController {
     fun getAppSettings(repo: SettingsRepository = SettingsRepositoryImpl()): AppSettings {
-        val uiMode = repo.uiMode
         var colorModeValue = repo.themeMode
-
-        if (uiMode == "miuix") {
-            val miuixMonet = repo.miuixMonet
-            val colorMode = ColorMode.fromValue(colorModeValue)
-            colorModeValue = if (!miuixMonet && colorMode.isMonet) {
-                colorMode.toNonMonetMode()
-            } else if (miuixMonet && !colorMode.isMonet) {
-                colorMode.toMonetMode()
-            } else {
-                colorModeValue
-            }
+        val miuixMonet = repo.miuixMonet
+        val colorModeForMonet = ColorMode.fromValue(colorModeValue)
+        colorModeValue = if (!miuixMonet && colorModeForMonet.isMonet) {
+            colorModeForMonet.toNonMonetMode()
+        } else if (miuixMonet && !colorModeForMonet.isMonet) {
+            colorModeForMonet.toMonetMode()
+        } else {
+            colorModeValue
         }
 
         val colorMode = ColorMode.fromValue(colorModeValue)
@@ -103,21 +97,12 @@ object ThemeController {
 @Composable
 fun FewardsTheme(
     appSettings: AppSettings = ThemeController.getAppSettings(),
-    uiMode: UiMode = LocalUiMode.current,
     content: @Composable () -> Unit
 ) {
-
-    when (uiMode) {
-        UiMode.Miuix -> MiuixFewardsTheme(
-            appSettings = appSettings,
-            content = content
-        )
-
-        UiMode.Material -> MaterialFewardsTheme(
-            appSettings = appSettings,
-            content = content
-        )
-    }
+    MiuixFewardsTheme(
+        appSettings = appSettings,
+        content = content
+    )
 }
 
 @Composable

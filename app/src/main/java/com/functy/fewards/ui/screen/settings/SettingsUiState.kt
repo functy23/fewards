@@ -1,13 +1,11 @@
 package com.functy.fewards.ui.screen.settings
 
 import androidx.compose.runtime.Immutable
-import com.functy.fewards.ui.UiMode
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 
 @Immutable
 data class SettingsUiState(
-    val uiMode: String = UiMode.DEFAULT_VALUE,
     val themeMode: Int = 0,
     val miuixMonet: Boolean = false,
     val keyColor: Int = 0,
@@ -48,7 +46,6 @@ data class SettingsUiState(
 
 @Immutable
 data class SettingsScreenActions(
-    val onSetUiModeIndex: (Int) -> Unit,
     val onOpenTheme: () -> Unit,
     // 米游社
     val onSetMhyMaster: (Boolean) -> Unit,

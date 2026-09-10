@@ -1,6 +1,5 @@
 package com.functy.fewards.ui
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
@@ -23,7 +22,6 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -31,9 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,7 +43,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import top.yukonga.miuix.kmp.nav.core.NavCornerClipMode
 import top.yukonga.miuix.kmp.nav.core.NavDisplay
 import top.yukonga.miuix.kmp.nav.core.NavDisplayEffects
-import top.yukonga.miuix.kmp.nav.core.navBackStackOf
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -89,7 +84,6 @@ class MainActivity : ComponentActivity() {
     private var splashStartedAt = 0L
     private val splashAnimationDurationMs = 500L
 
-    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         splashStartedAt = SystemClock.uptimeMillis()
@@ -103,7 +97,6 @@ class MainActivity : ComponentActivity() {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             val selectedMainPage by viewModel.selectedMainPage.collectAsStateWithLifecycle()
             val appSettings = uiState.appSettings
-            val uiMode = uiState.uiMode
             val darkMode = appSettings.colorMode.isDark || (appSettings.colorMode.isSystem && isSystemInDarkTheme())
 
             DisposableEffect(darkMode) {
@@ -138,9 +131,8 @@ class MainActivity : ComponentActivity() {
                 LocalEnableFloatingBottomBar provides uiState.enableFloatingBottomBar,
                 LocalEnableFloatingBottomBarBlur provides uiState.enableFloatingBottomBarBlur,
                 LocalEnableNavigationBadge provides uiState.enableNavigationBadge,
-                LocalUiMode provides uiMode,
             ) {
-                FewardsTheme(appSettings = appSettings, uiMode = uiMode) {
+                FewardsTheme(appSettings = appSettings) {
                     val mainScreenEntry = @Composable {
                         MainScreen(
                             initialPage = selectedMainPage,
@@ -150,10 +142,7 @@ class MainActivity : ComponentActivity() {
 
                     val navDisplay = @Composable {
                         val navCornerRadius = rememberDeviceCornerRadius()
-                        val backdropColor = when (uiMode) {
-                            UiMode.Material -> MaterialTheme.colorScheme.surfaceContainer
-                            UiMode.Miuix -> MiuixTheme.colorScheme.surface
-                        }
+                        val backdropColor = MiuixTheme.colorScheme.surface
                         val animation = PredictiveBackAnimation.entries[
                             uiState.predictiveBackAnimation.coerceIn(0, PredictiveBackAnimation.entries.lastIndex)
                         ]
@@ -193,12 +182,7 @@ class MainActivity : ComponentActivity() {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(
-                                when (uiMode) {
-                                    UiMode.Material -> MaterialTheme.colorScheme.surfaceContainer
-                                    UiMode.Miuix -> MiuixTheme.colorScheme.surface
-                                }
-                            ),
+                            .background(MiuixTheme.colorScheme.surface),
                     ) { navDisplay() }
                     SideEffect { contentReady = true }
                 }
@@ -209,7 +193,6 @@ class MainActivity : ComponentActivity() {
 
 val LocalMainPagerState = staticCompositionLocalOf<MainPagerState> { error("LocalMainPagerState not provided") }
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun MainScreen(
     initialPage: Int = 0,
@@ -232,11 +215,7 @@ fun MainScreen(
     } else {
         NavigationBadgeState()
     }
-    val uiMode = LocalUiMode.current
-    val surfaceColor = when (uiMode) {
-        UiMode.Material -> MaterialTheme.colorScheme.surface // Blur is not used in Material, this is just a placeholder
-        UiMode.Miuix -> MiuixTheme.colorScheme.surface
-    }
+    val surfaceColor = MiuixTheme.colorScheme.surface
     val blurBackdrop = rememberBlurBackdrop(enableBlur)
 
     val backdrop = rememberLayerBackdrop {
@@ -286,32 +265,15 @@ fun MainScreen(
                     .only(WindowInsetsSides.Start)
                 val navBarBottomPadding = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
 
-                when (uiMode) {
-                    UiMode.Material -> androidx.compose.material3.Scaffold(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    ) {
-                        Row {
-                            SideRail(navigationBadge)
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .consumeWindowInsets(startInsets)
-                            ) {
-                                pagerContent(navBarBottomPadding)
-                            }
-                        }
-                    }
-
-                    UiMode.Miuix -> Scaffold { _ ->
-                        Row {
-                            SideRail(navigationBadge)
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .consumeWindowInsets(startInsets)
-                            ) {
-                                pagerContent(navBarBottomPadding)
-                            }
+                Scaffold { _ ->
+                    Row {
+                        SideRail(navigationBadge)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .consumeWindowInsets(startInsets)
+                        ) {
+                            pagerContent(navBarBottomPadding)
                         }
                     }
                 }
@@ -329,17 +291,8 @@ fun MainScreen(
                     }
                 }
 
-                when (uiMode) {
-                    UiMode.Material -> androidx.compose.material3.Scaffold(
-                        bottomBar = bottomBar,
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    ) { innerPadding ->
-                        pagerContent(innerPadding.calculateBottomPadding())
-                    }
-
-                    UiMode.Miuix -> Scaffold(bottomBar = bottomBar) { innerPadding ->
-                        pagerContent(innerPadding.calculateBottomPadding())
-                    }
+                Scaffold(bottomBar = bottomBar) { innerPadding ->
+                    pagerContent(innerPadding.calculateBottomPadding())
                 }
             }
         }

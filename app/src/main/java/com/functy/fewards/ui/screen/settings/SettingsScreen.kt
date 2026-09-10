@@ -8,8 +8,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.functy.fewards.ui.LocalUiMode
-import com.functy.fewards.ui.UiMode
 import com.functy.fewards.ui.navigation.Navigator
 import com.functy.fewards.ui.navigation.Route
 import com.functy.fewards.ui.viewmodel.SettingsViewModel
@@ -33,9 +31,6 @@ fun SettingPager(
     }
 
     val actions = SettingsScreenActions(
-        onSetUiModeIndex = { index ->
-            viewModel.setUiMode(if (index == 0) UiMode.Miuix.value else UiMode.Material.value)
-        },
         onOpenTheme = { navigator.push(Route.ColorPalette) },
         onSetMhyMaster = viewModel::setMhyMasterEnabled,
         onSetMhyGameSign = viewModel::setMhyGameSign,
@@ -55,8 +50,5 @@ fun SettingPager(
         onOpenAbout = { navigator.push(Route.About) },
     )
 
-    when (LocalUiMode.current) {
-        UiMode.Miuix -> SettingPagerMiuix(uiState, actions, bottomInnerPadding)
-        UiMode.Material -> SettingPagerMaterial(uiState, actions, bottomInnerPadding)
-    }
+    SettingPagerMiuix(uiState, actions, bottomInnerPadding)
 }

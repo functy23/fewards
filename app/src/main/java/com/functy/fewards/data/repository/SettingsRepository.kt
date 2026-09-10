@@ -2,7 +2,6 @@ package com.functy.fewards.data.repository
 
 interface SettingsRepository {
     // 界面
-    var uiMode: String
     var themeMode: Int
     var miuixMonet: Boolean
     var keyColor: Int

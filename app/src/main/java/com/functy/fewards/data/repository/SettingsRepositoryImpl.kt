@@ -3,7 +3,6 @@ package com.functy.fewards.data.repository
 import android.content.Context
 import androidx.core.content.edit
 import com.functy.fewards.fewardsApp
-import com.functy.fewards.ui.UiMode
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 
@@ -14,10 +13,6 @@ class SettingsRepositoryImpl : SettingsRepository {
     private val prefs by lazy {
         fewardsApp.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE)
     }
-
-    override var uiMode: String
-        get() = prefs.getString("ui_mode", UiMode.DEFAULT_VALUE) ?: UiMode.DEFAULT_VALUE
-        set(value) = prefs.edit { putString("ui_mode", value) }
 
     override var themeMode: Int
         get() = prefs.getInt("color_mode", 0)

@@ -9,8 +9,6 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
-import com.functy.fewards.ui.LocalUiMode
-import com.functy.fewards.ui.UiMode
 import com.functy.fewards.ui.navigation.LocalNavigator
 import com.functy.fewards.ui.theme.ColorMode
 import com.functy.fewards.ui.viewmodel.SettingsViewModel
@@ -56,11 +54,7 @@ fun ColorPaletteScreen() {
         onSetEnableNavigationBadge = viewModel::setEnableNavigationBadge,
         onSetPredictiveBackAnimation = viewModel::setPredictiveBackAnimation,
         onSetPageScale = viewModel::setPageScale,
-        onSetUiMode = viewModel::setUiMode,
     )
 
-    when (LocalUiMode.current) {
-        UiMode.Miuix -> ColorPaletteScreenMiuix(state, actions)
-        UiMode.Material -> ColorPaletteScreenMaterial(state, actions)
-    }
+    ColorPaletteScreenMiuix(state, actions)
 }

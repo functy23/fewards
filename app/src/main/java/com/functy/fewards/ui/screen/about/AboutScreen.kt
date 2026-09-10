@@ -6,8 +6,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.dropUnlessResumed
 import com.functy.fewards.BuildConfig
 import com.functy.fewards.R
-import com.functy.fewards.ui.LocalUiMode
-import com.functy.fewards.ui.UiMode
 import com.functy.fewards.ui.navigation.LocalNavigator
 
 @Composable
@@ -30,8 +28,5 @@ fun AboutScreen() {
         onOpenLink = uriHandler::openUri,
     )
 
-    when (LocalUiMode.current) {
-        UiMode.Miuix -> AboutScreenMiuix(state, actions)
-        UiMode.Material -> AboutScreenMaterial(state, actions)
-    }
+    AboutScreenMiuix(state, actions)
 }

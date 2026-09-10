@@ -16,8 +16,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
-import com.functy.fewards.ui.LocalUiMode
-import com.functy.fewards.ui.UiMode
 import com.functy.fewards.ui.component.PagerNavigationSpringSpec
 import com.functy.fewards.ui.util.shouldShowSplitPane
 import top.yukonga.miuix.kmp.blur.Backdrop
@@ -147,7 +145,7 @@ internal fun badgeFor(index: Int, state: NavigationBadgeState): NavBadge? = when
 
 @Composable
 fun useNavigationRail(enableFloatingBottomBar: Boolean): Boolean {
-    return shouldShowSplitPane() && !(LocalUiMode.current == UiMode.Miuix && enableFloatingBottomBar)
+    return shouldShowSplitPane() && !enableFloatingBottomBar
 }
 
 @Composable
@@ -157,10 +155,7 @@ fun BottomBar(
     navigationBadge: NavigationBadgeState,
     modifier: Modifier = Modifier,
 ) {
-    when (LocalUiMode.current) {
-        UiMode.Miuix -> BottomBarMiuix(blurBackdrop, backdrop, navigationBadge, modifier)
-        UiMode.Material -> BottomBarMaterial(navigationBadge)
-    }
+    BottomBarMiuix(blurBackdrop, backdrop, navigationBadge, modifier)
 }
 
 @Composable
@@ -168,8 +163,5 @@ fun SideRail(
     navigationBadge: NavigationBadgeState,
     modifier: Modifier = Modifier,
 ) {
-    when (LocalUiMode.current) {
-        UiMode.Miuix -> NavigationRailMiuix(navigationBadge, modifier)
-        UiMode.Material -> NavigationRailMaterial(navigationBadge, modifier)
-    }
+    NavigationRailMiuix(navigationBadge, modifier)
 }

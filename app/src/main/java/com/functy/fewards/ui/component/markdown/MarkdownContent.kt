@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.LoadingIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,8 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
-import com.functy.fewards.ui.LocalUiMode
-import com.functy.fewards.ui.UiMode
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 
 @Composable
@@ -28,7 +24,6 @@ fun MarkdownContent(
     content: String,
     isMarkdown: Boolean,
 ) {
-    val uiMode = LocalUiMode.current
     var loaded by remember(content, isMarkdown) { mutableStateOf(false) }
     val alpha by animateFloatAsState(
         targetValue = if (loaded) 1f else 0f,
@@ -40,14 +35,10 @@ fun MarkdownContent(
         animationSpec = tween(durationMillis = 150),
         label = "MarkdownContentPlaceholderAlpha",
     )
-    val containerColor = when (uiMode) {
-        UiMode.Material -> MaterialTheme.colorScheme.surfaceContainerHigh
-        UiMode.Miuix -> null
-    }
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .let { if (uiMode == UiMode.Miuix) it.animateContentSize(animationSpec = tween(durationMillis = 300)) else it }
+            .animateContentSize(animationSpec = tween(durationMillis = 300))
     ) {
         Box(
             modifier = Modifier
@@ -58,7 +49,7 @@ fun MarkdownContent(
                 content = content,
                 isMarkdown = isMarkdown,
                 onLoadingChange = { loaded = !it },
-                containerColor = containerColor,
+                containerColor = null,
             )
         }
         if (placeholderAlpha > 0f) {
@@ -69,10 +60,7 @@ fun MarkdownContent(
                     .graphicsLayer { this.alpha = placeholderAlpha },
                 contentAlignment = Alignment.Center,
             ) {
-                when (LocalUiMode.current) {
-                    UiMode.Material -> LoadingIndicator()
-                    UiMode.Miuix -> InfiniteProgressIndicator()
-                }
+                InfiniteProgressIndicator()
             }
         }
     }

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Person
@@ -41,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.functy.fewards.R
-import com.functy.fewards.ui.component.miuix.MultilineInputField
 import androidx.compose.foundation.layout.width
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import com.functy.fewards.ui.viewmodel.AccountViewModel
@@ -53,10 +53,10 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.TabRow
-import top.yukonga.miuix.kmp.basic.TabRowDefaults
+import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -212,19 +212,13 @@ fun AccountPagerMiuix(
                                 color = colorScheme.onSurfaceVariantSummary,
                             )
                             Spacer(Modifier.height(12.dp))
-                            // 扫码 / Cookie 切换：选中项主色高亮
-                            TabRow(
+                            TabRowWithContour(
                                 tabs = listOf(
                                     stringResource(R.string.miyoushe_login_qr),
                                     stringResource(R.string.miyoushe_login_cookie),
                                 ),
                                 selectedTabIndex = state.loginMode,
                                 onTabSelected = actions.onSetLoginMode,
-                                colors = TabRowDefaults.tabRowColors(
-                                    backgroundColor = Color.Transparent,
-                                    selectedContentColor = colorScheme.primary,
-                                    contentColor = colorScheme.onSurfaceVariantSummary,
-                                ),
                             )
                             Spacer(Modifier.height(12.dp))
                             if (state.loginMode == 0) {
@@ -318,13 +312,15 @@ fun AccountPagerMiuix(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                MultilineInputField(
+                                TextField(
                                     value = wbToken,
                                     onValueChange = { wbToken = it },
                                     label = stringResource(R.string.workbuddy_token_hint),
+                                    singleLine = true,
+                                    maxLines = 1,
                                     modifier = Modifier.weight(1f),
                                 )
-                                Spacer(Modifier.width(12.dp))
+                                Spacer(Modifier.width(8.dp))
                                 TextButton(
                                     text = stringResource(R.string.workbuddy_token_import),
                                     onClick = {
@@ -382,27 +378,30 @@ fun AccountPagerMiuix(
 private fun CookieSection(
     actions: AccountActions,
 ) {
-    Column {
-        var cookie by rememberSaveable { mutableStateOf("") }
-        MultilineInputField(
+    var cookie by rememberSaveable { mutableStateOf("") }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TextField(
             value = cookie,
             onValueChange = { cookie = it },
             label = stringResource(R.string.miyoushe_cookie_hint),
-            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            maxLines = 1,
+            modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-            TextButton(
-                text = stringResource(R.string.miyoushe_cookie_import),
-                onClick = {
-                    if (cookie.contains("stoken")) {
-                        actions.onImportCookie(cookie)
-                        cookie = ""
-                    }
-                },
-                colors = ButtonDefaults.textButtonColorsPrimary(),
-            )
-        }
+        Spacer(Modifier.width(8.dp))
+        TextButton(
+            text = stringResource(R.string.miyoushe_cookie_import),
+            onClick = {
+                if (cookie.contains("stoken")) {
+                    actions.onImportCookie(cookie)
+                    cookie = ""
+                }
+            },
+            colors = ButtonDefaults.textButtonColorsPrimary(),
+        )
     }
 }
 
@@ -467,6 +466,8 @@ private fun QrImage(content: String) {
     Image(
         bitmap = bitmap,
         contentDescription = "QR",
-        modifier = Modifier.size(size),
+        modifier = Modifier
+            .size(size)
+            .clip(RoundedCornerShape(20.dp)),
     )
 }

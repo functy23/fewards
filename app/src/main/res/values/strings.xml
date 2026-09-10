@@ -34,7 +34,7 @@
     <string name="miyoushe_login_cookie">Cookie 登录</string>
     <string name="miyoushe_status_logged_in">已登录</string>
     <string name="miyoushe_status_not_logged_in">未登录</string>
-    <string name="miyoushe_cookie_hint">粘贴米游社 Cookie（需包含 stoken v2 与 mid）</string>
+    <string name="miyoushe_cookie_hint">粘贴米游社 Cookie</string>
     <string name="miyoushe_cookie_import">导入</string>
     <string name="miyoushe_logout">退出登录</string>
     <string name="miyoushe_qr_generate">生成二维码</string>
@@ -46,18 +46,13 @@
     <string name="miyoushe_qr_cancel">取消</string>
     <string name="miyoushe_cookie_invalid">Cookie 无效：缺少 stoken 或 mid</string>
     <string name="miyoushe_cookie_imported">Cookie 导入成功</string>
-    <string name="workbuddy_token_hint">粘贴 WorkBuddy accessToken</string>
+    <string name="workbuddy_token_hint">粘贴 Access Token</string>
     <string name="workbuddy_token_import">导入</string>
     <string name="workbuddy_logout">删除</string>
     <string name="workbuddy_status_logged_in">已导入 Token</string>
     <string name="workbuddy_status_not_logged_in">未配置</string>
 
     <!-- 设置 -->
-    <string name="settings_ui_mode">界面风格</string>
-    <string name="settings_ui_mode_summary">选择 Miuix 或 Material 3 界面。</string>
-    <string name="settings_ui_engine">界面引擎</string>
-    <string name="settings_ui_miuix">Miuix</string>
-    <string name="settings_ui_material">Google Material 3</string>
     <string name="settings_theme">主题</string>
     <string name="settings_theme_summary">选择应用主题模式。</string>
     <string name="settings_theme_mode_system">跟随系统</string>

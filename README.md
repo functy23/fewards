@@ -1,10 +1,10 @@
 # Fewards
 
-Android 自动签到：**米游社**（游戏签到 + 米游币任务）和 **WorkBuddy**（每日积分）。Kotlin + Jetpack Compose，**Material 3 Expressive** 与 **Miuix** 两套界面（设置 → 主题 → 界面引擎切换）。
+Android 自动签到：**米游社**（游戏签到 + 米游币任务）和 **WorkBuddy**（每日积分）。Kotlin + Jetpack Compose，界面为 **Miuix**。
 
 参考：
 
-- UI：[KernelSU manager](https://github.com/tiann/KernelSU)、[InstallerX Revived](https://github.com/wxxsfxyzm/InstallerX-Revived)（双 UI / 导航 / 主题页）
+- UI：[KernelSU manager](https://github.com/tiann/KernelSU)、[InstallerX Revived](https://github.com/wxxsfxyzm/InstallerX-Revived)（导航 / 主题页）
 - 米游社：[MiyoQian](https://github.com/Womsxd/MiyoQian)
 - WorkBuddy：公开 HTTP 接口（`copilot.tencent.com/billing/meter`）
 
@@ -22,7 +22,7 @@ Android 自动签到：**米游社**（游戏签到 + 米游币任务）和 **Wo
 
 - 主页：状态卡（未完成 / 执行中 / 已完成）+ 任务清单 + 开始执行 + 日志
 - 账号：米游社扫码或 Cookie、多账号；WorkBuddy token 导入
-- 设置：MD3 ↔ Miuix、主题（Monet / 关键色 / 模糊 / 悬浮底栏 / 返回动画）、米游社与 WorkBuddy 总开关（开则展开子项）、定时、任务通知与完成总览
+- 设置：主题（Monet / 关键色 / 模糊 / 悬浮底栏 / 返回动画）、米游社与 WorkBuddy 总开关（开则展开子项）、定时、任务通知与完成总览
 - 定时：AlarmManager + 开机重注册；执行走 WorkManager
 - 实时活动进度通知（完成总览可自动消失或点确认）
 - 凭据只存本机 SharedPreferences；日志不打印 token / cookie
@@ -38,6 +38,13 @@ Android 自动签到：**米游社**（游戏签到 + 米游币任务）和 **Wo
 
 工具链：AGP 9.4.0 / Kotlin 2.4.10 / Compose BOM 2026.08.00 / miuix 0.9.3 / miuix-nav 0.9.4-rc01 / minSdk 31 / target 37 / Java 21。
 
+macOS 一键复制 WorkBuddy Access Token：
+
+```bash
+chmod +x scripts/workbuddy-token.sh
+./scripts/workbuddy-token.sh
+```
+
 ## 使用
 
 1. 「账号」：米游社扫码或粘贴含 stoken + mid 的 Cookie；WorkBuddy 粘贴桌面端 accessToken
@@ -51,7 +58,7 @@ app/src/main/java/com/functy/fewards/
 ├── core/mihoyo/          # DS 签名、常量、HTTP、引擎
 ├── core/workbuddy/       # 签到引擎
 ├── data/repository/      # 设置、账号、配置导入导出
-├── ui/screen/            # 主页 / 账号 / 设置 / 主题 / 关于（Miuix + Material）
+├── ui/screen/            # 主页 / 账号 / 设置 / 主题 / 关于（Miuix）
 ├── ui/viewmodel/
 └── work/                 # 闹钟、WorkManager、通知、开机
 ```

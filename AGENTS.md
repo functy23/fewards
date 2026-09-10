@@ -31,12 +31,12 @@ app/src/main/java/com/functy/fewards/
   core/mihoyo/          # DsSign, constants, HTTP, engine
   core/workbuddy/       # check-in engine
   data/repository/      # settings, accounts, config transfer
-  ui/screen/            # home, account, settings, colorpalette, about (Miuix + Material)
+  ui/screen/            # home, account, settings, colorpalette, about (Miuix)
   ui/viewmodel/
   work/                 # scheduler, notifier, boot, notification actions
 ```
 
-Dual UI: `LocalUiMode` → `*Miuix.kt` / `*Material.kt`. Navigation is miuix-nav `NavDisplay`, not androidx Nav3 UI.
+UI is Miuix only. Navigation is miuix-nav `NavDisplay`, not androidx Nav3 UI.
 
 ## Conventions
 

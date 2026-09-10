@@ -175,33 +175,6 @@ fun ColorPaletteScreenMiuix(
             ) {
                 item {
                     Spacer(modifier = Modifier.height(12.dp))
-                    WindowSpinnerPreference(
-                        title = stringResource(id = R.string.settings_ui_engine),
-                        items = listOf(
-                            stringResource(id = R.string.settings_ui_miuix),
-                            stringResource(id = R.string.settings_ui_material),
-                        ).map { DropdownItem(title = it) },
-                        selectedIndex = if (uiState.uiMode == "material") 1 else 0,
-                        onSelectedIndexChange = { index ->
-                            actions.onSetUiMode(if (index == 0) "miuix" else "material")
-                        },
-                    )
-                }
-                item {
-                    val themeItems = listOf(
-                        stringResource(id = R.string.settings_theme_mode_system),
-                        stringResource(id = R.string.settings_theme_mode_light),
-                        stringResource(id = R.string.settings_theme_mode_dark),
-                    )
-                    TabRow(
-                        tabs = themeItems,
-                        selectedTabIndex = (if (uiState.themeMode >= 3) uiState.themeMode - 3 else uiState.themeMode).coerceIn(0, 2),
-                        onTabSelected = { index ->
-                            actions.onSetThemeMode(index)
-                        },
-                    )
-                }
-                item {
                     val isDark = state.currentColorMode.isDark ||
                         state.currentColorMode.isSystem && isSystemInDarkTheme()
                     ThemePreviewCardMiuix(
@@ -212,6 +185,20 @@ fun ColorPaletteScreenMiuix(
                         enableFloatingBottomBarBlur = uiState.enableFloatingBottomBarBlur,
                         paletteStyle = state.currentPaletteStyle,
                         colorSpec = state.currentColorSpec,
+                    )
+                }
+                item {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    TabRow(
+                        tabs = listOf(
+                            stringResource(id = R.string.settings_theme_mode_system),
+                            stringResource(id = R.string.settings_theme_mode_light),
+                            stringResource(id = R.string.settings_theme_mode_dark),
+                        ),
+                        selectedTabIndex = (if (uiState.themeMode >= 3) uiState.themeMode - 3 else uiState.themeMode).coerceIn(0, 2),
+                        onTabSelected = { index ->
+                            actions.onSetThemeMode(index)
+                        },
                     )
                 }
                 item {
