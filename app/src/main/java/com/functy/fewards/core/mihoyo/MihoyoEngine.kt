@@ -23,14 +23,25 @@ class MihoyoEngine(
     private val accounts: List<AccountRepository.MihoyoAccount>,
 ) {
 
+    companion object {
+        fun isAlreadyDoneRet(retcode: Int, message: String): Boolean {
+            if (retcode == MihoyoConstants.RET_ALREADY_SIGNED) return true
+            if (retcode == MihoyoConstants.RET_OK) return false
+            return message.contains("已签") || message.contains("已完成") || message.contains("重复") ||
+                message.contains("已经") || message.contains("already", ignoreCase = true)
+        }
+
+        fun isCookieExpired(retcode: Int): Boolean = retcode == MihoyoConstants.RET_COOKIE_EXPIRED
+
+        fun isCaptcha(retcode: Int): Boolean = retcode == MihoyoConstants.RET_CAPTCHA
+
+        fun isBbsIdle(canGetPoints: Int): Boolean = canGetPoints == 0
+    }
+
     private fun emit(message: String) = AppLog.i("MHY", message)
 
-    private fun isAlreadyDone(retcode: Int, message: String): Boolean {
-        if (retcode == MihoyoConstants.RET_ALREADY_SIGNED) return true
-        val m = message
-        return m.contains("已签") || m.contains("已完成") || m.contains("重复") ||
-            m.contains("已经") || m.contains("already", ignoreCase = true)
-    }
+    private fun isAlreadyDone(retcode: Int, message: String): Boolean =
+        isAlreadyDoneRet(retcode, message)
 
     private suspend fun sleep() {
         delay(Random.nextLong(1000, 3000))

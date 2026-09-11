@@ -29,6 +29,8 @@ Every user-facing / comparison APK:
 cp app/build/outputs/apk/release/app-release.apk ~/Downloads/Fewards-<version>-release.apk
 ```
 
+Logic changes (DS / cookie / retcode / WorkBuddy / config import) must keep `./gradlew :app:testDebugUnitTest` green. Tests live in `app/src/test` and pin API contracts (`act_id`, hosts, paths) so stale endpoints fail the suite. Do not add instrumented Compose UI tests unless asked; JVM tests cover outcome mapping that would otherwise show up as UI bugs.
+
 Toolchain facts: AGP 9.4 / Kotlin 2.4 / miuix 0.9.3 (`-android` artifact suffix) / miuix-nav 0.9.4-rc01 / minSdk 31 / Java 21. Room stays on a version the Aliyun/Google mirrors actually serve. Maven Central is not reachable; use the Aliyun mirror chain in `settings.gradle.kts`.
 
 `miuix-nav` owns `androidx.navigation3.ui`. Do not also depend on `androidx.navigation3:navigation3-ui` (duplicate classes).

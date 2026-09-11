@@ -5,7 +5,7 @@ import java.util.UUID
 
 /**
  * 米游社请求签名（DS）。移植自 MiyoQian core/crypto.py。
- * 各 salt 可根据实际抓包微调。
+ * 各 salt 可根据实际抓包微调。t/r 可注入，便于黄金对照测试。
  */
 object DsSign {
 
@@ -31,32 +31,43 @@ object DsSign {
     }
 
     /** DS1（web=false → app salt；web=true → web salt）。 */
-    fun ds(web: Boolean = false): String {
+    fun ds(
+        web: Boolean = false,
+        t: String = (System.currentTimeMillis() / 1000).toString(),
+        r: String = randomText(6),
+    ): String {
         val salt = if (web) BBS_WEB_SALT else BBS_SALT
-        val t = (System.currentTimeMillis() / 1000).toString()
-        val r = randomText(6)
-        return "$t,$r,${md5("salt=$salt&t=$t&r=$r")}"
+        return "$t,$r," + md5("salt=$salt&t=$t&r=$r")
     }
 
     /** DS2（X6 salt），用于米游币社区签到等 POST。 */
-    fun dsX6(query: String = "", body: String = ""): String {
-        val t = (System.currentTimeMillis() / 1000).toString()
-        val r = (100001..200000).random().toString()
-        return "$t,$r,${md5("salt=$BBS_X6_SALT&t=$t&r=$r&b=$body&q=$query")}"
+    fun dsX6(
+        query: String = "",
+        body: String = "",
+        t: String = (System.currentTimeMillis() / 1000).toString(),
+        r: String = (100001..200000).random().toString(),
+    ): String {
+        return "$t,$r," + md5("salt=$BBS_X6_SALT&t=$t&r=$r&b=$body&q=$query")
     }
 
     /** X4 salt，用于 passport 接口。 */
-    fun dsX4(query: String = "", body: String = ""): String {
-        val t = (System.currentTimeMillis() / 1000).toString()
-        val r = (100000..200000).random().toString()
-        return "$t,$r,${md5("salt=$PASSPORT_X4_SALT&t=$t&r=$r&b=$body&q=$query")}"
+    fun dsX4(
+        query: String = "",
+        body: String = "",
+        t: String = (System.currentTimeMillis() / 1000).toString(),
+        r: String = (100000..200000).random().toString(),
+    ): String {
+        return "$t,$r," + md5("salt=$PASSPORT_X4_SALT&t=$t&r=$r&b=$body&q=$query")
     }
 
     /** passport app salt。 */
-    fun dsApp(body: String = "", query: String = ""): String {
-        val t = (System.currentTimeMillis() / 1000).toString()
-        val r = (100001..200000).random().toString()
-        return "$t,$r,${md5("salt=$PASSPORT_APP_SALT&t=$t&r=$r&b=$body&q=$query")}"
+    fun dsApp(
+        body: String = "",
+        query: String = "",
+        t: String = (System.currentTimeMillis() / 1000).toString(),
+        r: String = (100001..200000).random().toString(),
+    ): String {
+        return "$t,$r," + md5("salt=$PASSPORT_APP_SALT&t=$t&r=$r&b=$body&q=$query")
     }
 
     /** 由种子生成稳定 device_id（uuid3 语义：MD5 + nameUUIDFromBytes）。 */

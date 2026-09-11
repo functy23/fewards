@@ -26,7 +26,33 @@ class WorkBuddyEngine(
 
     companion object {
         const val API_BASE = "https://copilot.tencent.com"
+        const val PATH_STATUS = "/billing/meter/checkin-status"
+        const val PATH_DAILY = "/billing/meter/daily-checkin"
         private val jsonMedia = "application/json; charset=utf-8".toMediaType()
+
+        data class Outcome(val success: Boolean, val expired: Boolean, val already: Boolean)
+
+        fun interpretStatus(httpStatus: Int, json: JSONObject): Outcome {
+            if (httpStatus == 401 || httpStatus == 403) {
+                return Outcome(success = false, expired = true, already = false)
+            }
+            if (httpStatus in 200..299 && json.optJSONObject("data")?.optBoolean("today_checked_in") == true) {
+                return Outcome(success = true, expired = false, already = true)
+            }
+            return Outcome(success = false, expired = false, already = false)
+        }
+
+        fun interpretDailyCheckin(httpStatus: Int, json: JSONObject): Outcome {
+            if (httpStatus == 401 || httpStatus == 403) {
+                return Outcome(success = false, expired = true, already = false)
+            }
+            val code = json.optInt("code", if (httpStatus in 200..299) 0 else -1)
+            return when (code) {
+                0 -> Outcome(success = true, expired = false, already = false)
+                10001 -> Outcome(success = true, expired = false, already = true)
+                else -> Outcome(success = false, expired = false, already = false)
+            }
+        }
     }
 
     private fun emit(message: String) = AppLog.i("WB", message)
@@ -68,43 +94,41 @@ class WorkBuddyEngine(
         }
 
         // 1. 状态查询（只用于省一次请求 + 401 探测）
-        val (stStatus, _, stJson) = post("/billing/meter/checkin-status", token)
-        if (stStatus == 401 || stStatus == 403) {
+        val (stStatus, _, stJson) = post(PATH_STATUS, token)
+        val statusOutcome = interpretStatus(stStatus, stJson)
+        if (statusOutcome.expired) {
             emit("token 已过期（HTTP $stStatus），请打开 WorkBuddy 桌面端刷新登录态")
             return false
         }
-        if (stStatus in 200..299) {
-            val checked = stJson.optJSONObject("data")?.optBoolean("today_checked_in") ?: false
-            if (checked) {
-                emit("今日已签到（状态接口返回），无需重复领取")
-                return true
-            }
-        } else {
+        if (statusOutcome.already) {
+            emit("今日已签到（状态接口返回），无需重复领取")
+            return true
+        }
+        if (stStatus !in 200..299) {
             emit("状态查询 HTTP $stStatus（继续尝试签到）")
         }
 
         // 2. 签到（小随机延迟，避免整点风控）
         delay(800 + (System.currentTimeMillis() % 900))
 
-        val (status, body, json) = post("/billing/meter/daily-checkin", token)
-        if (status == 401 || status == 403) {
-            emit("token 已过期（HTTP $status）")
-            return false
-        }
-
-        // 3. 解析：HTTP 400 + code=10001 = 官方幂等拒绝（已签）
-        val code = json.optInt("code", if (status in 200..299) 0 else -1)
+        val (status, body, json) = post(PATH_DAILY, token)
+        val outcome = interpretDailyCheckin(status, json)
         return when {
-            code == 0 -> {
+            outcome.expired -> {
+                emit("token 已过期（HTTP $status）")
+                false
+            }
+            outcome.already -> {
+                emit("今日已签到（code=10001），无需重复领取")
+                true
+            }
+            outcome.success -> {
                 val data = json.optJSONObject("data") ?: JSONObject()
                 emit("领取成功 credit=${data.opt("credit")}, streak_days=${data.opt("streak_days")}")
                 true
             }
-            code == 10001 -> {
-                emit("今日已签到（code=10001），无需重复领取")
-                true
-            }
             else -> {
+                val code = json.optInt("code", -1)
                 emit("签到失败 code=$code msg=${json.optString("msg", json.optString("message"))} body=${body.take(200)}")
                 false
             }

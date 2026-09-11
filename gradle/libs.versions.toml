@@ -19,6 +19,8 @@ room = "2.8.4"
 datastore = "1.2.0"
 zxing = "3.5.3"
 hiddenapibypass = "6.1"
+junit = "4.13.2"
+json = "20240303"
 
 [plugins]
 agp-app = { id = "com.android.application", version.ref = "agp" }
@@ -77,3 +79,6 @@ commonmark-ext-gfm-tables = { module = "org.commonmark:commonmark-ext-gfm-tables
 commonmark-ext-gfm-strikethrough = { module = "org.commonmark:commonmark-ext-gfm-strikethrough", version = "0.30.0" }
 commonmark-ext-autolink = { module = "org.commonmark:commonmark-ext-autolink", version = "0.30.0" }
 commonmark-ext-task-list-items = { module = "org.commonmark:commonmark-ext-task-list-items", version = "0.30.0" }
+
+junit = { module = "junit:junit", version.ref = "junit" }
+org-json = { module = "org.json:json", version.ref = "json" }
