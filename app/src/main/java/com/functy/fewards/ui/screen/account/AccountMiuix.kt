@@ -1,6 +1,7 @@
 package com.functy.fewards.ui.screen.account
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,11 +36,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.functy.fewards.R
 import androidx.compose.foundation.layout.width
@@ -77,6 +84,17 @@ fun AccountPagerMiuix(
     val scrollBehavior = MiuixScrollBehavior()
     val state by accountViewModel.uiState.collectAsStateWithLifecycle()
     val actions = accountViewModel.accountActions
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val view = LocalView.current
+    val dismissInput = {
+        focusManager.clearFocus(force = true)
+        keyboardController?.hide()
+        view.clearFocus()
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) {
+        dismissInput()
+    }
 
     // 二维码弹窗：showQrDialog 独立控制（dismiss 动画走完再卸载）。
     // 取消 = show=false → WindowDialog 自带下滑淡出动画 → onDismissFinished 后才真正清状态/停轮询。
@@ -184,6 +202,9 @@ fun AccountPagerMiuix(
                 .scrollEndHaptic()
                 .overScrollVertical()
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { dismissInput() })
+                }
                 .padding(horizontal = 12.dp),
             contentPadding = innerPadding,
             overscrollEffect = null,
@@ -218,7 +239,10 @@ fun AccountPagerMiuix(
                                     stringResource(R.string.miyoushe_login_cookie),
                                 ),
                                 selectedTabIndex = state.loginMode,
-                                onTabSelected = actions.onSetLoginMode,
+                                onTabSelected = {
+                                    dismissInput()
+                                    actions.onSetLoginMode(it)
+                                },
                             )
                             Spacer(Modifier.height(12.dp))
                             if (state.loginMode == 0) {
@@ -231,7 +255,10 @@ fun AccountPagerMiuix(
                                             else -> R.string.miyoushe_qr_generate
                                         }
                                     ),
-                                    onClick = { showQrDialog = true },
+                                    onClick = {
+                                        dismissInput()
+                                        showQrDialog = true
+                                    },
                                     enabled = state.qrState == AccountUiState.QrState.Idle ||
                                         state.qrState == AccountUiState.QrState.Expired ||
                                         state.qrState == AccountUiState.QrState.Error || state.qrState == AccountUiState.QrState.Confirmed,
@@ -239,7 +266,7 @@ fun AccountPagerMiuix(
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                             } else {
-                                CookieSection(actions)
+                                CookieSection(actions, dismissInput)
                             }
                         }
                     }
@@ -272,7 +299,10 @@ fun AccountPagerMiuix(
                                         endActions = {
                                             // 仅垃圾桶按钮可删除；整行点击不响应
                                             IconButton(
-                                                onClick = { actions.onRemoveMihoyo(account.id) },
+                                                onClick = {
+                                                    dismissInput()
+                                                    actions.onRemoveMihoyo(account.id)
+                                                },
                                             ) {
                                                 Icon(
                                                     Icons.Rounded.Delete,
@@ -281,7 +311,7 @@ fun AccountPagerMiuix(
                                                 )
                                             }
                                         },
-                                        onClick = null,
+                                        onClick = { dismissInput() },
                                     )
                                 }
                             }
@@ -326,6 +356,7 @@ fun AccountPagerMiuix(
                                     onClick = {
                                         actions.onImportWbToken(wbToken)
                                         wbToken = ""
+                                        dismissInput()
                                     },
                                     colors = ButtonDefaults.textButtonColorsPrimary(),
                                 )
@@ -351,7 +382,10 @@ fun AccountPagerMiuix(
                                         endActions = {
                                             // 仅垃圾桶按钮可删除；整行点击不响应
                                             IconButton(
-                                                onClick = { actions.onRemoveWb(account.id) },
+                                                onClick = {
+                                                    dismissInput()
+                                                    actions.onRemoveWb(account.id)
+                                                },
                                             ) {
                                                 Icon(
                                                     Icons.Rounded.Delete,
@@ -360,7 +394,7 @@ fun AccountPagerMiuix(
                                                 )
                                             }
                                         },
-                                        onClick = null,
+                                        onClick = { dismissInput() },
                                     )
                                 }
                             }
@@ -377,6 +411,7 @@ fun AccountPagerMiuix(
 @Composable
 private fun CookieSection(
     actions: AccountActions,
+    dismissInput: () -> Unit,
 ) {
     var cookie by rememberSaveable { mutableStateOf("") }
     Row(
@@ -399,6 +434,7 @@ private fun CookieSection(
                     actions.onImportCookie(cookie)
                     cookie = ""
                 }
+                dismissInput()
             },
             colors = ButtonDefaults.textButtonColorsPrimary(),
         )
