@@ -85,7 +85,7 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
-import top.yukonga.miuix.kmp.basic.TabRow
+import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -189,7 +189,7 @@ fun ColorPaletteScreenMiuix(
                 }
                 item {
                     Spacer(modifier = Modifier.height(12.dp))
-                    TabRow(
+                    TabRowWithContour(
                         tabs = listOf(
                             stringResource(id = R.string.settings_theme_mode_system),
                             stringResource(id = R.string.settings_theme_mode_light),

@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Gamepad
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -57,6 +58,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -77,6 +82,8 @@ import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -105,6 +112,17 @@ fun SettingPagerMiuix(
     val backdrop = rememberBlurBackdrop(enableBlur)
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else colorScheme.surface
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val view = LocalView.current
+    val dismissInput = {
+        focusManager.clearFocus(force = true)
+        keyboardController?.hide()
+        view.clearFocus()
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) {
+        dismissInput()
+    }
 
     Scaffold(
         topBar = {
@@ -125,6 +143,9 @@ fun SettingPagerMiuix(
                     .scrollEndHaptic()
                     .overScrollVertical()
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { dismissInput() })
+                    }
                     .padding(horizontal = 12.dp),
                 contentPadding = innerPadding,
                 overscrollEffect = null,
@@ -147,7 +168,10 @@ fun SettingPagerMiuix(
                                     tint = colorScheme.onBackground
                                 )
                             },
-                            onClick = actions.onOpenTheme
+                            onClick = {
+                                dismissInput()
+                                actions.onOpenTheme()
+                            }
                         )
                     }
 
@@ -452,13 +476,19 @@ fun SettingPagerMiuix(
                         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                             TextButton(
                                 text = "导出配置",
-                                onClick = { transferViewModel.exportToClipboard() },
+                                onClick = {
+                                    dismissInput()
+                                    transferViewModel.exportToClipboard()
+                                },
                                 modifier = Modifier.weight(1f),
                             )
                             Spacer(Modifier.width(12.dp))
                             TextButton(
                                 text = "从剪贴板导入",
-                                onClick = { transferViewModel.importFromClipboard() },
+                                onClick = {
+                                    dismissInput()
+                                    transferViewModel.importFromClipboard()
+                                },
                                 colors = ButtonDefaults.textButtonColorsPrimary(),
                                 modifier = Modifier.weight(1f),
                             )
@@ -479,6 +509,7 @@ fun SettingPagerMiuix(
                                 onClick = {
                                     transferViewModel.importFromText(importText)
                                     importText = ""
+                                    dismissInput()
                                 },
                                 colors = ButtonDefaults.textButtonColorsPrimary(),
                             )
@@ -501,7 +532,10 @@ fun SettingPagerMiuix(
                                     tint = colorScheme.onBackground
                                 )
                             },
-                            onClick = actions.onOpenAbout,
+                            onClick = {
+                                dismissInput()
+                                actions.onOpenAbout()
+                            },
                         )
                     }
                     Spacer(Modifier.height(bottomInnerPadding))
