@@ -25,15 +25,26 @@ Android 自动签到 App：米游社（游戏社区签到 + 米游币任务）+ 
 3. 不要加 instrumented Compose UI 测试，除非用户明确要求。JVM 单测钉的是结果映射，不是像素。
 4. 不要为了「跑通」去改测试里的 act_id / 域名 / 路径；先改实现或先确认接口真变了，再同步测试。
 5. 功能改完（含修崩溃、加磁贴这类用户会装到手机上的改动）**直接出包**，不必等用户再说「出包」。只改文档、只改 AGENTS.md 不出包。
-6. **软件版本（`fewardsVersionName`）只在推送时加。** 本地开发出包只加构建号（`fewardsVersionCode`）。推送后本地必须与远程同一 commit、同一对 versionName/versionCode，不要在本地多 bump 一截没推上去的软件版本。
+6. **软件版本（`fewardsVersionName`）只在推送时加。** 本地开发出包只动构建位（`fewardsVersionCode` 末两位）。推送后本地必须与远程同一 commit、同一对 versionName/versionCode，不要在本地多 bump 一截没推上去的软件版本。
 
 ## 出包（每次用户向 APK）
 
 给用户装或对照的包必须是 **release + R8**（`optimization.enable`）。Debug 首帧 composition hitch 是预期，不要用进场 delay 糊弄。只 `compile` 不算交付。签名目前用 debug signingConfig（见 `app/build.gradle.kts`），这是有意的。
 
+`fewardsVersionCode` 由 `fewardsVersionName` 推导，不是独立计数器：`M` `MM` `PP` 是版本号各位，末两位 `BB` 是构建号。
+
+| versionName | versionCode |
+|---|---|
+| 2.0.1 | 2000100（发布构建；本地构建位 +1 → 2000101） |
+| 2.0.2 | 2000200 |
+| 2.1.0 | 2010000 |
+| 1.3.20 | 1032000 |
+
+小数位在 versionCode 里是两位定长，补零；`BB` 在发布包里为 `00`，本地出包时 +1（可递增到 99，进位到 `PP`）。
+
 ### 本地开发出包
 
-1. 只把 `fewardsVersionCode` +1。**不要改 `fewardsVersionName`。**
+1. 只把 `fewardsVersionCode` 的构建位 +1（保留当前 versionName 对应的 `M` `MM` `PP`）。**不要改 `fewardsVersionName`。**
 2. `./gradlew :app:assembleRelease`
 3. 复制到 Downloads，文件名带软件版本与构建号，**不要互相覆盖**：
 
@@ -43,7 +54,7 @@ cp app/build/outputs/apk/release/app-release.apk ~/Downloads/Fewards-<versionNam
 
 ### 推送
 
-1. 把 `fewardsVersionName` patch +1（例如 1.3.19 → 1.3.20）。若这次还没为该次推送加过构建号，同时 `fewardsVersionCode` +1。
+1. 把 `fewardsVersionName` patch +1（例如 1.3.19 → 1.3.20），`fewardsVersionCode` 同步改成新版本对应的发布号（构建位 `00`，如 1.3.20 → 1032000）。
 2. 提交（版本向：`v<versionName>: …`），再 `git push`。
 3. 用**新的** versionName 再打一份 release APK 拷到 Downloads，保证用户装到的包、git 标签语义、远程仓库三者一致。
 4. 推完后确认 `git status` 干净、本地 HEAD == `origin/<branch>`。
