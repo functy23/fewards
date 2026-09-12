@@ -43,4 +43,20 @@ class WorkBuddyLabelTest {
         val token = jwt("""{"nickname":"Bob","picture":"not-a-url"}""")
         assertNull(WorkBuddyLabel.decodeProfile(token).avatarUrl)
     }
+
+    @Test
+    fun decodeProfileReadsUidFromSubAndExpiry() {
+        // 实测：JWT sub 与 /v2/plugin/login/account 的 uid 一致，用于导入去重
+        val token = jwt("""{"nickname":"Bob","sub":"6b1c-uuid","exp":1788200000}""")
+        val profile = WorkBuddyLabel.decodeProfile(token)
+        assertEquals("6b1c-uuid", profile.uid)
+        assertEquals(1788200000L, profile.expiresAt)
+    }
+
+    @Test
+    fun decodeProfileDefaultsUidWhenAbsent() {
+        val profile = WorkBuddyLabel.decodeProfile(jwt("""{"nickname":"Bob"}"""))
+        assertEquals("", profile.uid)
+        assertEquals(0L, profile.expiresAt)
+    }
 }

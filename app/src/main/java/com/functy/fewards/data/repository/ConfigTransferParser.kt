@@ -24,6 +24,10 @@ object ConfigTransferParser {
         val id: String,
         val label: String,
         val token: String,
+        val uid: String = "",
+        val enterpriseId: String = "",
+        val refreshToken: String = "",
+        val expiresAt: Long = 0L,
     )
 
     data class Parsed(
@@ -95,6 +99,10 @@ object ConfigTransferParser {
                     id = o.optString("id").ifEmpty { "wb_$i" },
                     label = o.optString("label").ifEmpty { "Work Buddy 账号" },
                     token = token,
+                    uid = o.optString("uid"),
+                    enterpriseId = o.optString("enterpriseId"),
+                    refreshToken = o.optString("refreshToken"),
+                    expiresAt = o.optLong("expiresAt"),
                 )
             )
         }

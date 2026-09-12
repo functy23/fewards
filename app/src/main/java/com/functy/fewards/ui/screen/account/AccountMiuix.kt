@@ -1,12 +1,12 @@
 package com.functy.fewards.ui.screen.account
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -15,30 +15,31 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import com.functy.fewards.ui.component.IconSquircleCornerFraction
-import top.yukonga.miuix.kmp.squircle.squircleClip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
@@ -46,38 +47,42 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.functy.fewards.R
-import androidx.compose.foundation.layout.width
-import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
+import com.functy.fewards.ui.component.IconSquircleCornerFraction
+import com.functy.fewards.ui.component.miuix.AddAccountDialog
 import com.functy.fewards.ui.viewmodel.AccountViewModel
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.EncodeHintType
-import com.google.zxing.qrcode.QRCodeWriter
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.DropdownDefaults
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
+import top.yukonga.miuix.kmp.basic.ListPopupColumn
+import top.yukonga.miuix.kmp.basic.ListPopupDefaults
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TopAppBar
-import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.TopAppBarDefaults
+import top.yukonga.miuix.kmp.squircle.squircleClip
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
-import top.yukonga.miuix.kmp.window.WindowDialog
+import top.yukonga.miuix.kmp.window.WindowListPopup
+import kotlin.math.roundToInt
 
 /**
- * 账号页（Miuix）：大标题「账号」；从上到下为米游社区域、WorkBuddy 区域。
- * 扫码登录弹出独立二维码窗口（WindowDialog）。
+ * 账号页（Miuix）：
+ *  - 只展示已登录账号，米游社与 WorkBuddy 用灰色小标题分组；
+ *  - 右上角「+」弹出列表，选择「添加米游社账号 / 添加 WorkBuddy 账号」；
+ *  - 两者都打开同一个 AddAccountDialog，弹窗内可切换扫码 / 凭据登录。
  */
 @Composable
 fun AccountPagerMiuix(
@@ -99,92 +104,139 @@ fun AccountPagerMiuix(
         dismissInput()
     }
 
-    // 二维码弹窗：showQrDialog 独立控制（dismiss 动画走完再卸载）。
-    // 取消 = show=false → WindowDialog 自带下滑淡出动画 → onDismissFinished 后才真正清状态/停轮询。
-    var showQrDialog by remember { mutableStateOf(false) }
-    var dialogReady by remember { mutableStateOf(false) } // 弹窗弹出动画结束后才开始加载二维码
+    // TopAppBar 把 actions 垂直居中在「收起高度」（52dp）里，而大标题排在 52dp 之下。
+    // 用与大标题同款的 title1 量一次行高，把「+」往下挪到和大标题同一条中线上；
+    // 滚动收起时再按 collapsedFraction 收回，免得图标掉到收起栏下面。
+    val textMeasurer = rememberTextMeasurer()
+    val titleLineHeightPx = with(LocalDensity.current) {
+        textMeasurer.measure(
+            text = AnnotatedString(stringResource(R.string.account_title)),
+            style = MiuixTheme.textStyles.title1,
+        ).size.height
+    }
+    val plusOffsetPx = with(LocalDensity.current) {
+        (TopAppBarDefaults.CollapsedHeight / 2).toPx() + titleLineHeightPx / 2f
+    }
 
+    var showAddMenu by remember { mutableStateOf(false) }
+    // show* 驱动 WindowDialog 的开合；mounted* 保证关闭动画播完之前不卸载弹窗
+    // （切到 Cookie/Token Tab 会立刻把 qrState 归零，只靠 qrState 判断会动画演一半就消失）
+    var showMhyDialog by remember { mutableStateOf(false) }
+    var showWbDialog by remember { mutableStateOf(false) }
+    var mhyDialogMounted by remember { mutableStateOf(false) }
+    var wbDialogMounted by remember { mutableStateOf(false) }
+
+    // 扫码成功才自动关弹窗；过期 / 失败保持打开以露出「重新获取」
     LaunchedEffect(state.qrState) {
-        when (state.qrState) {
-            AccountUiState.QrState.Waiting,
-            AccountUiState.QrState.Scanned -> showQrDialog = true
-            AccountUiState.QrState.Idle,
-            AccountUiState.QrState.Expired,
-            AccountUiState.QrState.Error,
-            AccountUiState.QrState.Confirmed -> showQrDialog = false
-            AccountUiState.QrState.Loading -> {}
-        }
+        if (state.qrState == QrState.Confirmed) showMhyDialog = false
     }
-    LaunchedEffect(showQrDialog) {
-        if (showQrDialog) {
-            kotlinx.coroutines.delay(450) // 等弹出动画（folme spring）基本完成
-            if (showQrDialog) dialogReady = true
-        }
+    LaunchedEffect(state.wbQrState) {
+        if (state.wbQrState == QrState.Confirmed) showWbDialog = false
     }
-    LaunchedEffect(dialogReady) {
-        if (dialogReady && showQrDialog &&
-            (state.qrState == AccountUiState.QrState.Idle || state.qrState == AccountUiState.QrState.Loading)
-        ) {
-            accountViewModel.startQrLogin() // 弹窗已完全弹出，才开始生成/加载二维码
-        }
+    // 停在扫码 Tab 且没有活着的会话时申请二维码。
+    // 以「弹窗开合 + Tab」为 key：弹窗弹出动画（folme spring）结束后才申请，
+    // 切走再切回扫码 Tab 也会重新申请一张新码；过期 / 失败后重开同样能自愈。
+    LaunchedEffect(showMhyDialog, state.loginMode) {
+        if (!showMhyDialog || state.loginMode != 0) return@LaunchedEffect
+        if (state.qrState == QrState.Waiting || state.qrState == QrState.Scanned) return@LaunchedEffect
+        kotlinx.coroutines.delay(450)
+        if (showMhyDialog && state.loginMode == 0) actions.onStartQr()
     }
-    if (showQrDialog || state.qrState != AccountUiState.QrState.Idle) {
-        WindowDialog(
-            show = showQrDialog,
-            title = stringResource(R.string.miyoushe_login_qr),
-            onDismissRequest = {
-                // 只触发关闭动画；动画完成后在 onDismissFinished 里清理
-                showQrDialog = false
+    LaunchedEffect(showWbDialog, state.wbLoginMode) {
+        if (!showWbDialog || state.wbLoginMode != 0) return@LaunchedEffect
+        if (state.wbQrState == QrState.Waiting || state.wbQrState == QrState.Scanned) return@LaunchedEffect
+        kotlinx.coroutines.delay(450)
+        if (showWbDialog && state.wbLoginMode == 0) actions.onStartWbQr()
+    }
+
+    if (mhyDialogMounted) {
+        AddAccountDialog(
+            show = showMhyDialog,
+            title = stringResource(R.string.account_add_miyoushe),
+            tabs = listOf(
+                stringResource(R.string.miyoushe_login_qr),
+                stringResource(R.string.miyoushe_login_cookie),
+            ),
+            selectedTab = state.loginMode,
+            onTabSelected = { tab ->
+                dismissInput()
+                actions.onSetLoginMode(tab)
+                // 离开扫码 Tab 时停掉轮询；再切回扫码时下面那个 LaunchedEffect 会重新申请一张新二维码
+                if (tab != 0) actions.onCancelQr()
             },
+            // 空闲 / 加载中不显示上一轮的二维码（切走再切回时先转圈，而不是闪一张旧码）；
+            // 过期 / 失败仍保留那张码，配合「已失效 + 重新获取」。
+            qrContent = when (state.qrState) {
+                QrState.Idle, QrState.Loading -> ""
+                else -> state.qrContent
+            },
+            qrMessage = stringResource(
+                when (state.qrState) {
+                    QrState.Scanned -> R.string.miyoushe_qr_scanned
+                    QrState.Expired -> R.string.qr_expired
+                    QrState.Error -> R.string.qr_failed
+                    else -> R.string.miyoushe_qr_wait_scan
+                }
+            ),
+            canRetry = state.qrState == QrState.Expired || state.qrState == QrState.Error,
+            credentialLabel = stringResource(R.string.miyoushe_cookie_hint),
+            credentialAction = stringResource(R.string.miyoushe_cookie_import),
+            onImportCredential = { raw ->
+                dismissInput()
+                val accepted = actions.onImportCookie(raw)
+                // 接受后关弹窗（走 WindowDialog 的淡出动画）；失败则留在原地让用户改
+                if (accepted) showMhyDialog = false
+                accepted
+            },
+            onDismissRequest = { showMhyDialog = false },
             onDismissFinished = {
-                dialogReady = false
+                mhyDialogMounted = false
                 actions.onCancelQr()
             },
-            content = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    // 固定 240dp 二维码区：弹出动画结束后才请求二维码；加载中显示加载动画
-                    Box(
-                        modifier = Modifier.size(240.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (state.qrContent.isNotEmpty() &&
-                            (state.qrState == AccountUiState.QrState.Waiting || state.qrState == AccountUiState.QrState.Scanned)
-                        ) {
-                            QrImage(content = state.qrContent)
-                        } else {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                InfiniteProgressIndicator(color = colorScheme.primary)
-                                Spacer(Modifier.height(12.dp))
-                                Text(
-                                    text = stringResource(R.string.processing),
-                                    fontSize = 14.sp,
-                                    color = colorScheme.onSurfaceVariantSummary,
-                                )
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        text = stringResource(
-                            when (state.qrState) {
-                                AccountUiState.QrState.Scanned -> R.string.miyoushe_qr_scanned
-                                else -> R.string.miyoushe_qr_wait_scan
-                            }
-                        ),
-                        fontSize = 13.sp,
-                        color = colorScheme.onSurfaceVariantSummary,
-                    )
-                    Spacer(Modifier.height(14.dp))
-                    TextButton(
-                        text = stringResource(R.string.cancel),
-                        onClick = { showQrDialog = false }, // 触发下滑淡出动画，onDismissFinished 里清理
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+            onRetry = { actions.onStartQr() },
+        )
+    }
+
+    if (wbDialogMounted) {
+        AddAccountDialog(
+            show = showWbDialog,
+            title = stringResource(R.string.account_add_workbuddy),
+            tabs = listOf(
+                stringResource(R.string.workbuddy_login_qr),
+                stringResource(R.string.workbuddy_login_token),
+            ),
+            selectedTab = state.wbLoginMode,
+            onTabSelected = { tab ->
+                dismissInput()
+                actions.onSetWbLoginMode(tab)
+                if (tab != 0) actions.onCancelWbQr()
+            },
+            qrContent = when (state.wbQrState) {
+                QrState.Idle, QrState.Loading -> ""
+                else -> state.wbQrContent
+            },
+            qrMessage = stringResource(
+                when (state.wbQrState) {
+                    QrState.Expired -> R.string.qr_expired
+                    QrState.Error -> R.string.qr_failed
+                    else -> R.string.workbuddy_qr_wait_scan
                 }
-            }
+            ),
+            canRetry = state.wbQrState == QrState.Expired || state.wbQrState == QrState.Error,
+            credentialLabel = stringResource(R.string.workbuddy_token_hint),
+            credentialAction = stringResource(R.string.workbuddy_token_import),
+            onImportCredential = { raw ->
+                dismissInput()
+                val accepted = actions.onImportWbToken(raw)
+                if (accepted) showWbDialog = false
+                accepted
+            },
+            onDismissRequest = { showWbDialog = false },
+            onDismissFinished = {
+                wbDialogMounted = false
+                actions.onCancelWbQr()
+            },
+            onRetry = { actions.onStartWbQr() },
         )
     }
 
@@ -194,6 +246,74 @@ fun AccountPagerMiuix(
                 color = colorScheme.surface,
                 title = stringResource(R.string.account_title),
                 scrollBehavior = scrollBehavior,
+                actions = {
+                    Box(
+                        // 和大标题对齐：actions 默认垂直居中在「收起高度」（52dp）里，
+                        // 大标题却排在 52dp 之下，所以整体下移「半个收起高度 + 半个行高」。
+                        // 滚动收起时按 collapsedFraction 收回原位；offset 的 lambda 在布局阶段读，
+                        // 不订阅重组。
+                        modifier = Modifier.offset {
+                            val collapsed = scrollBehavior.state.collapsedFraction
+                            IntOffset(0, (plusOffsetPx * (1f - collapsed)).roundToInt())
+                        },
+                    ) {
+                        IconButton(
+                            onClick = {
+                                dismissInput()
+                                showAddMenu = true
+                            },
+                            // 带圈按钮：miuix IconButton 的 minWidth/minHeight 与默认
+                            // cornerRadius 都是 40dp，给个底色就是正圆。
+                            backgroundColor = colorScheme.surfaceContainerHigh,
+                        ) {
+                            Icon(
+                                Icons.Rounded.Add,
+                                contentDescription = stringResource(R.string.account_add),
+                                tint = colorScheme.onSurface,
+                            )
+                        }
+                        WindowListPopup(
+                            show = showAddMenu,
+                            // 加一点水平边距，否则菜单右边缘会贴着屏幕右边
+                            popupPositionProvider = ListPopupDefaults.dropdownPositionProvider(
+                                horizontalMargin = 12.dp,
+                            ),
+                            onDismissRequest = { showAddMenu = false },
+                        ) {
+                            val addOptions = listOf(
+                                stringResource(R.string.account_add_miyoushe),
+                                stringResource(R.string.account_add_workbuddy),
+                            )
+                            ListPopupColumn {
+                                // 不用 miuix 的 DropdownImpl：它恒定给尾部的「选中勾」留
+                                // CheckIconStartPadding + CheckIconSize（≈32dp），
+                                // 这里没有选中态，那道槽位就成了文字后面的一段空白。
+                                addOptions.forEachIndexed { index, text ->
+                                    AddMenuRow(
+                                        text = text,
+                                        isFirst = index == 0,
+                                        isLast = index == addOptions.lastIndex,
+                                        onClick = {
+                                            showAddMenu = false
+                                            when (index) {
+                                                0 -> {
+                                                    actions.onSetLoginMode(0)
+                                                    mhyDialogMounted = true
+                                                    showMhyDialog = true
+                                                }
+                                                else -> {
+                                                    actions.onSetWbLoginMode(0)
+                                                    wbDialogMounted = true
+                                                    showWbDialog = true
+                                                }
+                                            }
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
             )
         },
         popupHost = { },
@@ -212,223 +332,160 @@ fun AccountPagerMiuix(
             contentPadding = innerPadding,
             overscrollEffect = null,
         ) {
-            item {
-                Column(
-                    modifier = Modifier.padding(top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    // ==================== 米游社 ====================
+            // ==================== 米游社 ====================
+            if (state.mihoyoAccounts.isNotEmpty()) {
+                item { SectionHeader(stringResource(R.string.miyoushe)) }
+                item {
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp, 12.dp)) {
-                            Text(
-                                text = stringResource(R.string.miyoushe),
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = colorScheme.onSurface,
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = stringResource(
-                                    if (state.mihoyoLoggedIn) R.string.miyoushe_status_logged_in
-                                    else R.string.miyoushe_status_not_logged_in
-                                ),
-                                fontSize = 13.sp,
-                                color = colorScheme.onSurfaceVariantSummary,
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            TabRowWithContour(
-                                tabs = listOf(
-                                    stringResource(R.string.miyoushe_login_qr),
-                                    stringResource(R.string.miyoushe_login_cookie),
-                                ),
-                                selectedTabIndex = state.loginMode,
-                                onTabSelected = {
-                                    dismissInput()
-                                    actions.onSetLoginMode(it)
-                                },
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            if (state.loginMode == 0) {
-                                // 扫码登录：按钮弹出独立二维码窗口
-                                TextButton(
-                                    text = stringResource(
-                                        when (state.qrState) {
-                                            AccountUiState.QrState.Waiting, AccountUiState.QrState.Scanned -> R.string.miyoushe_qr_wait_scan
-                                            AccountUiState.QrState.Expired -> R.string.miyoushe_qr_refresh
-                                            else -> R.string.miyoushe_qr_generate
+                        Column {
+                            state.mihoyoAccounts.forEach { account ->
+                                BasicComponent(
+                                    title = account.nickname,
+                                    summary = "stuid=${account.stuid}",
+                                    startAction = {
+                                        AccountFace(
+                                            url = account.avatarUrl,
+                                            label = account.nickname,
+                                            hydrating = account.id in state.mhyHydratingIds,
+                                        )
+                                    },
+                                    endActions = {
+                                        IconButton(
+                                            onClick = {
+                                                dismissInput()
+                                                actions.onRemoveMihoyo(account.id)
+                                            },
+                                        ) {
+                                            Icon(
+                                                Icons.Rounded.Delete,
+                                                contentDescription = stringResource(R.string.miyoushe_logout),
+                                                tint = colorScheme.onSurfaceVariantSummary,
+                                            )
                                         }
-                                    ),
-                                    onClick = {
-                                        dismissInput()
-                                        showQrDialog = true
                                     },
-                                    enabled = state.qrState == AccountUiState.QrState.Idle ||
-                                        state.qrState == AccountUiState.QrState.Expired ||
-                                        state.qrState == AccountUiState.QrState.Error || state.qrState == AccountUiState.QrState.Confirmed,
-                                    colors = ButtonDefaults.textButtonColorsPrimary(),
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            } else {
-                                CookieSection(actions, dismissInput)
-                            }
-                        }
-                    }
-
-                    // 已登录账号列表
-                    if (state.mihoyoAccounts.isNotEmpty()) {
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column {
-                                state.mihoyoAccounts.forEach { account ->
-                                    BasicComponent(
-                                        title = account.nickname,
-                                        summary = "stuid=${account.stuid}",
-                                        startAction = {
-                                            AccountFace(
-                                                url = account.avatarUrl,
-                                                label = account.nickname,
-                                                hydrating = account.id in state.mhyHydratingIds,
-                                            )
-                                        },
-                                        endActions = {
-                                            // 仅垃圾桶按钮可删除；整行点击不响应
-                                            IconButton(
-                                                onClick = {
-                                                    dismissInput()
-                                                    actions.onRemoveMihoyo(account.id)
-                                                },
-                                            ) {
-                                                Icon(
-                                                    Icons.Rounded.Delete,
-                                                    contentDescription = stringResource(R.string.miyoushe_logout),
-                                                    tint = colorScheme.onSurfaceVariantSummary,
-                                                )
-                                            }
-                                        },
-                                        onClick = { dismissInput() },
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // ==================== WorkBuddy ====================
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp, 12.dp)) {
-                            Text(
-                                text = stringResource(R.string.workbuddy),
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = colorScheme.onSurface,
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = stringResource(
-                                    if (state.wbLoggedIn) R.string.workbuddy_status_logged_in
-                                    else R.string.workbuddy_status_not_logged_in
-                                ),
-                                fontSize = 13.sp,
-                                color = colorScheme.onSurfaceVariantSummary,
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            var wbToken by rememberSaveable { mutableStateOf("") }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                TextField(
-                                    value = wbToken,
-                                    onValueChange = { wbToken = it },
-                                    label = stringResource(R.string.workbuddy_token_hint),
-                                    singleLine = true,
-                                    maxLines = 1,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                TextButton(
-                                    text = stringResource(R.string.workbuddy_token_import),
-                                    onClick = {
-                                        actions.onImportWbToken(wbToken)
-                                        wbToken = ""
-                                        dismissInput()
-                                    },
-                                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                                    onClick = { dismissInput() },
                                 )
                             }
                         }
                     }
-
-                    if (state.wbAccounts.isNotEmpty()) {
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column {
-                                state.wbAccounts.forEach { account ->
-                                    BasicComponent(
-                                        title = account.label,
-                                        summary = "token=${account.token.take(6)}****",
-                                        startAction = {
-                                            AccountFace(
-                                                url = account.avatarUrl,
-                                                label = account.label,
-                                                hydrating = false,
-                                            )
-                                        },
-                                        endActions = {
-                                            // 仅垃圾桶按钮可删除；整行点击不响应
-                                            IconButton(
-                                                onClick = {
-                                                    dismissInput()
-                                                    actions.onRemoveWb(account.id)
-                                                },
-                                            ) {
-                                                Icon(
-                                                    Icons.Rounded.Delete,
-                                                    contentDescription = stringResource(R.string.workbuddy_logout),
-                                                    tint = colorScheme.onSurfaceVariantSummary,
-                                                )
-                                            }
-                                        },
-                                        onClick = { dismissInput() },
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(bottomInnerPadding))
                 }
             }
+
+            // ==================== WorkBuddy ====================
+            if (state.wbAccounts.isNotEmpty()) {
+                item { SectionHeader(stringResource(R.string.workbuddy)) }
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column {
+                            state.wbAccounts.forEach { account ->
+                                BasicComponent(
+                                    title = account.label,
+                                    summary = if (account.uid.isNotEmpty()) {
+                                        "uid=${account.uid}"
+                                    } else {
+                                        "token=${account.token.take(6)}****"
+                                    },
+                                    startAction = {
+                                        AccountFace(
+                                            url = account.avatarUrl,
+                                            label = account.label,
+                                            hydrating = false,
+                                        )
+                                    },
+                                    endActions = {
+                                        IconButton(
+                                            onClick = {
+                                                dismissInput()
+                                                actions.onRemoveWb(account.id)
+                                            },
+                                        ) {
+                                            Icon(
+                                                Icons.Rounded.Delete,
+                                                contentDescription = stringResource(R.string.workbuddy_logout),
+                                                tint = colorScheme.onSurfaceVariantSummary,
+                                            )
+                                        }
+                                    },
+                                    onClick = { dismissInput() },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (state.mihoyoAccounts.isEmpty() && state.wbAccounts.isEmpty()) {
+                item { EmptyHint() }
+            }
+
+            item { Spacer(Modifier.height(bottomInnerPadding)) }
         }
     }
 }
 
+/**
+ * 「添加账号」菜单的一行。样式对齐 miuix DropdownImpl 的弹出态，
+ * 但不带尾部选中勾，因此文字后面不会多出一段为勾留的空白。
+ */
 @Composable
-private fun CookieSection(
-    actions: AccountActions,
-    dismissInput: () -> Unit,
+private fun AddMenuRow(
+    text: String,
+    isFirst: Boolean,
+    isLast: Boolean,
+    onClick: () -> Unit,
 ) {
-    var cookie by rememberSaveable { mutableStateOf("") }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+    val verticalPadding = if (isFirst || isLast) {
+        DropdownDefaults.FirstLastVerticalPadding
+    } else {
+        DropdownDefaults.MiddleVerticalPadding
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = DropdownDefaults.MinHeight)
+            .clickable(onClick = onClick)
+            .padding(
+                start = DropdownDefaults.InsideHorizontalPadding,
+                end = DropdownDefaults.InsideHorizontalPadding,
+                top = verticalPadding,
+                bottom = verticalPadding,
+            ),
+        contentAlignment = Alignment.CenterStart,
     ) {
-        TextField(
-            value = cookie,
-            onValueChange = { cookie = it },
-            label = stringResource(R.string.miyoushe_cookie_hint),
-            singleLine = true,
-            maxLines = 1,
-            modifier = Modifier.weight(1f),
+        Text(
+            text = text,
+            fontSize = MiuixTheme.textStyles.body1.fontSize,
+            fontWeight = FontWeight.Medium,
+            color = colorScheme.onSurfaceContainer,
         )
-        Spacer(Modifier.width(8.dp))
-        TextButton(
-            text = stringResource(R.string.miyoushe_cookie_import),
-            onClick = {
-                if (cookie.contains("stoken")) {
-                    actions.onImportCookie(cookie)
-                    cookie = ""
-                }
-                dismissInput()
-            },
-            colors = ButtonDefaults.textButtonColorsPrimary(),
+    }
+}
+
+/** 灰色小标题：区分米游社 / WorkBuddy 账号分组。 */
+@Composable
+private fun SectionHeader(text: String) {
+    Text(
+        text = text,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Medium,
+        color = colorScheme.onSurfaceVariantSummary,
+        modifier = Modifier.padding(start = 6.dp, top = 10.dp, bottom = 6.dp),
+    )
+}
+
+@Composable
+private fun EmptyHint() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 72.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.account_empty),
+            fontSize = 14.sp,
+            color = colorScheme.onSurfaceVariantSummary,
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -489,16 +546,15 @@ private fun UrlImage(
 ) {
     var bitmap by remember(url) { mutableStateOf<android.graphics.Bitmap?>(null) }
     var loaded by remember(url) { mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(url) {
+    LaunchedEffect(url) {
         loaded = false
         bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             runCatching {
                 com.functy.fewards.fewardsApp.okhttpClient.newCall(
                     okhttp3.Request.Builder().url(url).build()
                 ).execute().use { resp ->
-                    resp.body?.bytes()?.let { bytes ->
-                        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    }
+                    val bytes = resp.body.bytes()
+                    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 }
             }.getOrNull()
         }
@@ -514,31 +570,4 @@ private fun UrlImage(
         !loaded -> AvatarLoading(size, modifier)
         else -> LetterAvatar(label = contentDescription.orEmpty(), size = size, modifier = modifier)
     }
-}
-
-/** zxing 生成二维码位图。 */
-@Composable
-private fun QrImage(content: String) {
-    if (content.isEmpty()) return
-    val size = 240.dp
-    val bitmap = remember(content) {
-        val matrix = QRCodeWriter().encode(
-            content, BarcodeFormat.QR_CODE, 512, 512,
-            mapOf(EncodeHintType.MARGIN to 1)
-        )
-        val bmp = android.graphics.Bitmap.createBitmap(matrix.width, matrix.height, android.graphics.Bitmap.Config.ARGB_8888)
-        for (x in 0 until matrix.width) {
-            for (y in 0 until matrix.height) {
-                bmp.setPixel(x, y, if (matrix.get(x, y)) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
-            }
-        }
-        bmp.asImageBitmap()
-    }
-    Image(
-        bitmap = bitmap,
-        contentDescription = "QR",
-        modifier = Modifier
-            .size(size)
-            .clip(RoundedCornerShape(20.dp)),
-    )
 }

@@ -1,32 +1,50 @@
 # Fewards
 
-Android 自动签到：**米游社**（游戏签到 + 米游币任务）和 **WorkBuddy**（每日积分）。Kotlin + Jetpack Compose，界面为 **Miuix**。
+**Android 自动签到**：米游社（游戏签到 + 米游币任务）与 WorkBuddy（每日积分），一次点击跑完全部。
 
-参考：
+[![test](https://github.com/functy23/fewards/actions/workflows/test.yml/badge.svg)](https://github.com/functy23/fewards/actions/workflows/test.yml)
+[![release](https://img.shields.io/github/v/release/functy23/fewards)](https://github.com/functy23/fewards/releases/latest)
 
-- UI：[KernelSU manager](https://github.com/tiann/KernelSU)、[InstallerX Revived](https://github.com/wxxsfxyzm/InstallerX-Revived)（导航 / 主题页）
-- 米游社：[MiyoQian](https://github.com/Womsxd/MiyoQian)
-- WorkBuddy：公开 HTTP 接口（`copilot.tencent.com/billing/meter`）
+Kotlin + Jetpack Compose，界面全程 **Miuix**（HyperOS 风格）。
 
-这是当前维护的版本。早期同功能仓库已归档，请只用本仓库：
+<p align="center">
+  <img src="docs/screenshots/home.png" width="24%" alt="首页" />
+  <img src="docs/screenshots/account.png" width="24%" alt="账号" />
+  <img src="docs/screenshots/settings.png" width="24%" alt="设置" />
+  <img src="docs/screenshots/theme.png" width="24%" alt="主题" />
+</p>
+<p align="center">
+  <sub>首页 · 账号 · 设置 · 主题</sub>
+</p>
 
-- [functy23/autofewards](https://github.com/functy23/autofewards)（归档）
-- [functy23/autorewards-runner](https://github.com/functy23/autorewards-runner)（归档，Flutter 母本）
+## 下载
 
-## 功能
+到 [Releases](https://github.com/functy23/fewards/releases/latest) 下载最新 `Fewards-<版本>-release.apk`（release + R8）。
 
-| 任务 | 内容 |
+## 能做什么
+
+| | |
 |---|---|
-| 米游社 | 扫码登录（stoken v2）/ Cookie；游戏社区签到（默认原神 / 星铁 / 绝区零；常量表仍保留崩 3 / 未定 / 崩 2 的 act_id）；米游币（社区签到 / 看帖 / 点赞 / 分享）；验证码策略（默认跳过，可选打码接口） |
-| WorkBuddy | 粘贴桌面端 accessToken；`checkin-status` + `daily-checkin`（`code=10001` 视为已签成功） |
+| **米游社** | 扫码登录（stoken v2）或 Cookie；原神 / 星铁 / 绝区零每日签到；米游币任务（社区签到 / 看帖 / 点赞 / 分享）；验证码策略（默认跳过，可选打码接口） |
+| **WorkBuddy** | 微信 / QQ 扫码授权或粘贴桌面端 accessToken；每日积分自动签到 |
 
-- 主页：状态卡（未完成 / 执行中 / 已完成）+ 任务清单 + 开始执行 + 日志
-- 控制中心：把「签到」快捷开关加到控制中心；点击即开始执行（与首页默认勾选相同），执行中保持开启、结束后关闭
-- 账号：米游社扫码或 Cookie、多账号；WorkBuddy token 导入
-- 设置：主题（Monet / 关键色 / 模糊 / 悬浮底栏 / 返回动画）、米游社与 WorkBuddy 总开关（开则展开子项）、任务通知与完成总览
-- 执行走 WorkManager（进程被杀后仍可继续）
-- 实时活动进度通知（完成总览可自动消失或点确认）
-- 凭据只存本机 SharedPreferences；日志不打印 token / cookie
+- **多账号** — 米游社与 WorkBuddy 都支持多个账号，同一账号重复授权按 uid 更新而非新增
+- **一条链路** — 首页「开始执行」与控制中心「签到」磁贴走同一套流程，执行中实时进度通知
+- **后台可续** — 执行走 WorkManager，进程被杀后仍能跑完
+- **本地优先** — 凭据只存本机 SharedPreferences，日志不打印 token / cookie
+
+## 使用
+
+1. **账号** — 右上角「+」添加：米游社扫码或粘贴含 stoken + mid 的 Cookie；WorkBuddy 用微信 / QQ 扫码授权，或粘贴桌面端 accessToken
+2. **设置** — 开关任务分项、验证码策略、通知与完成总览
+3. **首页** — 勾选任务 → 开始执行
+
+macOS 想直接取桌面端 token：
+
+```bash
+chmod +x scripts/workbuddy-token.sh
+./scripts/workbuddy-token.sh
+```
 
 ## 构建
 
@@ -37,27 +55,16 @@ Android 自动签到：**米游社**（游戏签到 + 米游币任务）和 **Wo
 # 产物：app/build/outputs/apk/release/app-release.apk
 ```
 
+测试：`./gradlew :app:testDebugUnitTest`
+
 工具链：AGP 9.4.0 / Kotlin 2.4.10 / Compose BOM 2026.08.00 / miuix 0.9.3 / miuix-nav 0.9.4-rc01 / minSdk 31 / target 37 / Java 21。
-
-macOS 一键复制 WorkBuddy Access Token：
-
-```bash
-chmod +x scripts/workbuddy-token.sh
-./scripts/workbuddy-token.sh
-```
-
-## 使用
-
-1. 「账号」：米游社扫码或粘贴含 stoken + mid 的 Cookie；WorkBuddy 粘贴桌面端 accessToken
-2. 「设置」：开关任务分项、验证码策略、通知与完成总览
-3. 「首页」：勾选任务 → 开始执行
 
 ## 架构
 
 ```
 app/src/main/java/com/functy/fewards/
 ├── core/mihoyo/          # DS 签名、常量、HTTP、引擎
-├── core/workbuddy/       # 签到引擎
+├── core/workbuddy/       # 签到引擎、扫码授权协议
 ├── data/repository/      # 设置、账号、配置导入导出
 ├── ui/screen/            # 主页 / 账号 / 设置 / 主题 / 关于（Miuix）
 ├── ui/viewmodel/
@@ -66,12 +73,15 @@ app/src/main/java/com/functy/fewards/
 
 Agent 约定见 [AGENTS.md](AGENTS.md)。
 
-## 接口
+## 接口与参考
 
-- 米游社 DS salt、act_id、地址以 MiyoQian 为准，抓包后可改 `DsSign.kt` / `MihoyoConstants.kt`
-- stoken 换 cookie 走 `getCookieAccountInfoBySToken`
-- WorkBuddy：`copilot.tencent.com/billing/meter/*`
+- 米游社 DS salt、act_id、地址以 [MiyoQian](https://github.com/Womsxd/MiyoQian) 为准，抓包后可改 `DsSign.kt` / `MihoyoConstants.kt`；stoken 换 cookie 走 `getCookieAccountInfoBySToken`
+- WorkBuddy 签到：`copilot.tencent.com/billing/meter/*`
+- WorkBuddy 扫码授权：`copilot.tencent.com/v2/plugin/auth/state|token` + `/v2/plugin/login/account`（`platform=CLI`；未扫码返回非 0 码，属正常等待）
 - 打码接口：POST `{gt, challenge}` → `{validate}`
+- UI 参考 [KernelSU manager](https://github.com/tiann/KernelSU) 与 [InstallerX Revived](https://github.com/wxxsfxyzm/InstallerX-Revived)
+
+早期同功能仓库已归档，请只用本仓库：[autofewards](https://github.com/functy23/autofewards)、[autorewards-runner](https://github.com/functy23/autorewards-runner)（Flutter 母本）。
 
 ## 免责声明
 

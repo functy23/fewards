@@ -30,20 +30,27 @@
     <string name="account_title">账号</string>
     <string name="miyoushe_login_qr">扫码登录</string>
     <string name="miyoushe_login_cookie">Cookie 登录</string>
-    <string name="miyoushe_status_logged_in">已登录</string>
-    <string name="miyoushe_status_not_logged_in">未登录</string>
     <string name="miyoushe_cookie_hint">粘贴米游社 Cookie</string>
     <string name="miyoushe_cookie_import">导入</string>
     <string name="miyoushe_logout">退出登录</string>
-    <string name="miyoushe_qr_generate">生成二维码</string>
     <string name="miyoushe_qr_wait_scan">等待扫码…</string>
     <string name="miyoushe_qr_scanned">已扫码，请在手机上确认</string>
-    <string name="miyoushe_qr_refresh">刷新二维码</string>
     <string name="workbuddy_token_hint">粘贴 Access Token</string>
     <string name="workbuddy_token_import">导入</string>
     <string name="workbuddy_logout">删除</string>
-    <string name="workbuddy_status_logged_in">已导入 Token</string>
-    <string name="workbuddy_status_not_logged_in">未配置</string>
+    <string name="workbuddy_login_qr">扫码登录</string>
+    <string name="workbuddy_login_token">Token 登录</string>
+    <string name="workbuddy_qr_wait_scan">用微信 / QQ 扫码授权</string>
+
+    <string name="account_add">添加账号</string>
+    <string name="account_add_miyoushe">添加米游社账号</string>
+    <string name="account_add_workbuddy">添加 WorkBuddy 账号</string>
+    <string name="account_empty">还没有账号，点右上角 + 添加</string>
+
+    <!-- 通用扫码弹窗 -->
+    <string name="qr_retry">重新获取</string>
+    <string name="qr_expired">二维码已失效</string>
+    <string name="qr_failed">获取二维码失败</string>
 
     <!-- 设置 -->
     <string name="settings_theme">主题</string>

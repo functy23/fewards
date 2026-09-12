@@ -79,11 +79,19 @@ class AccountRepository {
 
     // ==================== WorkBuddy ====================
 
+    /**
+     * WorkBuddy 账号。扫码授权会一并带出 uid / enterpriseId / refreshToken / expiresAt；
+     * 手动粘贴 token 时这些字段可能为空，引擎只依赖 [token]。
+     */
     data class WorkBuddyAccount(
         val id: String,
         val label: String,
         val token: String,
         val avatarUrl: String = "",
+        val uid: String = "",
+        val enterpriseId: String = "",
+        val refreshToken: String = "",
+        val expiresAt: Long = 0L,
     )
 
     fun workBuddyAccounts(): List<WorkBuddyAccount> {
@@ -97,15 +105,32 @@ class AccountRepository {
                     label = o.optString("label"),
                     token = o.optString("token"),
                     avatarUrl = o.optString("avatarUrl"),
+                    uid = o.optString("uid"),
+                    enterpriseId = o.optString("enterpriseId"),
+                    refreshToken = o.optString("refreshToken"),
+                    expiresAt = o.optLong("expiresAt"),
                 )
             }
         }.getOrDefault(emptyList())
     }
 
+    /**
+     * 写入 / 更新一个 WorkBuddy 账号（多账号：同一账号重复授权 = 更新，而不是多出一条）。
+     * 去重顺序：
+     *  1. 相同的 uid（扫码授权带出的权威 id）；
+     *  2. 老账号（uid 为空）按 label 命中——扫码前导入的 token 没有 uid，否则会留下重复条目；
+     *  3. 相同的 id。
+     * 命中时原地替换，保留列表顺序。
+     */
     fun addWorkBuddyAccount(account: WorkBuddyAccount) {
         val list = workBuddyAccounts().toMutableList()
-        list.removeAll { it.id == account.id }
-        list.add(account)
+        val index = list.indexOfFirst { existing ->
+            existing.id == account.id ||
+                (account.uid.isNotEmpty() && existing.uid == account.uid) ||
+                (account.uid.isNotEmpty() && existing.uid.isEmpty() &&
+                    existing.label.isNotEmpty() && existing.label == account.label)
+        }
+        if (index >= 0) list[index] = account else list.add(account)
         saveWorkBuddy(list)
     }
 
@@ -122,6 +147,10 @@ class AccountRepository {
                     .put("label", a.label)
                     .put("token", a.token)
                     .put("avatarUrl", a.avatarUrl)
+                    .put("uid", a.uid)
+                    .put("enterpriseId", a.enterpriseId)
+                    .put("refreshToken", a.refreshToken)
+                    .put("expiresAt", a.expiresAt)
             )
         }
         prefs.edit { putString("sec.wb.accounts", arr.toString()) }

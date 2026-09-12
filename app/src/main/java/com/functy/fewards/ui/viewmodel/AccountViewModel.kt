@@ -6,9 +6,12 @@ import com.functy.fewards.core.AppLog
 import com.functy.fewards.core.mihoyo.MihoyoApi
 import com.functy.fewards.core.mihoyo.MihoyoProfileHydrator
 import com.functy.fewards.core.workbuddy.WorkBuddyLabel
+import com.functy.fewards.core.workbuddy.WorkBuddyLogin
 import com.functy.fewards.data.repository.AccountRepository
+import com.functy.fewards.fewardsApp
 import com.functy.fewards.ui.screen.account.AccountActions
 import com.functy.fewards.ui.screen.account.AccountUiState
+import com.functy.fewards.ui.screen.account.QrState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,17 +20,20 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * 账号页 ViewModel：米游社扫码 / Cookie 登录，WorkBuddy token 导入。
+ * 账号页 ViewModel：米游社扫码 / Cookie 登录，WorkBuddy 扫码 / Token 登录。
+ * 两套扫码流程状态机一致（QrState），只是协议客户端不同。
  */
 class AccountViewModel : ViewModel() {
 
     private val accounts = AccountRepository()
     private val api = MihoyoApi(MihoyoApi.defaultClient())
+    private val wbLogin = WorkBuddyLogin(fewardsApp.okhttpClient)
 
     private val _uiState = MutableStateFlow(AccountUiState())
     val uiState: StateFlow<AccountUiState> = _uiState.asStateFlow()
 
     private var qrJob: Job? = null
+    private var wbQrJob: Job? = null
 
     init {
         refresh()
@@ -41,14 +47,7 @@ class AccountViewModel : ViewModel() {
     private fun publishAccounts() {
         val mhy = accounts.mihoyoAccounts()
         val wb = accounts.workBuddyAccounts()
-        _uiState.update {
-            it.copy(
-                mihoyoLoggedIn = mhy.isNotEmpty(),
-                mihoyoAccounts = mhy,
-                wbLoggedIn = wb.isNotEmpty(),
-                wbAccounts = wb,
-            )
-        }
+        _uiState.update { it.copy(mihoyoAccounts = mhy, wbAccounts = wb) }
     }
 
     private fun hydrateMissingProfiles() {
@@ -73,18 +72,20 @@ class AccountViewModel : ViewModel() {
         _uiState.update { it.copy(loginMode = mode) }
     }
 
+    // ==================== 米游社扫码 ====================
+
     /** 生成二维码并轮询扫码状态。 */
     fun startQrLogin() {
         qrJob?.cancel()
-        _uiState.update { it.copy(qrState = AccountUiState.QrState.Loading) }
+        _uiState.update { it.copy(qrState = QrState.Loading) }
         qrJob = viewModelScope.launch {
             try {
                 val session = api.createQrLogin()
-                _uiState.update { it.copy(qrState = AccountUiState.QrState.Waiting, qrContent = session.url) }
+                _uiState.update { it.copy(qrState = QrState.Waiting, qrContent = session.url) }
                 val result = api.awaitQrLogin(session) { status ->
                     when (status) {
                         is MihoyoApi.QrStatus.Scanned ->
-                            _uiState.update { s -> s.copy(qrState = AccountUiState.QrState.Scanned) }
+                            _uiState.update { s -> s.copy(qrState = QrState.Scanned) }
                         else -> {}
                     }
                 }
@@ -103,14 +104,14 @@ class AccountViewModel : ViewModel() {
                 }
                 accounts.addMihoyoAccount(account)
                 AppLog.i("MHY", "账号 ${result.nickname} 扫码登录成功")
-                _uiState.update { it.copy(qrState = AccountUiState.QrState.Confirmed) }
+                _uiState.update { it.copy(qrState = QrState.Confirmed) }
                 refresh()
             } catch (t: Throwable) {
                 AppLog.e("MHY", "扫码登录失败: ${t.message}")
                 _uiState.update {
                     it.copy(
                         qrState = if (t.message?.contains("过期") == true)
-                            AccountUiState.QrState.Expired else AccountUiState.QrState.Error
+                            QrState.Expired else QrState.Error
                     )
                 }
             }
@@ -120,14 +121,15 @@ class AccountViewModel : ViewModel() {
     fun cancelQr() {
         qrJob?.cancel()
         qrJob = null
-        _uiState.update { it.copy(qrState = AccountUiState.QrState.Idle) }
+        _uiState.update { it.copy(qrState = QrState.Idle) }
     }
 
-    fun importCookie(cookie: String) {
+    /** 返回 false 表示 cookie 不可解析，弹窗保留输入让用户改。 */
+    fun importCookie(cookie: String): Boolean {
         val account = MihoyoApi.parseCookie(cookie.trim())
         if (account == null) {
             AppLog.e("MHY", "Cookie 无效：缺少 stoken 或 uid")
-            return
+            return false
         }
         viewModelScope.launch {
             val valid = api.validateStoken(account)
@@ -138,6 +140,7 @@ class AccountViewModel : ViewModel() {
             AppLog.i("MHY", "账号 ${account.nickname} Cookie 导入成功")
             refresh()
         }
+        return true
     }
 
     fun removeMihoyo(id: String) {
@@ -145,23 +148,88 @@ class AccountViewModel : ViewModel() {
         refresh()
     }
 
-    fun importWbToken(token: String) {
+    // ==================== WorkBuddy ====================
+
+    fun setWbLoginMode(mode: Int) {
+        _uiState.update { it.copy(wbLoginMode = mode) }
+    }
+
+    /**
+     * WorkBuddy 扫码授权：申请授权链接 -> 轮询 -> 落库（按 uid 去重）。
+     * 扫码成功后只纳管，不自动签到；签到仍由首页「开始执行」统一触发。
+     */
+    fun startWbQrLogin() {
+        wbQrJob?.cancel()
+        _uiState.update { it.copy(wbQrState = QrState.Loading, wbQrContent = "") }
+        wbQrJob = viewModelScope.launch {
+            try {
+                val session = wbLogin.startLogin()
+                _uiState.update { it.copy(wbQrState = QrState.Waiting, wbQrContent = session.authUrl) }
+                val result = wbLogin.awaitLogin(session)
+                val existed = accounts.workBuddyAccounts().any {
+                    it.uid == result.uid || (it.uid.isEmpty() && it.label == result.nickname)
+                }
+                val profile = WorkBuddyLabel.decodeProfile(result.accessToken)
+                accounts.addWorkBuddyAccount(
+                    AccountRepository.WorkBuddyAccount(
+                        id = "wb_${result.uid}",
+                        label = result.nickname.ifEmpty { profile.label ?: "Work Buddy 账号" },
+                        token = result.accessToken,
+                        avatarUrl = profile.avatarUrl.orEmpty(),
+                        uid = result.uid,
+                        enterpriseId = result.enterpriseId,
+                        refreshToken = result.refreshToken,
+                        expiresAt = result.expiresAt,
+                    )
+                )
+                AppLog.i("WB", "账号 ${result.nickname} 扫码授权成功${if (existed) "（已更新）" else ""}")
+                _uiState.update { it.copy(wbQrState = QrState.Confirmed) }
+                publishAccounts()
+            } catch (t: Throwable) {
+                AppLog.e("WB", "扫码授权失败: ${t.message}")
+                _uiState.update {
+                    it.copy(
+                        wbQrState = if (t.message?.contains("过期") == true) QrState.Expired else QrState.Error,
+                    )
+                }
+            }
+        }
+    }
+
+    fun cancelWbQr() {
+        wbQrJob?.cancel()
+        wbQrJob = null
+        _uiState.update { it.copy(wbQrState = QrState.Idle) }
+    }
+
+    /** 返回 false 表示 token 为空，弹窗保留输入让用户改。 */
+    fun importWbToken(token: String): Boolean {
         val trimmed = token.trim()
         if (trimmed.isEmpty()) {
             AppLog.e("WB", "token 为空")
-            return
+            return false
         }
         val profile = WorkBuddyLabel.decodeProfile(trimmed)
+        val uid = profile.uid
+        // 老账号（扫码前导入的）没有 uid，退回按昵称判定，避免同一账号出现两条
+        val existed = accounts.workBuddyAccounts().any {
+            (uid.isNotEmpty() && it.uid == uid) ||
+                (it.uid.isEmpty() && profile.label != null && it.label == profile.label)
+        }
         accounts.addWorkBuddyAccount(
             AccountRepository.WorkBuddyAccount(
-                id = "wb_" + System.currentTimeMillis(),
+                // 同账号重复导入 = 更新，不再新增一条
+                id = if (uid.isNotEmpty()) "wb_$uid" else "wb_" + System.currentTimeMillis(),
                 label = profile.label ?: "Work Buddy 账号",
                 token = trimmed,
                 avatarUrl = profile.avatarUrl.orEmpty(),
+                uid = uid,
+                expiresAt = profile.expiresAt,
             )
         )
         AppLog.i("WB", "WorkBuddy token 导入成功")
         refresh()
+        return true
     }
 
     fun removeWb(id: String) {
@@ -177,5 +245,8 @@ class AccountViewModel : ViewModel() {
         onRemoveMihoyo = ::removeMihoyo,
         onImportWbToken = ::importWbToken,
         onRemoveWb = ::removeWb,
+        onSetWbLoginMode = ::setWbLoginMode,
+        onStartWbQr = ::startWbQrLogin,
+        onCancelWbQr = ::cancelWbQr,
     )
 }
