@@ -3,13 +3,14 @@ package com.functy.fewards
 import android.app.Application
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.work.Configuration
 import com.functy.fewards.ui.viewmodel.TaskRunner
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
 lateinit var fewardsApp: FewardsApplication
 
-class FewardsApplication : Application(), ViewModelStoreOwner {
+class FewardsApplication : Application(), ViewModelStoreOwner, Configuration.Provider {
 
     lateinit var okhttpClient: OkHttpClient
     private val appViewModelStore by lazy { ViewModelStore() }
@@ -30,4 +31,8 @@ class FewardsApplication : Application(), ViewModelStoreOwner {
 
     override val viewModelStore: ViewModelStore
         get() = appViewModelStore
+
+    // Manifest 关掉了 WorkManagerInitializer，必须自行提供 Configuration。
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().build()
 }

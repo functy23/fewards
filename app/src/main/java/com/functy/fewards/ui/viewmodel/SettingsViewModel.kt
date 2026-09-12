@@ -1,15 +1,11 @@
 package com.functy.fewards.ui.viewmodel
 
-import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.functy.fewards.R
 import com.functy.fewards.data.repository.SettingsRepository
 import com.functy.fewards.data.repository.SettingsRepositoryImpl
-import com.functy.fewards.fewardsApp
 import com.functy.fewards.ui.screen.settings.SettingsUiState
 import com.functy.fewards.ui.theme.ColorMode
-import com.functy.fewards.work.TaskScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,12 +30,10 @@ class SettingsViewModel(
                     themeMode = repo.themeMode,
                     miuixMonet = repo.miuixMonet,
                     keyColor = repo.keyColor,
-                    enablePredictiveBack = repo.enablePredictiveBack,
                     predictiveBackAnimation = repo.predictiveBackAnimation,
                     enableBlur = repo.enableBlur,
                     enableFloatingBottomBar = repo.enableFloatingBottomBar,
                     enableFloatingBottomBarBlur = repo.enableFloatingBottomBarBlur,
-                    enableNavigationBadge = repo.enableNavigationBadge,
                     pageScale = repo.pageScale,
                     // 米游社
                     mhyMasterEnabled = repo.mhyMasterEnabled,
@@ -49,16 +43,11 @@ class SettingsViewModel(
                     mhyLike = repo.mhyLike,
                     mhyCancelLike = repo.mhyCancelLike,
                     mhyShare = repo.mhyShare,
-                    mhySignGames = repo.mhySignGames,
-                    mhyForums = repo.mhyForums,
                     mhyCaptchaPolicy = repo.mhyCaptchaPolicy,
                     mhyCaptchaApiUrl = repo.mhyCaptchaApiUrl,
                     // WorkBuddy
                     wbMasterEnabled = repo.wbMasterEnabled,
-                    // 调度
-                    scheduleEnabled = repo.scheduleEnabled,
-                    scheduleHour = repo.scheduleHour,
-                    scheduleMinute = repo.scheduleMinute,
+                    // 通知与完成总览
                     taskNotification = repo.taskNotification,
                     overviewAutoDismiss = repo.overviewAutoDismiss,
                     overviewHoldSeconds = repo.overviewHoldSeconds,
@@ -112,11 +101,6 @@ class SettingsViewModel(
         _uiState.update { it.copy(colorSpec = spec) }
     }
 
-    fun setEnablePredictiveBack(enabled: Boolean) {
-        repo.enablePredictiveBack = enabled
-        _uiState.update { it.copy(enablePredictiveBack = enabled) }
-    }
-
     fun setPredictiveBackAnimation(index: Int) {
         repo.predictiveBackAnimation = index
         _uiState.update { it.copy(predictiveBackAnimation = index) }
@@ -135,11 +119,6 @@ class SettingsViewModel(
     fun setEnableFloatingBottomBarBlur(enabled: Boolean) {
         repo.enableFloatingBottomBarBlur = enabled
         _uiState.update { it.copy(enableFloatingBottomBarBlur = enabled) }
-    }
-
-    fun setEnableNavigationBadge(enabled: Boolean) {
-        repo.enableNavigationBadge = enabled
-        _uiState.update { it.copy(enableNavigationBadge = enabled) }
     }
 
     fun setPageScale(scale: Float) {
@@ -184,16 +163,6 @@ class SettingsViewModel(
         _uiState.update { it.copy(mhyShare = enabled) }
     }
 
-    fun setMhySignGames(gamesCsv: String) {
-        repo.mhySignGames = gamesCsv
-        _uiState.update { it.copy(mhySignGames = gamesCsv) }
-    }
-
-    fun setMhyForums(forumsCsv: String) {
-        repo.mhyForums = forumsCsv
-        _uiState.update { it.copy(mhyForums = forumsCsv) }
-    }
-
     fun setMhyCaptchaPolicy(policy: Int) {
         repo.mhyCaptchaPolicy = policy
         _uiState.update { it.copy(mhyCaptchaPolicy = policy) }
@@ -211,27 +180,7 @@ class SettingsViewModel(
         _uiState.update { it.copy(wbMasterEnabled = enabled) }
     }
 
-    // ==================== 调度 ====================
-
-    fun setScheduleEnabled(enabled: Boolean) {
-        repo.scheduleEnabled = enabled
-        _uiState.update { it.copy(scheduleEnabled = enabled) }
-        val context = fewardsApp
-        if (enabled) {
-            TaskScheduler.schedule(context, repo.scheduleHour, repo.scheduleMinute)
-        } else {
-            TaskScheduler.cancel(context)
-        }
-    }
-
-    fun setScheduleTime(hour: Int, minute: Int) {
-        repo.scheduleHour = hour
-        repo.scheduleMinute = minute
-        _uiState.update { it.copy(scheduleHour = hour, scheduleMinute = minute) }
-        if (repo.scheduleEnabled) {
-            TaskScheduler.schedule(fewardsApp, hour, minute)
-        }
-    }
+    // ==================== 通知与完成总览 ====================
 
     fun setTaskNotification(enabled: Boolean) {
         repo.taskNotification = enabled
@@ -246,9 +195,5 @@ class SettingsViewModel(
     fun setOverviewHoldSeconds(seconds: Float) {
         repo.overviewHoldSeconds = seconds.coerceIn(0.05f, 30f)
         _uiState.update { it.copy(overviewHoldSeconds = repo.overviewHoldSeconds) }
-    }
-
-    private fun toast(message: String) {
-        Toast.makeText(fewardsApp, message, Toast.LENGTH_SHORT).show()
     }
 }

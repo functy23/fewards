@@ -59,6 +59,10 @@ android {
         checkReleaseBuilds = false
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     compileOptions {
         sourceCompatibility = androidSourceCompatibility
         targetCompatibility = androidTargetCompatibility
@@ -115,10 +119,6 @@ dependencies {
     implementation(libs.material.kolor)
     implementation(libs.zxing.core)
 
-    implementation(libs.androidx.webkit)
-    implementation(libs.commonmark)
-    implementation(libs.commonmark.ext.gfm.tables)
-    implementation(libs.commonmark.ext.gfm.strikethrough)
-    implementation(libs.commonmark.ext.autolink)
-    implementation(libs.commonmark.ext.task.list.items)
+    testImplementation(libs.junit)
+    testImplementation(libs.org.json)
 }

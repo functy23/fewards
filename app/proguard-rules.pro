@@ -4,3 +4,4 @@
 -keepclassmembers class com.functy.fewards.** {
     *** Companion;
 }
+-keep class com.functy.fewards.work.RunTasksTileService { *; }
