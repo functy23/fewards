@@ -1,7 +1,6 @@
 package com.functy.fewards.ui
 
 import android.os.Bundle
-import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -79,16 +78,11 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 class MainActivity : ComponentActivity() {
 
     private var contentReady = false
-    private var splashStartedAt = 0L
-    private val splashAnimationDurationMs = 500L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
-        splashStartedAt = SystemClock.uptimeMillis()
         super.onCreate(savedInstanceState)
-        splashScreen.setKeepOnScreenCondition {
-            !contentReady || SystemClock.uptimeMillis() - splashStartedAt < splashAnimationDurationMs
-        }
+        splashScreen.setKeepOnScreenCondition { !contentReady }
 
         setContent {
             val viewModel = viewModel<MainActivityViewModel>()
