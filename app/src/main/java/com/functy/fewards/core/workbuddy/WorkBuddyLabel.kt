@@ -1,7 +1,7 @@
 package com.functy.fewards.core.workbuddy
 
-import android.util.Base64
 import org.json.JSONObject
+import java.util.Base64
 
 /**
  * 从 WorkBuddy accessToken（JWT）解出账号实际名字。
@@ -10,14 +10,20 @@ import org.json.JSONObject
  */
 object WorkBuddyLabel {
 
-    fun decode(token: String): String? = runCatching {
+    data class Profile(val label: String?, val avatarUrl: String?)
+
+    fun decode(token: String): String? = decodeProfile(token).label
+
+    fun decodeProfile(token: String): Profile = runCatching {
         val payload = token.trim().split(".")[1]
         val padded = payload + "=".repeat((4 - payload.length % 4) % 4)
-        val json = JSONObject(String(Base64.decode(padded, Base64.URL_SAFE or Base64.NO_WRAP), Charsets.UTF_8))
+        val json = JSONObject(String(Base64.getUrlDecoder().decode(padded), Charsets.UTF_8))
         val nickname = json.optString("nickname", "").trim()
-        if (nickname.isNotEmpty()) return@runCatching nickname
         val username = json.optString("preferred_username", "").trim()
-        if (username.isNotEmpty()) return@runCatching username
-        null
-    }.getOrNull()
+        val label = nickname.ifEmpty { username }.ifEmpty { null }
+        val avatar = listOf("picture", "avatar_url", "avatar", "headimgurl")
+            .map { json.optString(it, "").trim() }
+            .firstOrNull { it.startsWith("http") }
+        Profile(label, avatar)
+    }.getOrElse { Profile(null, null) }
 }

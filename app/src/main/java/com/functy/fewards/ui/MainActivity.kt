@@ -48,7 +48,6 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.functy.fewards.ui.component.bottombar.BottomBar
 import com.functy.fewards.ui.component.bottombar.MainPagerState
-import com.functy.fewards.ui.component.bottombar.NavigationBadgeState
 import com.functy.fewards.ui.component.bottombar.SideRail
 import com.functy.fewards.ui.component.bottombar.rememberMainPagerState
 import com.functy.fewards.ui.component.bottombar.useNavigationRail
@@ -65,7 +64,6 @@ import com.functy.fewards.ui.theme.LocalColorMode
 import com.functy.fewards.ui.theme.LocalEnableBlur
 import com.functy.fewards.ui.theme.LocalEnableFloatingBottomBar
 import com.functy.fewards.ui.theme.LocalEnableFloatingBottomBarBlur
-import com.functy.fewards.ui.theme.LocalEnableNavigationBadge
 import com.functy.fewards.ui.animation.predictiveback.PredictiveBackAnimation
 import com.functy.fewards.ui.animation.predictiveback.installerNavTransition
 import com.functy.fewards.ui.util.rememberBlurBackdrop
@@ -130,7 +128,6 @@ class MainActivity : ComponentActivity() {
                 LocalEnableBlur provides uiState.enableBlur,
                 LocalEnableFloatingBottomBar provides uiState.enableFloatingBottomBar,
                 LocalEnableFloatingBottomBarBlur provides uiState.enableFloatingBottomBarBlur,
-                LocalEnableNavigationBadge provides uiState.enableNavigationBadge,
             ) {
                 FewardsTheme(appSettings = appSettings) {
                     val mainScreenEntry = @Composable {
@@ -209,12 +206,6 @@ fun MainScreen(
         animatePageChanges = !useNavigationRail,
     )
 
-    val enableNavigationBadge = LocalEnableNavigationBadge.current
-    val navigationBadge = if (enableNavigationBadge) {
-        NavigationBadgeState()
-    } else {
-        NavigationBadgeState()
-    }
     val surfaceColor = MiuixTheme.colorScheme.surface
     val blurBackdrop = rememberBlurBackdrop(enableBlur)
 
@@ -267,7 +258,7 @@ fun MainScreen(
 
                 Scaffold { _ ->
                     Row {
-                        SideRail(navigationBadge)
+                        SideRail()
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -285,7 +276,6 @@ fun MainScreen(
                         BottomBar(
                             blurBackdrop = blurBackdrop,
                             backdrop = backdrop,
-                            navigationBadge = navigationBadge,
                             modifier = Modifier.align(Alignment.BottomCenter),
                         )
                     }

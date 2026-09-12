@@ -23,14 +23,25 @@ class MihoyoEngine(
     private val accounts: List<AccountRepository.MihoyoAccount>,
 ) {
 
+    companion object {
+        fun isAlreadyDoneRet(retcode: Int, message: String): Boolean {
+            if (retcode == MihoyoConstants.RET_ALREADY_SIGNED) return true
+            if (retcode == MihoyoConstants.RET_OK) return false
+            return message.contains("已签") || message.contains("已完成") || message.contains("重复") ||
+                message.contains("已经") || message.contains("already", ignoreCase = true)
+        }
+
+        fun isCookieExpired(retcode: Int): Boolean = retcode == MihoyoConstants.RET_COOKIE_EXPIRED
+
+        fun isCaptcha(retcode: Int): Boolean = retcode == MihoyoConstants.RET_CAPTCHA
+
+        fun isBbsIdle(canGetPoints: Int): Boolean = canGetPoints == 0
+    }
+
     private fun emit(message: String) = AppLog.i("MHY", message)
 
-    private fun isAlreadyDone(retcode: Int, message: String): Boolean {
-        if (retcode == MihoyoConstants.RET_ALREADY_SIGNED) return true
-        val m = message
-        return m.contains("已签") || m.contains("已完成") || m.contains("重复") ||
-            m.contains("已经") || m.contains("already", ignoreCase = true)
-    }
+    private fun isAlreadyDone(retcode: Int, message: String): Boolean =
+        isAlreadyDoneRet(retcode, message)
 
     private suspend fun sleep() {
         delay(Random.nextLong(1000, 3000))
@@ -119,7 +130,7 @@ class MihoyoEngine(
 
     private suspend fun runGameSign(account: AccountRepository.MihoyoAccount, deviceId: String): Boolean {
         var ok = true
-        val enabledGames = settings.mhySignGames.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        val enabledGames = MihoyoConstants.SIGN_GAME_KEYS
         emit("== 游戏社区签到 ==")
         for (gameKey in enabledGames) {
             val game = MihoyoConstants.GAMES[gameKey] ?: run {
@@ -373,7 +384,7 @@ class MihoyoEngine(
 
         // 社区签到
         if (settings.mhyBbsSign && !flags.optBoolean("sign")) {
-            val forumGids = settings.mhyForums.split(",").mapNotNull { it.trim().toIntOrNull() }
+            val forumGids = MihoyoConstants.BBS_SIGN_FORUM_GIDS
             for (gid in forumGids) {
                 val forum = MihoyoConstants.BBS_FORUMS[gid] ?: continue
                 emit("正在进行${forum.name}社区签到")
@@ -548,8 +559,7 @@ class MihoyoEngine(
         account: AccountRepository.MihoyoAccount,
         deviceId: String,
     ): List<Triple<String, String, String>> {
-        val forumGids = settings.mhyForums.split(",").mapNotNull { it.trim().toIntOrNull() }
-        val forum = MihoyoConstants.BBS_FORUMS[forumGids.firstOrNull() ?: 5] ?: return emptyList()
+        val forum = MihoyoConstants.BBS_FORUMS[MihoyoConstants.BBS_SIGN_FORUM_GIDS.first()] ?: return emptyList()
         val data = api.getJson(
             MihoyoConstants.BBS_POST_LIST_URL,
             appHeaders(account, deviceId, DsSign.deviceFp(deviceId)),

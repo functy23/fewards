@@ -16,7 +16,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun NavigationRailMiuix(
-    navigationBadge: NavigationBadgeState,
     modifier: Modifier = Modifier,
 ) {
     val mainState = LocalMainPagerState.current
@@ -51,7 +50,6 @@ fun NavigationRailMiuix(
                 },
                 icon = icon,
                 label = label,
-                badge = navigationBadgeFor(index, navigationBadge),
             )
         }
     }

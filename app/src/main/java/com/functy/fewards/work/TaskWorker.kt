@@ -2,11 +2,14 @@ package com.functy.fewards.work
 
 import android.content.Context
 import androidx.work.CoroutineWorker
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.functy.fewards.ui.viewmodel.TaskRunner
 
 /**
- * WorkManager 包装：手动执行与定时闹钟都经由这里，保证进程被杀后任务仍能执行。
+ * WorkManager 包装：手动执行经由这里入队，保证进程被杀后任务仍能执行。
  */
 class TaskWorker(
     context: Context,
@@ -27,5 +30,17 @@ class TaskWorker(
     companion object {
         const val KEY_RUN_WB = "run_wb"
         const val KEY_RUN_MHY = "run_mhy"
+
+        fun enqueue(context: Context, runWb: Boolean, runMhy: Boolean) {
+            val request = OneTimeWorkRequestBuilder<TaskWorker>()
+                .setInputData(
+                    workDataOf(
+                        KEY_RUN_WB to runWb,
+                        KEY_RUN_MHY to runMhy,
+                    )
+                )
+                .build()
+            WorkManager.getInstance(context).enqueue(request)
+        }
     }
 }

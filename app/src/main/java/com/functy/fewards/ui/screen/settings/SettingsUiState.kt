@@ -11,12 +11,10 @@ data class SettingsUiState(
     val keyColor: Int = 0,
     val colorStyle: String = PaletteStyle.TonalSpot.name,
     val colorSpec: String = ColorSpec.SpecVersion.SPEC_2025.name,
-    val enablePredictiveBack: Boolean = false,
     val predictiveBackAnimation: Int = 2,
     val enableBlur: Boolean = true,
     val enableFloatingBottomBar: Boolean = false,
     val enableFloatingBottomBarBlur: Boolean = false,
-    val enableNavigationBadge: Boolean = true,
     val pageScale: Float = 1.0f,
 
     // 米游社
@@ -27,18 +25,13 @@ data class SettingsUiState(
     val mhyLike: Boolean = true,
     val mhyCancelLike: Boolean = true,
     val mhyShare: Boolean = true,
-    val mhySignGames: String = "genshin,starrail,zzz",
-    val mhyForums: String = "5,2",
     val mhyCaptchaPolicy: Int = 0, // 0 跳过并记录；1 打码接口
     val mhyCaptchaApiUrl: String = "",
 
     // WorkBuddy
     val wbMasterEnabled: Boolean = true,
 
-    // 调度
-    val scheduleEnabled: Boolean = false,
-    val scheduleHour: Int = 8,
-    val scheduleMinute: Int = 0,
+    // 通知与完成总览
     val taskNotification: Boolean = true,
     val overviewAutoDismiss: Boolean = true,
     val overviewHoldSeconds: Float = 0.5f,
@@ -59,9 +52,7 @@ data class SettingsScreenActions(
     val onSetMhyCaptchaApiUrl: (String) -> Unit,
     // WorkBuddy
     val onSetWbMaster: (Boolean) -> Unit,
-    // 调度
-    val onSetScheduleEnabled: (Boolean) -> Unit,
-    val onSetScheduleTime: (Int, Int) -> Unit,
+    // 通知与完成总览
     val onSetTaskNotification: (Boolean) -> Unit,
     val onSetOverviewAutoDismiss: (Boolean) -> Unit,
     val onSetOverviewHoldSeconds: (Float) -> Unit,

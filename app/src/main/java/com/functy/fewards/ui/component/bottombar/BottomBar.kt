@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -125,24 +124,6 @@ fun rememberMainPagerState(
     }
 }
 
-@Immutable
-data class NavigationBadgeState(
-    val taskDoneCount: Int = 0,
-    val taskTotalCount: Int = 0,
-)
-
-internal enum class BadgeTone { Alert, Accent }
-
-@Immutable
-internal data class NavBadge(val count: Int, val tone: BadgeTone)
-
-internal fun badgeFor(index: Int, state: NavigationBadgeState): NavBadge? = when (index) {
-    BottomBarDestination.Home.ordinal ->
-        state.taskDoneCount.takeIf { it > 0 }?.let { NavBadge(it, BadgeTone.Accent) }
-
-    else -> null
-}
-
 @Composable
 fun useNavigationRail(enableFloatingBottomBar: Boolean): Boolean {
     return shouldShowSplitPane() && !enableFloatingBottomBar
@@ -152,16 +133,14 @@ fun useNavigationRail(enableFloatingBottomBar: Boolean): Boolean {
 fun BottomBar(
     blurBackdrop: LayerBackdrop?,
     backdrop: Backdrop,
-    navigationBadge: NavigationBadgeState,
     modifier: Modifier = Modifier,
 ) {
-    BottomBarMiuix(blurBackdrop, backdrop, navigationBadge, modifier)
+    BottomBarMiuix(blurBackdrop, backdrop, modifier)
 }
 
 @Composable
 fun SideRail(
-    navigationBadge: NavigationBadgeState,
     modifier: Modifier = Modifier,
 ) {
-    NavigationRailMiuix(navigationBadge, modifier)
+    NavigationRailMiuix(modifier)
 }

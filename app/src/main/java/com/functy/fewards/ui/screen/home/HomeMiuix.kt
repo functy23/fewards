@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -296,6 +297,7 @@ private fun TaskPickerCard(
                 checked = state.wbChecked,
                 onCheckedChange = onToggleWb,
             )
+            Spacer(Modifier.height(8.dp))
             PickerRow(
                 resId = R.drawable.miyoushe,
                 name = stringResource(R.string.miyoushe),
@@ -317,7 +319,7 @@ private fun PickerRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SquircleIcon(resId = resId, size = 28.dp, modifier = Modifier.padding(end = 8.dp))
+        SquircleIcon(resId = resId, size = 24.dp, modifier = Modifier.padding(end = 8.dp))
         Text(
             text = name,
             fontSize = 14.sp,
@@ -329,6 +331,7 @@ private fun PickerRow(
         Checkbox(
             state = androidx.compose.ui.state.ToggleableState(checked),
             onClick = { onCheckedChange(!checked) },
+            modifier = Modifier.scale(0.85f),
         )
     }
 }

@@ -27,8 +27,6 @@ import com.functy.fewards.ui.component.FloatingBottomBarItem
 import com.functy.fewards.ui.theme.LocalEnableFloatingBottomBar
 import com.functy.fewards.ui.theme.LocalEnableFloatingBottomBarBlur
 import com.functy.fewards.ui.util.BlurredBar
-import top.yukonga.miuix.kmp.basic.Badge
-import top.yukonga.miuix.kmp.basic.BadgedBox
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
@@ -42,7 +40,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 fun BottomBarMiuix(
     blurBackdrop: LayerBackdrop?,
     backdrop: Backdrop,
-    navigationBadge: NavigationBadgeState,
     modifier: Modifier,
 ) {
     val mainState = LocalMainPagerState.current
@@ -70,7 +67,6 @@ fun BottomBarMiuix(
                             onClick = {
                                 mainState.animateToPage(index)
                             },
-                            badge = navigationBadgeFor(index, navigationBadge),
                         )
                     }
                 }
@@ -101,18 +97,10 @@ fun BottomBarMiuix(
                 ) {
                     // Icon and label take LocalContentColor so the FloatingBottomBar backdrop copy
                     // can recolor them to the accent tone inside the indicator pill.
-                    val badge = navigationBadgeFor(index, navigationBadge, floating = true)
-                    val icon: @Composable () -> Unit = {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = item.label,
-                        )
-                    }
-                    if (badge != null) {
-                        BadgedBox(badge = { badge() }) { icon() }
-                    } else {
-                        icon()
-                    }
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.label,
+                    )
                     Text(
                         text = item.label,
                         fontSize = 11.sp,
@@ -134,32 +122,4 @@ enum class BottomBarDestination(
     Home(R.string.home, Icons.Rounded.Cottage),
     Account(R.string.account, Icons.Rounded.Person),
     Setting(R.string.settings, Icons.Rounded.Settings)
-}
-
-internal fun navigationBadgeFor(
-    index: Int,
-    state: NavigationBadgeState,
-    floating: Boolean = false,
-): (@Composable () -> Unit)? {
-    val badge = badgeFor(index, state) ?: return null
-    return when (badge.tone) {
-        BadgeTone.Alert -> {
-            {
-                Badge {
-                    Text(badge.count.toString())
-                }
-            }
-        }
-
-        BadgeTone.Accent -> {
-            {
-                Badge(
-                    containerColor = if (floating) MiuixTheme.colorScheme.primaryContainer else MiuixTheme.colorScheme.primary,
-                    contentColor = if (floating) MiuixTheme.colorScheme.onPrimaryContainer else MiuixTheme.colorScheme.onPrimary,
-                ) {
-                    Text(badge.count.toString())
-                }
-            }
-        }
-    }
 }

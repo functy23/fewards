@@ -93,6 +93,19 @@ class MihoyoApi(private val client: OkHttpClient) {
 
         fun webCookie(account: AccountRepository.MihoyoAccount): String = account.cookie
 
+        /** 组装 fetchWebCookie 的 web cookie 串；cookieToken/ltoken 为空则省略对应字段。 */
+        fun buildFetchedWebCookie(
+            stuid: String,
+            mid: String,
+            cookieToken: String,
+            ltoken: String,
+        ): String = buildString {
+            append("account_id=$stuid; account_id_v2=$stuid; account_mid_v2=$mid; ")
+            if (cookieToken.isNotEmpty()) append("cookie_token=$cookieToken; ")
+            if (ltoken.isNotEmpty()) append("ltoken=$ltoken; ")
+            append("ltmid_v2=$mid; ltuid=$stuid; ltuid_v2=$stuid; login_uid=$stuid")
+        }
+
         /** 判断粘贴的 cookie 是否可用（含 stoken + mid 或 stoken v0）。 */
         fun parseCookie(cookie: String): AccountRepository.MihoyoAccount? {
             val stoken = cookieValue(cookie, "stoken")
@@ -289,12 +302,12 @@ class MihoyoApi(private val client: OkHttpClient) {
             val cookieToken = if (cookieTokenResp.optInt("retcode") == 0)
                 cookieTokenResp.optJSONObject("data")?.optString("cookie_token").orEmpty() else ""
 
-            buildString {
-                append("account_id=$stuid; account_id_v2=$stuid; account_mid_v2=$mid; ")
-                if (cookieToken.isNotEmpty()) append("cookie_token=${'$'}cookie_token; ")
-                if (ltoken.isNotEmpty()) append("ltoken=$ltoken; ")
-                append("ltmid_v2=$mid; ltuid=$stuid; ltuid_v2=$stuid; login_uid=$stuid")
-            }
+            buildFetchedWebCookie(
+                stuid = stuid,
+                mid = mid,
+                cookieToken = cookieToken,
+                ltoken = ltoken,
+            )
         }.getOrNull()
     }
 

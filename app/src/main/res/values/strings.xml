@@ -13,11 +13,9 @@
     <string name="home_tasks_all_done">已完成</string>
     <string name="home_tasks_running">执行中</string>
     <string name="home_tasks_not_done">未完成</string>
-    <string name="home_task_status_done">已完成</string>
-    <string name="home_task_status_undone">未完成</string>
-    <string name="home_task_status_unconfigured">未配置</string>
     <string name="home_will_run_checked">将执行勾选的任务</string>
     <string name="home_start_execute">开始执行</string>
+    <string name="tile_run_tasks">签到</string>
     <string name="home_running">执行中…</string>
     <string name="home_log_title">日志</string>
     <string name="home_no_logs">暂无日志</string>
@@ -40,12 +38,7 @@
     <string name="miyoushe_qr_generate">生成二维码</string>
     <string name="miyoushe_qr_wait_scan">等待扫码…</string>
     <string name="miyoushe_qr_scanned">已扫码，请在手机上确认</string>
-    <string name="miyoushe_qr_confirmed">已确认，正在获取凭证…</string>
-    <string name="miyoushe_qr_expired">二维码已过期，请重新生成</string>
     <string name="miyoushe_qr_refresh">刷新二维码</string>
-    <string name="miyoushe_qr_cancel">取消</string>
-    <string name="miyoushe_cookie_invalid">Cookie 无效：缺少 stoken 或 mid</string>
-    <string name="miyoushe_cookie_imported">Cookie 导入成功</string>
     <string name="workbuddy_token_hint">粘贴 Access Token</string>
     <string name="workbuddy_token_import">导入</string>
     <string name="workbuddy_logout">删除</string>
@@ -69,10 +62,6 @@
     <string name="settings_floating_bottom_bar_summary">使用 Apple 风格的悬浮底栏。</string>
     <string name="settings_enable_glass">液态玻璃</string>
     <string name="settings_enable_glass_summary">为悬浮底栏启用液态玻璃效果。</string>
-    <string name="settings_navigation_badge">导航徽标</string>
-    <string name="settings_navigation_badge_summary">在导航栏上显示任务与账号相关角标。</string>
-    <string name="settings_enable_predictive_back">预测性返回手势</string>
-    <string name="settings_enable_predictive_back_summary">启用预测性返回手势支持（重启应用后生效）。</string>
     <string name="settings_back_animation">返回手势动画</string>
     <string name="back_anim_none">无</string>
     <string name="back_anim_miux">MIUIX</string>
@@ -94,27 +83,20 @@
     <string name="settings_mhy_like_summary">自动点赞帖子，完成后可自动取消。</string>
     <string name="settings_mhy_cancel_like">点赞后自动取消</string>
     <string name="settings_mhy_share">分享任务</string>
-    <string name="settings_mhy_share_summary">自动分享帖子获取米游币。</string>
-    <string name="settings_mhy_games">签到游戏</string>
-    <string name="settings_mhy_forums">社区签到分区</string>
     <string name="settings_mhy_captcha">验证码处理策略</string>
     <string name="settings_mhy_captcha_skip">跳过并记录（默认）</string>
     <string name="settings_mhy_captcha_api">调用打码接口</string>
     <string name="settings_mhy_captcha_api_url">打码接口地址</string>
-    <string name="settings_mhy_captcha_api_url_summary">接口返回 validate 字段即视为打码成功。</string>
 
     <string name="settings_wb_master">WorkBuddy 自动签到总开关</string>
     <string name="settings_wb_master_summary">关闭后 WorkBuddy 签到停用。</string>
 
-    <string name="settings_schedule_time">定时执行时间</string>
-    <string name="settings_schedule_summary">每天在设定时间自动执行已勾选任务。</string>
     <string name="settings_notification">任务进度通知</string>
     <string name="settings_notification_summary">执行签到时发出系统通知。</string>
     <string name="settings_overview">完成总览</string>
     <string name="settings_overview_auto">完成后自动消失</string>
     <string name="settings_overview_auto_summary">关闭后，完成态会展开并显示确认按钮，直到你点确认或划掉。</string>
     <string name="settings_overview_hold">总览停留时间</string>
-    <string name="settings_overview_hold_summary">自动消失前，完成态停留的时长。</string>
     <string name="settings_overview_hold_custom">自定义</string>
     <string name="settings_overview_hold_custom_title">自定义停留时间</string>
     <string name="settings_overview_hold_custom_hint">秒</string>
@@ -125,9 +107,6 @@
     <string name="notify_live_short_done">已完成</string>
     <string name="notify_live_short_error">有失败项</string>
 
-    <string name="send_log">发送日志</string>
-    <string name="save_log">保存日志</string>
-    <string name="log_saved">日志已保存</string>
     <string name="processing">处理中…</string>
     <string name="confirm">确定</string>
     <string name="cancel">取消</string>
@@ -155,7 +134,5 @@
     <string name="notify_all_done">今日任务全部完成</string>
     <string name="notify_done_with_error">签到完成（存在失败项）</string>
     <string name="settings_request_notification">请求通知权限</string>
-    <string name="settings_request_notification_summary">推送任务进度通知（Android 13+ 需授权）。</string>
-    <string name="settings_notification_granted">已授权</string>
     <string name="settings_notification_denied">未授权，点击请求</string>
 </resources>

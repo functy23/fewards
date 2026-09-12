@@ -46,10 +46,6 @@ class SettingsRepositoryImpl : SettingsRepository {
         get() = prefs.getBoolean("enable_floating_bottom_bar_blur", false)
         set(value) = prefs.edit { putBoolean("enable_floating_bottom_bar_blur", value) }
 
-    override var enableNavigationBadge: Boolean
-        get() = prefs.getBoolean("enable_navigation_badge", true)
-        set(value) = prefs.edit { putBoolean("enable_navigation_badge", value) }
-
     override var navigationRailExpanded: Boolean
         get() = prefs.getBoolean("nav_rail_expanded", false)
         set(value) = prefs.edit { putBoolean("nav_rail_expanded", value) }
@@ -58,25 +54,9 @@ class SettingsRepositoryImpl : SettingsRepository {
         get() = prefs.getFloat("page_scale", 1.0f)
         set(value) = prefs.edit { putFloat("page_scale", value) }
 
-    override var enablePredictiveBack: Boolean
-        get() = prefs.getBoolean("enable_predictive_back", false)
-        set(value) = prefs.edit { putBoolean("enable_predictive_back", value) }
-
     override var predictiveBackAnimation: Int
         get() = prefs.getInt("predictive_back_animation", 2) // 默认 AOSP
         set(value) = prefs.edit { putInt("predictive_back_animation", value) }
-
-    override var scheduleEnabled: Boolean
-        get() = prefs.getBoolean("schedule_enabled", false)
-        set(value) = prefs.edit { putBoolean("schedule_enabled", value) }
-
-    override var scheduleHour: Int
-        get() = prefs.getInt("schedule_hour", 8)
-        set(value) = prefs.edit { putInt("schedule_hour", value) }
-
-    override var scheduleMinute: Int
-        get() = prefs.getInt("schedule_minute", 0)
-        set(value) = prefs.edit { putInt("schedule_minute", value) }
 
     override var taskNotification: Boolean
         get() = prefs.getBoolean("task_notification", true)
@@ -117,14 +97,6 @@ class SettingsRepositoryImpl : SettingsRepository {
     override var mhyShare: Boolean
         get() = prefs.getBoolean("mhy_share", true)
         set(value) = prefs.edit { putBoolean("mhy_share", value) }
-
-    override var mhySignGames: String
-        get() = prefs.getString("mhy_sign_games", "genshin,starrail,zzz") ?: "genshin,starrail,zzz"
-        set(value) = prefs.edit { putString("mhy_sign_games", value) }
-
-    override var mhyForums: String
-        get() = prefs.getString("mhy_forums", "5,2") ?: "5,2"
-        set(value) = prefs.edit { putString("mhy_forums", value) }
 
     override var mhyCaptchaPolicy: Int
         get() = prefs.getInt("mhy_captcha_policy", 0)

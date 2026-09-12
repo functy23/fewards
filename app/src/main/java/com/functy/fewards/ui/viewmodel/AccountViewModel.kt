@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.functy.fewards.core.AppLog
 import com.functy.fewards.core.mihoyo.MihoyoApi
+import com.functy.fewards.core.mihoyo.MihoyoProfileHydrator
+import com.functy.fewards.core.workbuddy.WorkBuddyLabel
 import com.functy.fewards.data.repository.AccountRepository
 import com.functy.fewards.ui.screen.account.AccountActions
 import com.functy.fewards.ui.screen.account.AccountUiState
@@ -32,6 +34,11 @@ class AccountViewModel : ViewModel() {
     }
 
     fun refresh() {
+        publishAccounts()
+        hydrateMissingProfiles()
+    }
+
+    private fun publishAccounts() {
         val mhy = accounts.mihoyoAccounts()
         val wb = accounts.workBuddyAccounts()
         _uiState.update {
@@ -42,6 +49,24 @@ class AccountViewModel : ViewModel() {
                 wbAccounts = wb,
             )
         }
+    }
+
+    private fun hydrateMissingProfiles() {
+        accounts.mihoyoAccounts()
+            .filter { MihoyoProfileHydrator.needsHydration(it) }
+            .forEach { acc ->
+                if (!MihoyoProfileHydrator.markAttempted(acc.id)) return@forEach
+                _uiState.update { it.copy(mhyHydratingIds = it.mhyHydratingIds + acc.id) }
+                viewModelScope.launch {
+                    try {
+                        val next = MihoyoProfileHydrator.hydrate(api, acc)
+                        if (next != acc) accounts.addMihoyoAccount(next)
+                    } finally {
+                        _uiState.update { it.copy(mhyHydratingIds = it.mhyHydratingIds - acc.id) }
+                        publishAccounts()
+                    }
+                }
+            }
     }
 
     fun setLoginMode(mode: Int) {
@@ -126,11 +151,13 @@ class AccountViewModel : ViewModel() {
             AppLog.e("WB", "token 为空")
             return
         }
+        val profile = WorkBuddyLabel.decodeProfile(trimmed)
         accounts.addWorkBuddyAccount(
             AccountRepository.WorkBuddyAccount(
-                id = "wb_${System.currentTimeMillis()}",
-                label = "Work Buddy 账号",
+                id = "wb_" + System.currentTimeMillis(),
+                label = profile.label ?: "Work Buddy 账号",
                 token = trimmed,
+                avatarUrl = profile.avatarUrl.orEmpty(),
             )
         )
         AppLog.i("WB", "WorkBuddy token 导入成功")
