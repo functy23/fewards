@@ -32,8 +32,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import com.functy.fewards.ui.component.IconSquircleCornerFraction
+import top.yukonga.miuix.kmp.squircle.squircleClip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
@@ -458,13 +460,12 @@ private fun AvatarLoading(size: Dp, modifier: Modifier = Modifier) {
 
 @Composable
 private fun LetterAvatar(label: String, size: Dp, modifier: Modifier = Modifier) {
-    val shape = remember { com.functy.fewards.ui.component.G2SquircleShape() }
     val ch = label.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
     val hue = ((label.hashCode().toLong() and 0x7fffffffL) % 360L).toFloat()
     Box(
         modifier = modifier
             .size(size)
-            .clip(shape)
+            .squircleClip(cornerRadius = size * IconSquircleCornerFraction)
             .background(Color.hsl(hue, 0.42f, 0.46f)),
         contentAlignment = Alignment.Center,
     ) {
@@ -478,7 +479,7 @@ private fun LetterAvatar(label: String, size: Dp, modifier: Modifier = Modifier)
     }
 }
 
-/** 网络头像：OkHttp 拉取 + G2 圆角裁剪；拉取中显示加载占位。 */
+/** 网络头像：OkHttp 拉取 + miuix squircleClip；拉取中显示加载占位。 */
 @Composable
 private fun UrlImage(
     url: String,
@@ -503,12 +504,11 @@ private fun UrlImage(
         }
         loaded = true
     }
-    val shape = remember { com.functy.fewards.ui.component.G2SquircleShape() }
     when {
         bitmap != null -> Image(
             bitmap = bitmap!!.asImageBitmap(),
             contentDescription = contentDescription,
-            modifier = modifier.size(size).clip(shape),
+            modifier = modifier.size(size).squircleClip(cornerRadius = size * IconSquircleCornerFraction),
             contentScale = androidx.compose.ui.layout.ContentScale.Crop,
         )
         !loaded -> AvatarLoading(size, modifier)

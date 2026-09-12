@@ -117,7 +117,7 @@ app/src/test/java/com/functy/fewards/
 - 主题页：WindowSpinnerPreference；不要把 `Scaffold.popupHost` 置空。
 - 主题颜色模式用轮廓 Tab（不是下拉）。
 - 主页图标 28.dp；复选框行文字 `weight(1f)`，Checkbox 靠右。
-- G2 圆角：`G2SquircleShape(cornerFraction = 0.30f)`，与「size * 0.30」语义一致。不要改成普通 `RoundedCornerShape` 充 G2。
+- 图标/头像圆角：miuix `squircleClip(cornerRadius = size * 0.30f)`（`SquircleIcon` / 账号头像共用）。禁止自写 `G2SquircleShape`：`mid = √2−1` 会把 45° 点放到 0.414r，四角内缩约 2×。也不要用普通 `RoundedCornerShape` 充 squircle。
 - 图标 png 在 `drawable-nodpi/`（`miyoushe`、`workbuddy`）。
 - 账号头像网络图：`AccountMiuix.UrlImage`（OkHttp + G2 裁剪）。加载中 `InfiniteProgressIndicator`，失败回落到字母头像。
 - 实时任务通知 ongoing，完成后再提升；自动消失跟 `overviewAutoDismiss` / `overviewHoldSeconds`。
