@@ -35,10 +35,10 @@ Android 自动签到 App：米游社（游戏社区签到 + 米游币任务）+ 
 
 1. 只把 `fewardsVersionCode` +1。**不要改 `fewardsVersionName`。**
 2. `./gradlew :app:assembleRelease`
-3. 复制到 Downloads（文件名用当前软件版本；同 versionName 覆盖旧本地包即可）：
+3. 复制到 Downloads，文件名带软件版本与构建号，**不要互相覆盖**：
 
 ```bash
-cp app/build/outputs/apk/release/app-release.apk ~/Downloads/Fewards-<versionName>-release.apk
+cp app/build/outputs/apk/release/app-release.apk ~/Downloads/Fewards-<versionName>-<versionCode>-release.apk
 ```
 
 ### 推送
@@ -47,6 +47,14 @@ cp app/build/outputs/apk/release/app-release.apk ~/Downloads/Fewards-<versionNam
 2. 提交（版本向：`v<versionName>: …`），再 `git push`。
 3. 用**新的** versionName 再打一份 release APK 拷到 Downloads，保证用户装到的包、git 标签语义、远程仓库三者一致。
 4. 推完后确认 `git status` 干净、本地 HEAD == `origin/<branch>`。
+
+### 发 Release
+
+推送后每个推送版本都要有 GitHub Release（v1.1.0 起的历史里程碑已补齐，后续只发新版本）：
+
+1. 注释 tag 打在版本提交上：`git tag -a v<versionName> -m "v<versionName>: …"`，再 `git push origin v<versionName>`。
+2. `gh release create v<versionName> --verify-tag --title "v<versionName>" --notes-file <notes>`，**附上该版本的 release APK**（`~/Downloads` 里那份，重命名成 `Fewards-<versionName>-release.apk`）。
+3. 只有最新版本是 Latest；补发历史版本时加 `--latest=false`，且历史 Release 只写说明、不挂 APK（旧版本不重建）。
 
 ## 构建环境
 
@@ -158,4 +166,4 @@ app/src/test/java/com/functy/fewards/
 
 ## 提交
 
-版本向提交跟现有风格：`v1.3.x: 一句话说明用户能感知的变化`。测试向：`test: …`。文档向：`docs: …`。不要把 `scripts/stutter_ab.py`（未跟踪的对照脚本）塞进提交。不要改 git config。不要在没要求时 push。
+版本向提交跟现有风格：`v<versionName>: 一句话说明用户能感知的变化`。测试向：`test: …`。文档向：`docs: …`。不要把 `scripts/stutter_ab.py`（未跟踪的对照脚本）塞进提交。不要改 git config。不要在没要求时 push。
