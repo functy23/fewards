@@ -25,20 +25,28 @@ Android 自动签到 App：米游社（游戏社区签到 + 米游币任务）+ 
 3. 不要加 instrumented Compose UI 测试，除非用户明确要求。JVM 单测钉的是结果映射，不是像素。
 4. 不要为了「跑通」去改测试里的 act_id / 域名 / 路径；先改实现或先确认接口真变了，再同步测试。
 5. 功能改完（含修崩溃、加磁贴这类用户会装到手机上的改动）**直接出包**，不必等用户再说「出包」。只改文档、只改 AGENTS.md 不出包。
+6. **软件版本（`fewardsVersionName`）只在推送时加。** 本地开发出包只加构建号（`fewardsVersionCode`）。推送后本地必须与远程同一 commit、同一对 versionName/versionCode，不要在本地多 bump 一截没推上去的软件版本。
 
 ## 出包（每次用户向 APK）
 
-给用户装或对照的包必须是 **release + R8**（`optimization.enable`）。Debug 首帧 composition hitch 是预期，不要用进场 delay 糊弄。只 `compile` 不算交付。
+给用户装或对照的包必须是 **release + R8**（`optimization.enable`）。Debug 首帧 composition hitch 是预期，不要用进场 delay 糊弄。只 `compile` 不算交付。签名目前用 debug signingConfig（见 `app/build.gradle.kts`），这是有意的。
 
-1. 在 `build.gradle.kts` 把 `fewardsVersionCode` +1、`fewardsVersionName` patch +1（例如 1.3.16 → 1.3.17）。**先 bump 再 assemble。**
+### 本地开发出包
+
+1. 只把 `fewardsVersionCode` +1。**不要改 `fewardsVersionName`。**
 2. `./gradlew :app:assembleRelease`
-3. 复制到 Downloads，文件名带版本：
+3. 复制到 Downloads（文件名用当前软件版本；同 versionName 覆盖旧本地包即可）：
 
 ```bash
-cp app/build/outputs/apk/release/app-release.apk ~/Downloads/Fewards-<version>-release.apk
+cp app/build/outputs/apk/release/app-release.apk ~/Downloads/Fewards-<versionName>-release.apk
 ```
 
-不要只把 APK 留在 `app/build/outputs/`。签名目前用 debug signingConfig（见 `app/build.gradle.kts`），这是有意的。
+### 推送
+
+1. 把 `fewardsVersionName` patch +1（例如 1.3.19 → 1.3.20）。若这次还没为该次推送加过构建号，同时 `fewardsVersionCode` +1。
+2. 提交（版本向：`v<versionName>: …`），再 `git push`。
+3. 用**新的** versionName 再打一份 release APK 拷到 Downloads，保证用户装到的包、git 标签语义、远程仓库三者一致。
+4. 推完后确认 `git status` 干净、本地 HEAD == `origin/<branch>`。
 
 ## 构建环境
 
