@@ -73,12 +73,5 @@ material-kolor = { group = "com.materialkolor", name = "material-kolor", version
 hiddenapibypass = { module = "org.lsposed.hiddenapibypass:hiddenapibypass", version.ref = "hiddenapibypass" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 
-androidx-webkit = { module = "androidx.webkit:webkit", version = "1.17.0" }
-commonmark = { module = "org.commonmark:commonmark", version = "0.30.0" }
-commonmark-ext-gfm-tables = { module = "org.commonmark:commonmark-ext-gfm-tables", version = "0.30.0" }
-commonmark-ext-gfm-strikethrough = { module = "org.commonmark:commonmark-ext-gfm-strikethrough", version = "0.30.0" }
-commonmark-ext-autolink = { module = "org.commonmark:commonmark-ext-autolink", version = "0.30.0" }
-commonmark-ext-task-list-items = { module = "org.commonmark:commonmark-ext-task-list-items", version = "0.30.0" }
-
 junit = { module = "junit:junit", version.ref = "junit" }
 org-json = { module = "org.json:json", version.ref = "json" }

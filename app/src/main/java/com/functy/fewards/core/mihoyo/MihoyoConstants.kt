@@ -77,14 +77,8 @@ object MihoyoConstants {
         ),
     ).associateBy { it.key }
 
-    val GAME_CHOICES: List<String> =
-        GAMES.values.map { "${it.name} (${it.role})" }
-
-    fun gameKeyByChoice(choice: String): String =
-        GAMES.values.firstOrNull { "${it.name} (${it.role})" == choice }?.key ?: "genshin"
-
-    fun gameChoiceByKey(key: String): String =
-        GAMES[key]?.let { "${it.name} (${it.role})" } ?: GAME_CHOICES.first()
+    /** 实际执行签到的游戏；GAMES 全表仍保留 act_id 映射。 */
+    val SIGN_GAME_KEYS: List<String> = listOf("genshin", "starrail", "zzz")
 
     // 分区表：gids（社区签到）↔ forum_id（帖子列表）
     data class Forum(val gids: String, val forumId: String, val name: String)
@@ -99,11 +93,8 @@ object MihoyoConstants {
         8 to Forum("8", "57", "绝区零"),
     )
 
-    val FORUM_CHOICES: List<String> =
-        BBS_FORUMS.values.map { "${it.name} (gids=${it.gids})" }
-
-    fun forumGidsByChoice(choice: String): Int =
-        BBS_FORUMS.values.firstOrNull { "${it.name} (gids=${it.gids})" == choice }?.gids?.toIntOrNull() ?: 5
+    /** 社区签到分区：5=大别野，2=原神。看帖取第一个分区。 */
+    val BBS_SIGN_FORUM_GIDS: List<Int> = listOf(5, 2)
 
     // mission 映射：58=社区签到 59=看帖 60=点赞 61=分享
     const val MISSION_SIGN = 58

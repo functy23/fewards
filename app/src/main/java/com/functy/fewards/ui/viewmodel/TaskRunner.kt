@@ -1,9 +1,5 @@
 package com.functy.fewards.ui.viewmodel
 
-import android.content.Context
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.workDataOf
 import com.functy.fewards.core.AppLog
 import com.functy.fewards.core.mihoyo.MihoyoApi
 import com.functy.fewards.core.mihoyo.MihoyoEngine
@@ -11,7 +7,6 @@ import com.functy.fewards.core.workbuddy.WorkBuddyEngine
 import com.functy.fewards.data.repository.AccountRepository
 import com.functy.fewards.data.repository.SettingsRepositoryImpl
 import com.functy.fewards.work.TaskNotifier
-import com.functy.fewards.work.TaskWorker
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -20,8 +15,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * 任务执行入口：手动「开始执行」与定时闹钟共用。
- * 调度：wb + mhy 并行（async），经 WorkManager 包装以便进程被杀后仍可执行。
+ * 任务执行逻辑：wb + mhy 并行（async）。
+ * 入队入口在 work.TaskWorker.enqueue，保证进程被杀后仍可执行。
  */
 object TaskRunner {
 
@@ -54,25 +49,6 @@ object TaskRunner {
         !configured -> TaskStatus.UNCONFIGURED
         done -> TaskStatus.DONE
         else -> TaskStatus.NOT_DONE
-    }
-
-    /** 手动执行：经 WorkManager 入队（保证息屏/切后台后继续）。 */
-    fun runSelected(context: Context, runWb: Boolean, runMhy: Boolean) {
-        val request = OneTimeWorkRequestBuilder<TaskWorker>()
-            .setInputData(
-                workDataOf(
-                    TaskWorker.KEY_RUN_WB to runWb,
-                    TaskWorker.KEY_RUN_MHY to runMhy,
-                )
-            )
-            .build()
-        WorkManager.getInstance(context).enqueue(request)
-    }
-
-    /** 定时闹钟入口。 */
-    fun runScheduledTasks(context: Context, onFinished: () -> Unit) {
-        runSelected(context, runWb = true, runMhy = true)
-        onFinished()
     }
 
     /** 直接执行（Worker 调用；wb 与 mhy 并行）。 */

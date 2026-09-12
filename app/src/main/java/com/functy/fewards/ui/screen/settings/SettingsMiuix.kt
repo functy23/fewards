@@ -99,7 +99,7 @@ import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 /**
- * 设置页（Miuix）：大标题「设置」，从上到下为界面组、米游社板块、WorkBuddy 板块、定时任务、关于。
+ * 设置页（Miuix）：大标题「设置」，从上到下为界面组、米游社板块、WorkBuddy 板块、通知与完成总览、关于。
  */
 @Composable
 fun SettingPagerMiuix(
@@ -341,7 +341,7 @@ fun SettingPagerMiuix(
                         )
                     }
 
-                    // ==================== 定时 ====================
+                    // ==================== 通知与完成总览 ====================
                     Card(
                         modifier = Modifier
                             .padding(top = 12.dp)

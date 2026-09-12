@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.functy.fewards.core.AppLog
 import com.functy.fewards.data.repository.AccountRepository
 import com.functy.fewards.data.repository.SettingsRepositoryImpl
+import com.functy.fewards.fewardsApp
 import com.functy.fewards.ui.screen.home.HomeActions
 import com.functy.fewards.ui.screen.home.HomeUiState
 import com.functy.fewards.work.TaskNotifier
+import com.functy.fewards.work.TaskWorker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -88,11 +90,8 @@ class TaskViewModel : ViewModel() {
     val homeActions = HomeActions(
         onRun = { runWb, runMhy ->
             TaskNotifier.startRun("正在执行…")
-            viewModelScope.launch {
-                AppLog.i("SYS", "开始执行：WorkBuddy=$runWb 米游社=$runMhy")
-                TaskRunner.execute(runWb, runMhy)
-                refresh()
-            }
+            AppLog.i("SYS", "开始执行：WorkBuddy=$runWb 米游社=$runMhy")
+            TaskWorker.enqueue(fewardsApp, runWb, runMhy)
         },
         onToggleWb = ::toggleWb,
         onToggleMhy = ::toggleMhy,

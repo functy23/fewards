@@ -17,13 +17,13 @@ Android 自动签到：**米游社**（游戏签到 + 米游币任务）和 **Wo
 
 | 任务 | 内容 |
 |---|---|
-| 米游社 | 扫码登录（stoken v2）/ Cookie；游戏社区签到（原神 / 星铁 / 绝区零 / 崩 3 / 未定 / 崩 2 luna）；米游币（社区签到 / 看帖 / 点赞 / 分享）；验证码策略（默认跳过，可选打码接口） |
+| 米游社 | 扫码登录（stoken v2）/ Cookie；游戏社区签到（默认原神 / 星铁 / 绝区零；常量表仍保留崩 3 / 未定 / 崩 2 的 act_id）；米游币（社区签到 / 看帖 / 点赞 / 分享）；验证码策略（默认跳过，可选打码接口） |
 | WorkBuddy | 粘贴桌面端 accessToken；`checkin-status` + `daily-checkin`（`code=10001` 视为已签成功） |
 
 - 主页：状态卡（未完成 / 执行中 / 已完成）+ 任务清单 + 开始执行 + 日志
 - 账号：米游社扫码或 Cookie、多账号；WorkBuddy token 导入
-- 设置：主题（Monet / 关键色 / 模糊 / 悬浮底栏 / 返回动画）、米游社与 WorkBuddy 总开关（开则展开子项）、定时、任务通知与完成总览
-- 定时：AlarmManager + 开机重注册；执行走 WorkManager
+- 设置：主题（Monet / 关键色 / 模糊 / 悬浮底栏 / 返回动画）、米游社与 WorkBuddy 总开关（开则展开子项）、任务通知与完成总览
+- 执行走 WorkManager（进程被杀后仍可继续）
 - 实时活动进度通知（完成总览可自动消失或点确认）
 - 凭据只存本机 SharedPreferences；日志不打印 token / cookie
 
@@ -48,7 +48,7 @@ chmod +x scripts/workbuddy-token.sh
 ## 使用
 
 1. 「账号」：米游社扫码或粘贴含 stoken + mid 的 Cookie；WorkBuddy 粘贴桌面端 accessToken
-2. 「设置」：开关任务分项、验证码策略、每日定时、通知与完成总览
+2. 「设置」：开关任务分项、验证码策略、通知与完成总览
 3. 「首页」：勾选任务 → 开始执行
 
 ## 架构
@@ -60,7 +60,7 @@ app/src/main/java/com/functy/fewards/
 ├── data/repository/      # 设置、账号、配置导入导出
 ├── ui/screen/            # 主页 / 账号 / 设置 / 主题 / 关于（Miuix）
 ├── ui/viewmodel/
-└── work/                 # 闹钟、WorkManager、通知、开机
+└── work/                 # WorkManager worker、通知
 ```
 
 Agent 约定见 [AGENTS.md](AGENTS.md)。

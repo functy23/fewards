@@ -44,7 +44,7 @@ app/src/main/java/com/functy/fewards/
   data/repository/      # settings, accounts, config transfer
   ui/screen/            # home, account, settings, colorpalette, about (Miuix)
   ui/viewmodel/
-  work/                 # scheduler, notifier, boot, notification actions
+  work/                 # WorkManager worker, notifier, notification actions
 ```
 
 UI is Miuix only. Navigation is miuix-nav `NavDisplay`, not androidx Nav3 UI.

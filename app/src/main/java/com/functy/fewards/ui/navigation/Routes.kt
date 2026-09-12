@@ -13,15 +13,6 @@ sealed interface Route : NavKey {
     data object Main : Route
 
     @Serializable
-    data object Home : Route
-
-    @Serializable
-    data object Account : Route
-
-    @Serializable
-    data object Settings : Route
-
-    @Serializable
     data object About : Route
 
     @Serializable

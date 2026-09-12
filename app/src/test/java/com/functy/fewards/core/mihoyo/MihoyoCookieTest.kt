@@ -60,4 +60,35 @@ class MihoyoCookieTest {
         assertTrue(next.contains("cookie_token=NEW"))
         assertTrue(next.contains("stoken=v2_abc"))
     }
+
+    @Test
+    fun buildFetchedWebCookieInterpolatesCookieToken() {
+        val cookie = MihoyoApi.buildFetchedWebCookie(
+            stuid = "10001",
+            mid = "xyz123",
+            cookieToken = "tok_real",
+            ltoken = "lt_real",
+        )
+        assertTrue(cookie.contains("cookie_token=tok_real"))
+        assertTrue(!cookie.contains("cookie_token=${'$'}cookie_token"))
+        assertTrue(cookie.contains("ltoken=lt_real"))
+        assertTrue(cookie.contains("account_id=10001"))
+        assertTrue(cookie.contains("account_mid_v2=xyz123"))
+        assertEquals("tok_real", MihoyoApi.cookieValue(cookie, "cookie_token"))
+        assertEquals("lt_real", MihoyoApi.cookieValue(cookie, "ltoken"))
+    }
+
+    @Test
+    fun buildFetchedWebCookieOmitsEmptyTokens() {
+        val cookie = MihoyoApi.buildFetchedWebCookie(
+            stuid = "10001",
+            mid = "xyz123",
+            cookieToken = "",
+            ltoken = "",
+        )
+        assertTrue(!cookie.contains("cookie_token="))
+        assertTrue(!cookie.contains("ltoken="))
+        assertTrue(cookie.contains("ltuid=10001"))
+        assertTrue(cookie.contains("ltmid_v2=xyz123"))
+    }
 }

@@ -19,6 +19,14 @@ class MihoyoConstantsContractTest {
     }
 
     @Test
+    fun signTargetsStayOnDefaultThreeGamesAndTwoForums() {
+        assertEquals(listOf("genshin", "starrail", "zzz"), MihoyoConstants.SIGN_GAME_KEYS)
+        assertEquals(listOf(5, 2), MihoyoConstants.BBS_SIGN_FORUM_GIDS)
+        assertTrue(MihoyoConstants.SIGN_GAME_KEYS.all { it in MihoyoConstants.GAMES })
+        assertTrue(MihoyoConstants.BBS_SIGN_FORUM_GIDS.all { it in MihoyoConstants.BBS_FORUMS })
+    }
+
+    @Test
     fun zzzUsesNapHost() {
         val zzz = MihoyoConstants.GAMES.getValue("zzz")
         assertTrue(zzz.signUrl.startsWith(MihoyoConstants.ZZZ_ACT_API))
