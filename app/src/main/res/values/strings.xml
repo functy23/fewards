@@ -15,6 +15,7 @@
     <string name="home_tasks_not_done">未完成</string>
     <string name="home_will_run_checked">将执行勾选的任务</string>
     <string name="home_start_execute">开始执行</string>
+    <string name="tile_run_tasks">签到</string>
     <string name="home_running">执行中…</string>
     <string name="home_log_title">日志</string>
     <string name="home_no_logs">暂无日志</string>

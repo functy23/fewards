@@ -83,6 +83,7 @@ class AccountRepository {
         val id: String,
         val label: String,
         val token: String,
+        val avatarUrl: String = "",
     )
 
     fun workBuddyAccounts(): List<WorkBuddyAccount> {
@@ -95,6 +96,7 @@ class AccountRepository {
                     id = o.optString("id"),
                     label = o.optString("label"),
                     token = o.optString("token"),
+                    avatarUrl = o.optString("avatarUrl"),
                 )
             }
         }.getOrDefault(emptyList())
@@ -119,6 +121,7 @@ class AccountRepository {
                     .put("id", a.id)
                     .put("label", a.label)
                     .put("token", a.token)
+                    .put("avatarUrl", a.avatarUrl)
             )
         }
         prefs.edit { putString("sec.wb.accounts", arr.toString()) }

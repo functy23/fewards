@@ -8,6 +8,7 @@ data class AccountUiState(
     // 米游社
     val mihoyoLoggedIn: Boolean = false,
     val mihoyoAccounts: List<AccountRepository.MihoyoAccount> = emptyList(),
+    val mhyHydratingIds: Set<String> = emptySet(),
     val loginMode: Int = 0, // 0 扫码；1 Cookie
     val qrState: QrState = QrState.Idle,
     val qrContent: String = "",

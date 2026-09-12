@@ -1,6 +1,7 @@
 package com.functy.fewards.ui.screen.account
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +23,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -280,21 +281,11 @@ fun AccountPagerMiuix(
                                         title = account.nickname,
                                         summary = "stuid=${account.stuid}",
                                         startAction = {
-                                            if (account.avatarUrl.isNotEmpty()) {
-                                                UrlImage(
-                                                    url = account.avatarUrl,
-                                                    size = 36.dp,
-                                                    contentDescription = account.nickname,
-                                                    modifier = Modifier.padding(end = 6.dp),
-                                                )
-                                            } else {
-                                                Icon(
-                                                    Icons.Rounded.Person,
-                                                    modifier = Modifier.padding(end = 6.dp),
-                                                    contentDescription = account.nickname,
-                                                    tint = colorScheme.onBackground,
-                                                )
-                                            }
+                                            AccountFace(
+                                                url = account.avatarUrl,
+                                                label = account.nickname,
+                                                hydrating = account.id in state.mhyHydratingIds,
+                                            )
                                         },
                                         endActions = {
                                             // 仅垃圾桶按钮可删除；整行点击不响应
@@ -372,11 +363,10 @@ fun AccountPagerMiuix(
                                         title = account.label,
                                         summary = "token=${account.token.take(6)}****",
                                         startAction = {
-                                            Icon(
-                                                Icons.Rounded.Person,
-                                                modifier = Modifier.padding(end = 6.dp),
-                                                contentDescription = account.label,
-                                                tint = colorScheme.onBackground,
+                                            AccountFace(
+                                                url = account.avatarUrl,
+                                                label = account.label,
+                                                hydrating = false,
                                             )
                                         },
                                         endActions = {
@@ -441,17 +431,66 @@ private fun CookieSection(
     }
 }
 
-/** 网络头像：OkHttp 拉取 + G2 圆角裁剪。 */
+@Composable
+private fun AccountFace(
+    url: String,
+    label: String,
+    hydrating: Boolean,
+    size: Dp = 36.dp,
+) {
+    val modifier = Modifier.padding(end = 6.dp)
+    when {
+        hydrating && url.isEmpty() -> AvatarLoading(size, modifier)
+        url.isNotEmpty() -> UrlImage(url = url, size = size, modifier = modifier, contentDescription = label)
+        else -> LetterAvatar(label = label, size = size, modifier = modifier)
+    }
+}
+
+@Composable
+private fun AvatarLoading(size: Dp, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.size(size),
+        contentAlignment = Alignment.Center,
+    ) {
+        InfiniteProgressIndicator(color = colorScheme.primary)
+    }
+}
+
+@Composable
+private fun LetterAvatar(label: String, size: Dp, modifier: Modifier = Modifier) {
+    val shape = remember { com.functy.fewards.ui.component.G2SquircleShape() }
+    val ch = label.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+    val hue = ((label.hashCode().toLong() and 0x7fffffffL) % 360L).toFloat()
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(shape)
+            .background(Color.hsl(hue, 0.42f, 0.46f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = ch,
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/** 网络头像：OkHttp 拉取 + G2 圆角裁剪；拉取中显示加载占位。 */
 @Composable
 private fun UrlImage(
     url: String,
-    size: androidx.compose.ui.unit.Dp,
+    size: Dp,
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
 ) {
     var bitmap by remember(url) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var loaded by remember(url) { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(url) {
-        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        loaded = false
+        bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             runCatching {
                 com.functy.fewards.fewardsApp.okhttpClient.newCall(
                     okhttp3.Request.Builder().url(url).build()
@@ -460,24 +499,20 @@ private fun UrlImage(
                         android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                     }
                 }
-            }.getOrNull()?.let { bitmap = it }
+            }.getOrNull()
         }
+        loaded = true
     }
     val shape = remember { com.functy.fewards.ui.component.G2SquircleShape() }
-    if (bitmap != null) {
-        Image(
+    when {
+        bitmap != null -> Image(
             bitmap = bitmap!!.asImageBitmap(),
             contentDescription = contentDescription,
             modifier = modifier.size(size).clip(shape),
             contentScale = androidx.compose.ui.layout.ContentScale.Crop,
         )
-    } else {
-        Icon(
-            Icons.Rounded.Person,
-            modifier = modifier.size(size),
-            contentDescription = contentDescription,
-            tint = colorScheme.onBackground,
-        )
+        !loaded -> AvatarLoading(size, modifier)
+        else -> LetterAvatar(label = contentDescription.orEmpty(), size = size, modifier = modifier)
     }
 }
 

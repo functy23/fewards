@@ -29,4 +29,18 @@ class WorkBuddyLabelTest {
     fun garbageReturnsNull() {
         assertNull(WorkBuddyLabel.decode("not-a-jwt"))
     }
+
+    @Test
+    fun decodeProfileReadsHttpPicture() {
+        val token = jwt("""{"nickname":"Bob","picture":"https://cdn.example/a.png"}""")
+        val profile = WorkBuddyLabel.decodeProfile(token)
+        assertEquals("Bob", profile.label)
+        assertEquals("https://cdn.example/a.png", profile.avatarUrl)
+    }
+
+    @Test
+    fun decodeProfileIgnoresNonHttpPicture() {
+        val token = jwt("""{"nickname":"Bob","picture":"not-a-url"}""")
+        assertNull(WorkBuddyLabel.decodeProfile(token).avatarUrl)
+    }
 }

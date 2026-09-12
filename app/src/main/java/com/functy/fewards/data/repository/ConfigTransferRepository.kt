@@ -1,6 +1,9 @@
 package com.functy.fewards.data.repository
 
 import com.functy.fewards.core.AppLog
+import com.functy.fewards.core.mihoyo.MihoyoApi
+import com.functy.fewards.core.mihoyo.MihoyoProfileHydrator
+import com.functy.fewards.core.workbuddy.WorkBuddyLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -62,14 +65,24 @@ class ConfigTransferRepository(
             )
         }
         parsed.workbuddies.forEach { d ->
+            val profile = WorkBuddyLabel.decodeProfile(d.token)
             accounts.addWorkBuddyAccount(
                 AccountRepository.WorkBuddyAccount(
                     id = d.id,
-                    label = d.label,
+                    label = profile.label ?: d.label,
                     token = d.token,
+                    avatarUrl = profile.avatarUrl.orEmpty(),
                 )
             )
         }
+        val api = MihoyoApi(MihoyoApi.defaultClient())
+        accounts.mihoyoAccounts()
+            .filter { MihoyoProfileHydrator.needsHydration(it) }
+            .forEach { acc ->
+                if (!MihoyoProfileHydrator.markAttempted(acc.id)) return@forEach
+                val next = MihoyoProfileHydrator.hydrate(api, acc)
+                if (next != acc) accounts.addMihoyoAccount(next)
+            }
         AppLog.i("SYS", "导入完成：米游社 " + parsed.mihoyos.size + " 个，WorkBuddy " + parsed.workbuddies.size + " 个")
         ImportResult(parsed.mihoyos.size, parsed.workbuddies.size, parsed.errors)
     }

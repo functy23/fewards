@@ -3,9 +3,12 @@ package com.functy.fewards.ui.viewmodel
 import com.functy.fewards.core.AppLog
 import com.functy.fewards.core.mihoyo.MihoyoApi
 import com.functy.fewards.core.mihoyo.MihoyoEngine
+import com.functy.fewards.core.mihoyo.MihoyoProfileHydrator
 import com.functy.fewards.core.workbuddy.WorkBuddyEngine
 import com.functy.fewards.data.repository.AccountRepository
 import com.functy.fewards.data.repository.SettingsRepositoryImpl
+import com.functy.fewards.fewardsApp
+import com.functy.fewards.work.RunTasksTileService
 import com.functy.fewards.work.TaskNotifier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -59,6 +62,7 @@ object TaskRunner {
             wbStatus = if (runWb && _state.value.wbStatus != TaskStatus.UNCONFIGURED) TaskStatus.QUERYING else _state.value.wbStatus,
             mhyStatus = if (runMhy && _state.value.mhyStatus != TaskStatus.UNCONFIGURED) TaskStatus.QUERYING else _state.value.mhyStatus,
         )
+        RunTasksTileService.refresh(fewardsApp)
         val totalSteps = listOf(runWb, runMhy).count { it }
         var doneSteps = 0
         var allOk = true
@@ -82,6 +86,7 @@ object TaskRunner {
             }
         } finally {
             _state.value = _state.value.copy(running = false)
+            RunTasksTileService.refresh(fewardsApp)
         }
         val summary = summaries.joinToString("；").ifEmpty { "未选择任何任务" }
         _state.value = _state.value.copy(lastRunSummary = summary)
@@ -148,28 +153,15 @@ object TaskRunner {
                         _state.value = _state.value.copy(mhyRunning = false, mhyStatus = TaskStatus.UNCONFIGURED)
                         return@async
                     }
-                    // self-heal：旧版导入的账号缺 cookie_token/ltoken，先补全再执行
                     val api = MihoyoApi(MihoyoApi.defaultClient())
                     val healed = list.map { acc ->
-                        var fixed = acc
-                        if (!acc.cookie.contains("cookie_token")) {
-                            val deviceId = com.functy.fewards.core.mihoyo.DsSign.deviceId(acc.stoken + acc.stuid)
-                            val deviceFp = com.functy.fewards.core.mihoyo.DsSign.deviceFp(deviceId)
-                            val full = api.fetchWebCookie(acc.stoken, acc.stuid, acc.mid, deviceId, deviceFp)
-                            if (full != null) fixed = fixed.copy(cookie = full)
-                        }
-                        if (acc.nickname.startsWith("账号") || acc.avatarUrl.isEmpty()) {
-                            val deviceId = com.functy.fewards.core.mihoyo.DsSign.deviceId(acc.stoken + acc.stuid)
-                            val deviceFp = com.functy.fewards.core.mihoyo.DsSign.deviceFp(deviceId)
-                            val info = api.fetchUserInfo(acc.stoken, acc.stuid, acc.mid, deviceId, deviceFp)
-                            if (info != null) {
-                                if (info.nickname.isNotEmpty() && acc.nickname.startsWith("账号")) {
-                                    fixed = fixed.copy(nickname = info.nickname)
-                                }
-                                if (info.avatarUrl.isNotEmpty() && fixed.avatarUrl.isEmpty()) {
-                                    fixed = fixed.copy(avatarUrl = info.avatarUrl)
-                                }
-                            }
+                        val fixed = if (
+                            MihoyoProfileHydrator.needsHydration(acc) ||
+                            !acc.cookie.contains("cookie_token")
+                        ) {
+                            MihoyoProfileHydrator.hydrate(api, acc)
+                        } else {
+                            acc
                         }
                         if (fixed != acc) accounts.addMihoyoAccount(fixed)
                         fixed
