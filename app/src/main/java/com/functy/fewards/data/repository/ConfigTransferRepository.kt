@@ -42,6 +42,10 @@ class ConfigTransferRepository(
                     .put("id", a.id)
                     .put("label", a.label)
                     .put("token", a.token)
+                    .put("uid", a.uid)
+                    .put("enterpriseId", a.enterpriseId)
+                    .put("refreshToken", a.refreshToken)
+                    .put("expiresAt", a.expiresAt)
             )
         }
         root.put("workbuddies", wbArr)
@@ -68,10 +72,15 @@ class ConfigTransferRepository(
             val profile = WorkBuddyLabel.decodeProfile(d.token)
             accounts.addWorkBuddyAccount(
                 AccountRepository.WorkBuddyAccount(
-                    id = d.id,
+                    // 裸 JWT / 旧配置没有独立 id：用 JWT sub 兜底，避免同一账号重复导入成多条
+                    id = d.id.ifEmpty { profile.uid.ifEmpty { "wb_" + System.currentTimeMillis() } },
                     label = profile.label ?: d.label,
                     token = d.token,
                     avatarUrl = profile.avatarUrl.orEmpty(),
+                    uid = profile.uid.ifEmpty { d.uid },
+                    enterpriseId = d.enterpriseId,
+                    refreshToken = d.refreshToken,
+                    expiresAt = d.expiresAt,
                 )
             )
         }

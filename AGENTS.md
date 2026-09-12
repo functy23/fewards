@@ -129,12 +129,22 @@ app/src/test/java/com/functy/fewards/
 - 列表名从 JWT 解：`nickname`（trim 控制字符）优先，否则 `preferred_username`。实现：`WorkBuddyLabel.decodeProfile`。
 - **没有头像接口。** JWT 若带 `picture` / `avatar_url` 等 http 地址就用；否则账号列表用昵称首字母色块。不要接腾讯用户资料 API。
 - macOS 取 token：`scripts/workbuddy-token.sh`（读 CodeBuddyExtension 本地 auth）。不要把 token 写进仓库或日志。
+- **扫码授权**（`WorkBuddyLogin`，移植自 workbuddy-manager `server/services/tencent.py`）：
+  1. `POST /v2/plugin/auth/state?platform=CLI` → `data{state, authUrl}`；`authUrl` 即二维码内容。
+  2. `GET /v2/plugin/auth/token?state=…` → **未扫码返回非 0 码（实测 11217 "login ing..."）**，别当错误；`code==0` 时 `data` 是**驼峰** `accessToken/refreshToken/expiresIn/domain`。
+  3. `GET /v2/plugin/login/account?state=…`，带 `Authorization: Bearer {accessToken}` → `data{uid, nickname, enterpriseId}`。
+  - 统一信封 `{code,msg,data}`：判定只看 `code`。**缺 `code` 字段必须算失败**（`hasOkCode`），不能因为「没有 code」就当成功。
+  - 本地会话 TTL 5 分钟（`STATE_TTL_MS`），轮询 2 秒一次。轮询期间没有单独的「已扫码」信号。
+  - 扫码成功后**只纳管，不自动签到**；签到仍由首页「开始执行」统一触发。
 
 ## 账号与配置
 
 - 凭据只存在本机 SharedPreferences（`AccountRepository` / `SettingsRepositoryImpl`）。日志禁止打印 token / cookie / stoken。
 - 配置 JSON：`_format=fewards-config`，`ConfigTransferParser` + `ConfigTransferRepository`。兼容裸 cookie / 裸 JWT。导入后米游社会 hydrate 头像。
 - 输入框用 miuix `basic.TextField`（`MultilineInputField` 包装）。不要用已删除的 `EditText.kt`。
+- **WorkBuddy 多账号**：`WorkBuddyAccount` 带 `uid/enterpriseId/refreshToken/expiresAt`（老数据没有这些字段，读出来是空/0）。
+  - `AccountRepository.addWorkBuddyAccount` 去重顺序：同 `uid` → 老账号（uid 空）同 `label` → 同 `id`；命中原地替换，不新增。**不要退回「只按 id 去重」**，否则同一账号重复扫码会多出一条。
+  - `WorkBuddyLabel.decodeProfile` 的 `uid` 取 JWT `sub`（实测与 `/login/account` 的 uid 一致），`expiresAt` 取 `exp`，仅用于导入去重；权威 uid 以扫码接口为准。
 
 ## UI 约定
 
@@ -145,8 +155,16 @@ app/src/test/java/com/functy/fewards/
 - 主题颜色模式用轮廓 Tab（不是下拉）。
 - 主页图标 28.dp；复选框行文字 `weight(1f)`，Checkbox 靠右。
 - 图标/头像圆角：miuix `squircleClip(cornerRadius = size * 0.30f)`（`SquircleIcon` / 账号头像共用）。禁止自写 `G2SquircleShape`：`mid = √2−1` 会把 45° 点放到 0.414r，四角内缩约 2×。也不要用普通 `RoundedCornerShape` 充 squircle。
-- 图标 png 在 `drawable-nodpi/`（`miyoushe`、`workbuddy`）。
+- 图标 png 在 `drawable-nodpi/`（`miyoushe`、`workbuddy`）。README 宣传图在 `docs/screenshots/`（home / account / settings / theme），换界面后同步更新。
 - 账号头像网络图：`AccountMiuix.UrlImage`（OkHttp + G2 裁剪）。加载中 `InfiniteProgressIndicator`，失败回落到字母头像。
+- **添加账号弹窗只有一份**：`ui/component/miuix/AddAccountDialog`（米游社与 WorkBuddy 共用）。不要再各写一份二维码弹窗。
+  - 账号页只列**已登录账号**，米游社 / WorkBuddy 用灰色小标题（`SectionHeader`）分组；没有账号时显示 `account_empty` 提示。
+  - 右上角「+」用 `WindowListPopup` 弹「添加米游社账号 / 添加 WorkBuddy 账号」；两项都打开同一个 `AddAccountDialog`。菜单行是本文件里的 `AddMenuRow`，**不要换回 miuix `DropdownImpl`**：它恒定给尾部选中勾留 `CheckIconStartPadding + CheckIconSize`（≈32dp），这里没有选中态，那段槽位就是文字后面的一截空白。`WindowListPopup` 要传 `horizontalMargin = 12.dp`，否则菜单右边缘贴着屏幕右边。
+  - 「+」是**带圈按钮**（`IconButton` + `backgroundColor = surfaceContainerHigh`；minWidth/minHeight 与默认 cornerRadius 都是 40dp，给底色即正圆）。它和大标题同一条中线：`TopAppBar` 把 actions 垂直居中在 52dp 的收起高度里，大标题却排在 52dp 之下，所以用 `Modifier.offset` 下移「半个收起高度 + 半个 title1 行高」，再按 `scrollBehavior.state.collapsedFraction` 收回原位。
+  - 弹窗内用 `TabRowWithContour` 切「扫码登录 / 凭据登录」：扫码页生成二维码，凭据页是输入框 + 导入。WorkBuddy 的凭据 Tab 是 Token 粘贴。
+  - 开合由调用方的 `show` 状态驱动，只有 `QrState.Confirmed` 才自动关；过期/失败保持打开以露出「重新获取」。凭据导入成功（`onImportCredential` 返回 true）也自动关。
+  - 弹窗的**挂载**由调用方的 `mounted` 标志控制（不是 `qrState`）：切到凭据 Tab 会立刻把 `qrState` 归零，只按 `qrState` 判断会让关闭动画演一半就消失。关闭走 `WindowDialog` 下滑淡出动画，`onDismissFinished` 里才置 `mounted=false` 并取消轮询。
+  - 二维码申请以「弹窗开合 + Tab」为 key 的 `LaunchedEffect` 驱动，弹出动画结束（`delay(450)`）后才申请；切走再切回扫码 Tab 会重新申请一张新码，过期/失败后重开能自愈。
 - 实时任务通知 ongoing，完成后再提升；自动消失跟 `overviewAutoDismiss` / `overviewHoldSeconds`。
 
 ## 导航与预测返回
@@ -173,7 +191,7 @@ app/src/test/java/com/functy/fewards/
 
 `./gradlew :app:testDebugUnitTest`，CI：`.github/workflows/test.yml`。
 
-改了下面这些必须有/更新 JVM 测试：DS 签名、cookie 解析与 `buildFetchedWebCookie`、米游社已签判定、WorkBuddy `interpretDailyCheckin`、`ConfigTransferParser`、`SIGN_GAME_KEYS` / act_id / 域名。头像 hydrator 的「要不要拉」用 `MihoyoProfileHydratorTest` 钉。
+改了下面这些必须有/更新 JVM 测试：DS 签名、cookie 解析与 `buildFetchedWebCookie`、米游社已签判定、WorkBuddy `interpretDailyCheckin`、WorkBuddy 扫码协议（`WorkBuddyLoginTest`：信封 code 优先、11217 视为等待、驼峰字段、缺 uid 未就绪、缺 code 不算成功）、`ConfigTransferParser`、`SIGN_GAME_KEYS` / act_id / 域名。头像 hydrator 的「要不要拉」用 `MihoyoProfileHydratorTest` 钉，JWT 的 uid/exp 用 `WorkBuddyLabelTest` 钉。
 
 ## 提交
 
