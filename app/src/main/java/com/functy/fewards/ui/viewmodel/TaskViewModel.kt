@@ -69,6 +69,9 @@ class TaskViewModel : ViewModel() {
                 lastRunSummary = runner.lastRunSummary,
                 wbChecked = it.wbChecked,
                 mhyChecked = it.mhyChecked,
+                // 总开关：关掉的任务首页整行不出现（见 HomeUiState.summary()）
+                wbEnabled = repo.wbMasterEnabled,
+                mhyEnabled = repo.mhyMasterEnabled,
             )
         }
     }

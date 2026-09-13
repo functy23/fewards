@@ -108,32 +108,35 @@ fun HomePagerMiuix(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    // 总开关关掉的任务整行不出现，也不参与「全部完成」判定。
+                    val summary = state.summary()
                     StatusCard(
                         running = state.running,
-                        allDone = state.wbStatus == TaskRunner.TaskStatus.DONE &&
-                            state.mhyStatus == TaskRunner.TaskStatus.DONE,
-                        hasAnyConfigured = state.wbStatus != TaskRunner.TaskStatus.UNCONFIGURED ||
-                            state.mhyStatus != TaskRunner.TaskStatus.UNCONFIGURED,
+                        allDone = summary.allDone,
+                        hasAnyConfigured = summary.hasAnyConfigured,
                     )
-                    TaskListCard(state = state)
-                    Row(
-                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        TaskPickerCard(
-                            state = state,
-                            onToggleWb = actions.onToggleWb,
-                            onToggleMhy = actions.onToggleMhy,
-                            modifier = Modifier.weight(1f),
-                        )
-                        ExecuteCard(
-                            wbChecked = state.wbChecked,
-                            mhyChecked = state.mhyChecked,
-                            enabled = !state.running && (state.wbChecked || state.mhyChecked),
-                            running = state.running,
-                            onRun = actions.onRun,
-                            modifier = Modifier.weight(1f),
-                        )
+                    TaskListCard(state = state, summary = summary)
+                    if (summary.anyVisible) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            TaskPickerCard(
+                                state = state,
+                                summary = summary,
+                                onToggleWb = actions.onToggleWb,
+                                onToggleMhy = actions.onToggleMhy,
+                                modifier = Modifier.weight(1f),
+                            )
+                            ExecuteCard(
+                                wbChecked = summary.runWb,
+                                mhyChecked = summary.runMhy,
+                                enabled = !state.running && summary.canRun,
+                                running = state.running,
+                                onRun = actions.onRun,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                     LogCard(
                         logs = logs.map { it.format() },
@@ -273,19 +276,24 @@ private fun StatusCard(
 
 /** 图标+名称+状态 列表卡（图标为各软件 squircle 图标）。 */
 @Composable
-private fun TaskListCard(state: HomeUiState) {
+private fun TaskListCard(state: HomeUiState, summary: HomeSummary) {
+    if (!summary.anyVisible) return
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp, 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            TaskRow(
-                resId = R.drawable.workbuddy,
-                name = stringResource(R.string.workbuddy),
-                status = statusText(state.wbStatus),
-            )
-            TaskRow(
-                resId = R.drawable.miyoushe,
-                name = stringResource(R.string.miyoushe),
-                status = statusText(state.mhyStatus),
-            )
+            if (summary.wbVisible) {
+                TaskRow(
+                    resId = R.drawable.workbuddy,
+                    name = stringResource(R.string.workbuddy),
+                    status = statusText(state.wbStatus),
+                )
+            }
+            if (summary.mhyVisible) {
+                TaskRow(
+                    resId = R.drawable.miyoushe,
+                    name = stringResource(R.string.miyoushe),
+                    status = statusText(state.mhyStatus),
+                )
+            }
         }
     }
 }
@@ -328,6 +336,7 @@ private fun TaskRow(
 @Composable
 private fun TaskPickerCard(
     state: HomeUiState,
+    summary: HomeSummary,
     onToggleWb: (Boolean) -> Unit,
     onToggleMhy: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -340,19 +349,25 @@ private fun TaskPickerCard(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            PickerRow(
-                resId = R.drawable.workbuddy,
-                name = stringResource(R.string.workbuddy),
-                checked = state.wbChecked,
-                onCheckedChange = onToggleWb,
-            )
-            Spacer(Modifier.height(8.dp))
-            PickerRow(
-                resId = R.drawable.miyoushe,
-                name = stringResource(R.string.miyoushe),
-                checked = state.mhyChecked,
-                onCheckedChange = onToggleMhy,
-            )
+            if (summary.wbVisible) {
+                PickerRow(
+                    resId = R.drawable.workbuddy,
+                    name = stringResource(R.string.workbuddy),
+                    checked = state.wbChecked,
+                    onCheckedChange = onToggleWb,
+                )
+            }
+            if (summary.wbVisible && summary.mhyVisible) {
+                Spacer(Modifier.height(8.dp))
+            }
+            if (summary.mhyVisible) {
+                PickerRow(
+                    resId = R.drawable.miyoushe,
+                    name = stringResource(R.string.miyoushe),
+                    checked = state.mhyChecked,
+                    onCheckedChange = onToggleMhy,
+                )
+            }
         }
     }
 }
