@@ -1,5 +1,6 @@
 package com.functy.fewards.ui.screen.home
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,6 +51,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.functy.fewards.R
 import com.functy.fewards.core.AppLog
 import com.functy.fewards.ui.component.SquircleIcon
+import com.functy.fewards.ui.theme.isInDarkTheme
+import com.functy.fewards.ui.theme.themeTransitionSpec
 import com.functy.fewards.ui.viewmodel.TaskRunner
 import com.functy.fewards.ui.viewmodel.TaskViewModel
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -145,6 +148,55 @@ fun HomePagerMiuix(
 }
 
 /**
+ * 状态大卡的语义色：深浅两套写死。
+ *
+ * 刻意不走 Miuix 的动态取色——状态色（蓝=进行中 / 绿=完成 / 红=未完成）要的是
+ * 语义稳定，被用户取色染成紫色就失去意义了。但**必须**按明暗分两套：
+ * 浅色那套是给白底调的，放到深色底上会亮得刺眼（这正是「深色下还是亮色样式」的原因）。
+ */
+private data class StatusCardColors(
+    val container: Color,
+    val accent: Color,
+    val title: Color,
+)
+
+private val StatusCardRunningColorsLight = StatusCardColors(
+    container = Color(0xFFE8F1FF),
+    accent = Color(0xFF1A73E8),
+    title = Color(0xFF0D47A1),
+)
+
+private val StatusCardRunningColorsDark = StatusCardColors(
+    container = Color(0xFF1E2A38),
+    accent = Color(0xFF7AA9F7),
+    title = Color(0xFFBBD3FF),
+)
+
+private val StatusCardDoneColorsLight = StatusCardColors(
+    container = Color(0xFFDFFAE4),
+    accent = Color(0xFF36D167),
+    title = Color(0xFF1A3825),
+)
+
+private val StatusCardDoneColorsDark = StatusCardColors(
+    container = Color(0xFF1A3825),
+    accent = Color(0xFF6BD68C),
+    title = Color(0xFFB6EFC6),
+)
+
+private val StatusCardUndoneColorsLight = StatusCardColors(
+    container = Color(0xFFFDEBEA),
+    accent = Color(0xFFEA4335),
+    title = Color(0xFF5C1A17),
+)
+
+private val StatusCardUndoneColorsDark = StatusCardColors(
+    container = Color(0xFF3A1F1E),
+    accent = Color(0xFFF2847A),
+    title = Color(0xFFFFC6C1),
+)
+
+/**
  * KSU StatusCard 移植：状态大卡（对号=已完成 / 错号=未完成）。
  */
 @Composable
@@ -154,21 +206,18 @@ private fun StatusCard(
     hasAnyConfigured: Boolean,
 ) {
     val done = allDone && hasAnyConfigured
-    val container = when {
-        running -> Color(0xFFE8F1FF)
-        done -> Color(0xFFDFFAE4)
-        else -> Color(0xFFFDEBEA)
+    val dark = isInDarkTheme()
+    val target = when {
+        running -> if (dark) StatusCardRunningColorsDark else StatusCardRunningColorsLight
+        done -> if (dark) StatusCardDoneColorsDark else StatusCardDoneColorsLight
+        else -> if (dark) StatusCardUndoneColorsDark else StatusCardUndoneColorsLight
     }
-    val accent = when {
-        running -> Color(0xFF1A73E8)
-        done -> Color(0xFF36D167)
-        else -> Color(0xFFEA4335)
-    }
-    val titleColor = when {
-        running -> Color(0xFF0D47A1)
-        done -> Color(0xFF1A3825)
-        else -> Color(0xFF5C1A17)
-    }
+
+    // 跟着主题过渡一起淡，别在整屏换色时硬切一下。
+    val container by animateColorAsState(target.container, themeTransitionSpec(), label = "status_card_container")
+    val accent by animateColorAsState(target.accent, themeTransitionSpec(), label = "status_card_accent")
+    val titleColor by animateColorAsState(target.title, themeTransitionSpec(), label = "status_card_title")
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.defaultColors(color = container),

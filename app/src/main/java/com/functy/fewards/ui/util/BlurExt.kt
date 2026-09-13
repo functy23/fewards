@@ -15,6 +15,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 fun rememberBlurBackdrop(enableBlur: Boolean): LayerBackdrop? {
     if (!enableBlur || !isRenderEffectSupported()) return null
+    // 颜色在组合里读、由 rememberLayerBackdrop 内部 rememberUpdatedState 转交，
+    // 过渡期间每次重组都会换成新底色。
     val surfaceColor = MiuixTheme.colorScheme.surface
     return rememberLayerBackdrop {
         drawRect(surfaceColor)

@@ -27,6 +27,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -91,16 +92,23 @@ class MainActivity : ComponentActivity() {
             val appSettings = uiState.appSettings
             val darkMode = appSettings.colorMode.isDark || (appSettings.colorMode.isSystem && isSystemInDarkTheme())
 
-            DisposableEffect(darkMode) {
+            // 系统栏图标明暗不在这里按 darkMode 翻：明暗切换有 300ms 颜色过渡，
+            // 立刻翻会出现一段「浅底白图标」。翻面交给 MiuixFewardsTheme 按过渡后的
+            // 表面亮度决定（见 SystemBarsAppearance）。
+            //
+            // 但 detectDarkMode 仍要如实返回当前设置：enableEdgeToEdge 会把它挂到
+            // Activity 的配置变更监听上，每次旋转/字体缩放都会重设一次系统栏图标。
+            val darkModeState = rememberUpdatedState(darkMode)
+            DisposableEffect(Unit) {
                 enableEdgeToEdge(
                     statusBarStyle = SystemBarStyle.auto(
                         android.graphics.Color.TRANSPARENT,
                         android.graphics.Color.TRANSPARENT
-                    ) { darkMode },
+                    ) { darkModeState.value },
                     navigationBarStyle = SystemBarStyle.auto(
                         android.graphics.Color.TRANSPARENT,
                         android.graphics.Color.TRANSPARENT
-                    ) { darkMode },
+                    ) { darkModeState.value },
                 )
                 window.isNavigationBarContrastEnforced = false
                 onDispose { }
@@ -133,6 +141,8 @@ class MainActivity : ComponentActivity() {
 
                     val navDisplay = @Composable {
                         val navCornerRadius = rememberDeviceCornerRadius()
+                        // 明暗过渡期间本组合会跟着 miuix 的颜色状态每帧重组，这里读到的
+                        // surface 自然是插值中的颜色；稳定期值不变，remember 不会重建 effects。
                         val backdropColor = MiuixTheme.colorScheme.surface
                         val animation = PredictiveBackAnimation.entries[
                             uiState.predictiveBackAnimation.coerceIn(0, PredictiveBackAnimation.entries.lastIndex)
@@ -160,10 +170,14 @@ class MainActivity : ComponentActivity() {
                             entry<Route.Main> { mainScreenEntry() }
                             // 入场层第一帧就铺满 surface，盖住库 scrim 首帧 alpha=1 的全黑。
                             entry<Route.About> {
-                                Box(Modifier.fillMaxSize().background(backdropColor)) { AboutScreen() }
+                                Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.surface)) {
+                                    AboutScreen()
+                                }
                             }
                             entry<Route.ColorPalette> {
-                                Box(Modifier.fillMaxSize().background(backdropColor)) { ColorPaletteScreen() }
+                                Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.surface)) {
+                                    ColorPaletteScreen()
+                                }
                             }
                         }
                     }
