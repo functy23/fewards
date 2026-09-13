@@ -155,7 +155,7 @@ app/src/test/java/com/functy/fewards/
 - 主题颜色模式用轮廓 Tab（不是下拉）。
 - 主页图标 28.dp；复选框行文字 `weight(1f)`，Checkbox 靠右。
 - 图标/头像圆角：miuix `squircleClip(cornerRadius = size * 0.30f)`（`SquircleIcon` / 账号头像共用）。禁止自写 `G2SquircleShape`：`mid = √2−1` 会把 45° 点放到 0.414r，四角内缩约 2×。也不要用普通 `RoundedCornerShape` 充 squircle。
-- 图标 png 在 `drawable-nodpi/`（`miyoushe`、`workbuddy`）。README 宣传图在 `docs/screenshots/`（home / account / settings / theme），换界面后同步更新。
+- 图标 png 在 `drawable-nodpi/`（`miyoushe`、`workbuddy`）。README 宣传图在 `docs/screenshots/`，每个页面**浅色深色各一张**：`<page>-light.png` / `<page>-dark.png`（page = home / account / settings / theme），README 里两行分别展示。换界面后两套都要同步更新。
 - 账号头像网络图：`AccountMiuix.UrlImage`（OkHttp + G2 裁剪）。加载中 `InfiniteProgressIndicator`，失败回落到字母头像。
 - **添加账号弹窗只有一份**：`ui/component/miuix/AddAccountDialog`（米游社与 WorkBuddy 共用）。不要再各写一份二维码弹窗。
   - 账号页只列**已登录账号**，米游社 / WorkBuddy 用灰色小标题（`SectionHeader`）分组；没有账号时显示 `account_empty` 提示。
