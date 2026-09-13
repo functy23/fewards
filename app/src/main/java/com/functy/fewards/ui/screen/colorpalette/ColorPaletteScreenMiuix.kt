@@ -72,6 +72,7 @@ import com.functy.fewards.R
 import com.functy.fewards.ui.component.bottombar.useNavigationRail
 import com.functy.fewards.ui.component.miuix.ScaleDialog
 import com.functy.fewards.ui.theme.LocalEnableBlur
+import com.functy.fewards.ui.theme.LocalThemeTargetColors
 import com.functy.fewards.ui.theme.keyColorOptions
 import com.functy.fewards.ui.util.BlurredBar
 import com.functy.fewards.ui.util.rememberBlurBackdrop
@@ -472,7 +473,10 @@ private fun ThemePreviewCardMiuix(
     val screenRatio = screenWidth / screenHeight
     val useRail = useNavigationRail(enableFloatingBottomBar)
 
-    val seedColor = if (keyColor == 0) colorScheme.primary else Color(keyColor)
+    // 取目标色板而不是插值中的颜色：下面要用它重算一整套 MD3 配色，
+    // 吃插值色会变成过渡期间每帧重算一次。
+    val targetColors = LocalThemeTargetColors.current
+    val seedColor = if (keyColor == 0) (targetColors ?: colorScheme).primary else Color(keyColor)
     val effectiveStyle = if (keyColor == 0) PaletteStyle.TonalSpot else paletteStyle
     val effectiveSpec = if (keyColor == 0) ColorSpec.SpecVersion.Default else colorSpec
     val dynamicCs = rememberDynamicColorScheme(
