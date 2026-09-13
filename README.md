@@ -8,13 +8,23 @@
 Kotlin + Jetpack Compose，界面全程 **Miuix**（HyperOS 风格）。
 
 <p align="center">
-  <img src="docs/screenshots/home.png" width="24%" alt="首页" />
-  <img src="docs/screenshots/account.png" width="24%" alt="账号" />
-  <img src="docs/screenshots/settings.png" width="24%" alt="设置" />
-  <img src="docs/screenshots/theme.png" width="24%" alt="主题" />
+  <img src="docs/screenshots/home-light.png" width="24%" alt="首页（浅色）" />
+  <img src="docs/screenshots/account-light.png" width="24%" alt="账号（浅色）" />
+  <img src="docs/screenshots/settings-light.png" width="24%" alt="设置（浅色）" />
+  <img src="docs/screenshots/theme-light.png" width="24%" alt="主题（浅色）" />
 </p>
 <p align="center">
-  <sub>首页 · 账号 · 设置 · 主题</sub>
+  <sub>浅色 · 首页 · 账号 · 设置 · 主题</sub>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/home-dark.png" width="24%" alt="首页（深色）" />
+  <img src="docs/screenshots/account-dark.png" width="24%" alt="账号（深色）" />
+  <img src="docs/screenshots/settings-dark.png" width="24%" alt="设置（深色）" />
+  <img src="docs/screenshots/theme-dark.png" width="24%" alt="主题（深色）" />
+</p>
+<p align="center">
+  <sub>深色 · 首页 · 账号 · 设置 · 主题</sub>
 </p>
 
 ## 下载
