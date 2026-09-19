@@ -1,8 +1,11 @@
 package com.functy.fewards.ui.component.miuix
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
@@ -18,25 +21,40 @@ import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.blur.Backdrop
+import top.yukonga.miuix.kmp.glass.GlassDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 
 @Composable
 fun ScaleDialog(
     show: Boolean,
+    backdrop: Backdrop,
     onDismissRequest: () -> Unit,
     volumeState: () -> Float,
     onVolumeChange: (Float) -> Unit,
 ) {
-    OverlayDialog(
-        show = show,
-        title = stringResource(R.string.settings_page_scale),
-        summary = "80% - 110%",
+    GlassDialog(
+        visible = show,
         onDismissRequest = onDismissRequest,
-        content = {
-            var text by remember(show) {
-                mutableStateOf((volumeState() * 100).toInt().toString())
-            }
+        backdrop = backdrop,
+    ) {
+        var text by remember(show) {
+            mutableStateOf((volumeState() * 100).toInt().toString())
+        }
+        // GlassDialog 没有标题 / 摘要槽，两行都自己画。
+        Text(
+            text = stringResource(R.string.settings_page_scale),
+            style = MiuixTheme.textStyles.title4,
+            color = colorScheme.onSurface,
+        )
+        Text(
+            text = "80% - 110%",
+            style = MiuixTheme.textStyles.body2,
+            color = colorScheme.onSurfaceVariantSummary,
+        )
+        Spacer(Modifier.height(12.dp))
+        Column(modifier = Modifier.fillMaxWidth()) {
             TextField(
                 modifier = Modifier.padding(bottom = 16.dp),
                 value = text,
@@ -79,5 +97,5 @@ fun ScaleDialog(
                 )
             }
         }
-    )
+    }
 }

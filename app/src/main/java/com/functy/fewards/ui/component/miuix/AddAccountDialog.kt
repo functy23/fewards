@@ -30,26 +30,30 @@ import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
-import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.blur.Backdrop
+import top.yukonga.miuix.kmp.glass.GlassDialog
+import top.yukonga.miuix.kmp.glass.GlassSegmentedTabRow
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 /**
  * 「添加账号」弹窗（米游社 / WorkBuddy 共用同一套控件）。
  *
- * 弹窗内用 TabRowWithContour 切换登录方式：
+ * 弹窗内用 GlassSegmentedTabRow 切换登录方式：
  *  - 扫码 Tab：显示二维码（[qrContent] 为空时显示加载圈），带复制链接 / 浏览器打开 / 重新获取；
  *  - 凭据 Tab：一个输入框 + 导入按钮（米游社 = Cookie，WorkBuddy = Access Token）。
  *
- * 状态由调用方驱动；关闭走 WindowDialog 自带下滑淡出动画，
- * 动画结束后才回调 [onDismissFinished]（调用方在那里停轮询）。
+ * 状态由调用方驱动。弹窗本体是 miuix-glass 的 GlassDialog（材质从 backdrop 采样），
+ * 关闭是它自带的缩放淡出。**注意**：GlassDialog 没有 onDismissFinished 回调，
+ * 所以关闭后的收尾（停轮询、卸载弹窗）由调用方自己按 show 变化处理。
  */
 @Composable
 fun AddAccountDialog(
     show: Boolean,
+    backdrop: Backdrop,
     title: String,
     tabs: List<String>,
     selectedTab: Int,
@@ -62,7 +66,6 @@ fun AddAccountDialog(
     /** 返回 true 表示凭据被接受，弹窗自动关闭；false 保留输入。 */
     onImportCredential: (String) -> Boolean,
     onDismissRequest: () -> Unit,
-    onDismissFinished: () -> Unit,
     onRetry: () -> Unit,
 ) {
     var credential by rememberSaveable { mutableStateOf("") }
@@ -71,52 +74,58 @@ fun AddAccountDialog(
         if (!show) credential = ""
     }
 
-    WindowDialog(
-        show = show,
-        title = title,
+    GlassDialog(
+        visible = show,
         onDismissRequest = onDismissRequest,
-        onDismissFinished = onDismissFinished,
-        content = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                TabRowWithContour(
-                    tabs = tabs,
-                    selectedTabIndex = selectedTab,
-                    onTabSelected = onTabSelected,
+        backdrop = backdrop,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // GlassDialog 不带标题槽，标题由调用方自己画。
+            Text(
+                text = title,
+                style = MiuixTheme.textStyles.title4,
+                color = colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(12.dp))
+            GlassSegmentedTabRow(
+                tabs = tabs,
+                selectedIndex = selectedTab,
+                onSelect = onTabSelected,
+                backdrop = backdrop,
+            )
+            Spacer(Modifier.height(16.dp))
+
+            if (selectedTab == 0) {
+                QrSection(
+                    content = qrContent,
+                    message = qrMessage,
+                    canRetry = canRetry,
+                    onRetry = onRetry,
                 )
-                Spacer(Modifier.height(16.dp))
-
-                if (selectedTab == 0) {
-                    QrSection(
-                        content = qrContent,
-                        message = qrMessage,
-                        canRetry = canRetry,
-                        onRetry = onRetry,
-                    )
-                } else {
-                    CredentialSection(
-                        value = credential,
-                        onValueChange = { credential = it },
-                        label = credentialLabel,
-                        action = credentialAction,
-                        onImport = {
-                            // 只有被接受才清空 + 交给调用方关闭；失败时保留输入让用户改
-                            if (onImportCredential(credential)) credential = ""
-                        },
-                    )
-                }
-
-                Spacer(Modifier.height(14.dp))
-                TextButton(
-                    text = stringResource(R.string.cancel),
-                    onClick = onDismissRequest,
-                    modifier = Modifier.fillMaxWidth(),
+            } else {
+                CredentialSection(
+                    value = credential,
+                    onValueChange = { credential = it },
+                    label = credentialLabel,
+                    action = credentialAction,
+                    onImport = {
+                        // 只有被接受才清空 + 交给调用方关闭；失败时保留输入让用户改
+                        if (onImportCredential(credential)) credential = ""
+                    },
                 )
             }
-        },
-    )
+
+            Spacer(Modifier.height(14.dp))
+            TextButton(
+                text = stringResource(R.string.cancel),
+                onClick = onDismissRequest,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
 }
 
 @Composable

@@ -34,11 +34,10 @@ import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.glass.GlassNavigationBar
 import top.yukonga.miuix.kmp.glass.GlassNavigationItem
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun BottomBarMiuix(
-    blurBackdrop: LayerBackdrop?,
+    blurBackdrop: LayerBackdrop,
     backdrop: Backdrop,
     modifier: Modifier,
 ) {
@@ -56,7 +55,7 @@ fun BottomBarMiuix(
         BlurredBar(blurBackdrop) {
             NavigationBar(
                 modifier = modifier,
-                color = if (blurBackdrop != null) Color.Transparent else MiuixTheme.colorScheme.surface,
+                color = Color.Transparent,
                 content = {
                     items.forEachIndexed { index, item ->
                         NavigationBarItem(

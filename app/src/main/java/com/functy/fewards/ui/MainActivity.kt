@@ -61,7 +61,6 @@ import com.functy.fewards.ui.screen.home.HomePager
 import com.functy.fewards.ui.screen.settings.SettingPager
 import com.functy.fewards.ui.theme.FewardsTheme
 import com.functy.fewards.ui.theme.LocalColorMode
-import com.functy.fewards.ui.theme.LocalEnableBlur
 import com.functy.fewards.ui.theme.LocalEnableFloatingBottomBar
 import com.functy.fewards.ui.theme.LocalFloatingBottomBarGlass
 import com.functy.fewards.ui.animation.predictiveback.PredictiveBackAnimation
@@ -127,7 +126,6 @@ class MainActivity : ComponentActivity() {
                 LocalNavigator provides navigator,
                 LocalDensity provides density,
                 LocalColorMode provides appSettings.colorMode.value,
-                LocalEnableBlur provides uiState.enableBlur,
                 LocalEnableFloatingBottomBar provides uiState.enableFloatingBottomBar,
                 LocalFloatingBottomBarGlass provides uiState.enableFloatingBottomBarBlur,
             ) {
@@ -204,7 +202,6 @@ fun MainScreen(
     onPageChanged: (Int) -> Unit = {},
 ) {
     val navController = LocalNavigator.current
-    val enableBlur = LocalEnableBlur.current
     val enableFloatingBottomBar = LocalEnableFloatingBottomBar.current
     val floatingBottomBarGlass = LocalFloatingBottomBarGlass.current
     val useNavigationRail = useNavigationRail(enableFloatingBottomBar)
@@ -215,7 +212,7 @@ fun MainScreen(
     )
 
     val surfaceColor = MiuixTheme.colorScheme.surface
-    val blurBackdrop = rememberBlurBackdrop(enableBlur)
+    val blurBackdrop = rememberBlurBackdrop()
 
     val backdrop = rememberLayerBackdrop {
         drawRect(surfaceColor)
@@ -239,7 +236,7 @@ fun MainScreen(
     ) {
         val contentReady = rememberContentReady()
         val pagerContent = @Composable { bottomInnerPadding: Dp ->
-            Box(modifier = if (blurBackdrop != null) Modifier.layerBackdrop(blurBackdrop) else Modifier) {
+            Box(modifier = Modifier.layerBackdrop(blurBackdrop)) {
                 HorizontalPager(
                     modifier = Modifier
                         .then(if (enableFloatingBottomBar && floatingBottomBarGlass) Modifier.layerBackdrop(backdrop) else Modifier),

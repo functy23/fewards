@@ -52,7 +52,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.functy.fewards.R
 import com.functy.fewards.core.AppLog
 import com.functy.fewards.ui.component.SquircleIcon
-import com.functy.fewards.ui.theme.LocalEnableBlur
 import com.functy.fewards.ui.theme.isInDarkTheme
 import com.functy.fewards.ui.theme.themeTransitionSpec
 import com.functy.fewards.ui.util.rememberBlurBackdrop
@@ -85,8 +84,7 @@ fun HomePagerMiuix(
     val state by taskViewModel.uiState.collectAsStateWithLifecycle()
     val logs by AppLog.logs.collectAsStateWithLifecycle()
     val actions = taskViewModel.homeActions
-    val enableBlur = LocalEnableBlur.current
-    val backdrop = rememberBlurBackdrop(enableBlur)
+    val backdrop = rememberBlurBackdrop()
 
     Scaffold(
         topBar = {
@@ -105,7 +103,7 @@ fun HomePagerMiuix(
             state = listState,
             modifier = Modifier
                 .fillMaxHeight()
-                .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
+                .layerBackdrop(backdrop)
                 .scrollEndHaptic()
                 .overScrollVertical()
                 .nestedScroll(scrollBehavior.nestedScrollConnection)

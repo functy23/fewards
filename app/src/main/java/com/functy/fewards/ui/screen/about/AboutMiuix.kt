@@ -60,7 +60,6 @@ import kotlinx.coroutines.flow.onEach
 import com.functy.fewards.R
 import com.functy.fewards.ui.component.miuix.effect.BgEffectBackground
 import com.functy.fewards.ui.component.miuix.effect.ColorBlendToken
-import com.functy.fewards.ui.theme.LocalEnableBlur
 import com.functy.fewards.ui.theme.isInDarkTheme
 import com.functy.fewards.ui.util.BlurredBar
 import com.functy.fewards.ui.util.rememberBlurBackdrop
@@ -109,9 +108,8 @@ fun AboutScreenMiuix(
         }
     }
 
-    val enableBlur = LocalEnableBlur.current
-    val barBlurBackdrop = rememberBlurBackdrop(enableBlur)
-    val blurActive = barBlurBackdrop != null && scrollProgress == 1f
+    val barBlurBackdrop = rememberBlurBackdrop()
+    val blurActive = scrollProgress == 1f
     val barColor = if (blurActive) {
         Color.Transparent
     } else {
@@ -153,7 +151,7 @@ fun AboutScreenMiuix(
             modifier = Modifier
                 .fillMaxSize()
                 .background(colorScheme.surface)
-                .then(if (barBlurBackdrop != null) Modifier.layerBackdrop(barBlurBackdrop) else Modifier),
+                .layerBackdrop(barBlurBackdrop),
         ) {
             AboutContent(
                 state = state,
@@ -184,9 +182,7 @@ private fun AboutContent(
     val backdrop = rememberLayerBackdrop()
 
     val isInDark = isInDarkTheme()
-    val enableBlur = LocalEnableBlur.current
-    val effectBackground =
-        remember(enableBlur) { isRuntimeShaderSupported() && enableBlur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM }
+    val effectBackground = remember { isRuntimeShaderSupported() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM }
 
     val blendColors = remember(isInDark) {
         if (isInDark) ColorBlendToken.Overlay_Thin_Light
@@ -303,17 +299,15 @@ private fun AboutContent(
                 Image(
                     modifier = Modifier
                         .requiredSize(245.dp)
-                        .then(
-                            if (enableBlur) {
-                                Modifier.textureBlur(
-                                    backdrop = backdrop,
-                                    shape = RoundedCornerShape(0.dp),
-                                    blurRadius = 150f,
-                                    colors = BlurColors(blendColors = logoBlend),
-                                    contentBlendMode = ComposeBlendMode.DstIn,
-                                    enabled = true,
-                                )
-                            } else Modifier
+                        // 模糊不再有开关：常量条件恒真，纹理模糊直接挂上（硬件不支持时
+                        // textureBlur 内部自己会退化成不画）。
+                        .textureBlur(
+                            backdrop = backdrop,
+                            shape = RoundedCornerShape(0.dp),
+                            blurRadius = 150f,
+                            colors = BlurColors(blendColors = logoBlend),
+                            contentBlendMode = ComposeBlendMode.DstIn,
+                            enabled = true,
                         ),
                     painter = painterResource(id = R.drawable.ic_launcher_foreground),
                     colorFilter = ColorFilter.tint(colorScheme.onBackground),
@@ -334,17 +328,13 @@ private fun AboutContent(
                         scaleX = 1 - (projectNameProgress * 0.05f)
                         scaleY = 1 - (projectNameProgress * 0.05f)
                     }
-                    .then(
-                        if (enableBlur) {
-                            Modifier.textureBlur(
-                                backdrop = backdrop,
-                                shape = RoundedCornerShape(0.dp),
-                                blurRadius = 150f,
-                                colors = BlurColors(blendColors = logoBlend),
-                                contentBlendMode = ComposeBlendMode.DstIn,
-                                enabled = true,
-                            )
-                        } else Modifier
+                    .textureBlur(
+                        backdrop = backdrop,
+                        shape = RoundedCornerShape(0.dp),
+                        blurRadius = 150f,
+                        colors = BlurColors(blendColors = logoBlend),
+                        contentBlendMode = ComposeBlendMode.DstIn,
+                        enabled = true,
                     ),
                 text = state.appName,
                 color = colorScheme.onBackground,
@@ -417,19 +407,15 @@ private fun AboutContent(
                     Card(
                         modifier = Modifier
                             .padding(horizontal = 12.dp)
-                            .then(
-                                if (enableBlur) {
-                                    Modifier.textureBlur(
-                                        backdrop = backdrop,
-                                        shape = RoundedCornerShape(16.dp),
-                                        blurRadius = 60f,
-                                        colors = BlurColors(blendColors = blendColors),
-                                        enabled = true,
-                                    )
-                                } else Modifier
+                            .textureBlur(
+                                backdrop = backdrop,
+                                shape = RoundedCornerShape(16.dp),
+                                blurRadius = 60f,
+                                colors = BlurColors(blendColors = blendColors),
+                                enabled = true,
                             ),
                         colors = CardDefaults.defaultColors(
-                            if (enableBlur) Color.Transparent else colorScheme.surfaceContainer,
+                            Color.Transparent,
                             Color.Transparent,
                         ),
                     ) {
