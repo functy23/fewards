@@ -103,6 +103,7 @@ fun ColorPaletteScreenMiuix(
     val scrollBehavior = MiuixScrollBehavior()
     val lazyListState = rememberLazyListState()
     val barBlurBackdrop = rememberBlurBackdrop()
+    val showScaleDialog = rememberSaveable { mutableStateOf(false) }
     val scrolled by remember {
         derivedStateOf {
             lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 8
@@ -151,7 +152,6 @@ fun ColorPaletteScreenMiuix(
         },
         contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
     ) { innerPadding ->
-        val showScaleDialog = rememberSaveable { mutableStateOf(false) }
 
         Box(
             modifier = Modifier
@@ -417,15 +417,6 @@ fun ColorPaletteScreenMiuix(
                                 )
                             },
                         )
-                        ScaleDialog(
-                            show = showScaleDialog.value,
-                            backdrop = barBlurBackdrop,
-                            onDismissRequest = { showScaleDialog.value = false },
-                            volumeState = { uiState.pageScale },
-                            onVolumeChange = {
-                                actions.onSetPageScale(it)
-                            }
-                        )
                     }
                 }
                 item {
@@ -440,6 +431,19 @@ fun ColorPaletteScreenMiuix(
             }
         }
     }
+
+    // GlassDialog 是 inline 的 Box，不是走 popupHost 的弹窗：它必须排在 Scaffold 之后
+    // （否则被页面盖住），也不能待在 layerBackdrop 的录制子树里——玻璃表面
+    // 在录制层内会自引用，渲染线程会一路递归到爆栈。
+    ScaleDialog(
+        show = showScaleDialog.value,
+        backdrop = barBlurBackdrop,
+        onDismissRequest = { showScaleDialog.value = false },
+        volumeState = { uiState.pageScale },
+        onVolumeChange = {
+            actions.onSetPageScale(it)
+        }
+    )
 }
 
 @SuppressLint("ConfigurationScreenWidthHeight")

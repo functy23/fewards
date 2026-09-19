@@ -108,6 +108,7 @@ fun SettingPagerMiuix(
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
     val backdrop = rememberBlurBackdrop()
+    var showCustomHold by rememberSaveable { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val view = LocalView.current
@@ -413,7 +414,6 @@ fun SettingPagerMiuix(
                             checked = uiState.overviewAutoDismiss,
                             onCheckedChange = actions.onSetOverviewAutoDismiss
                         )
-                        var showCustomHold by rememberSaveable { mutableStateOf(false) }
                         val holdLabels = OVERVIEW_HOLD_PRESETS.map { seconds ->
                             stringResource(R.string.settings_overview_hold_seconds, formatHoldSeconds(seconds))
                         } + stringResource(R.string.settings_overview_hold_custom)
@@ -442,16 +442,6 @@ fun SettingPagerMiuix(
                                     showCustomHold = true
                                 }
                             },
-                        )
-                        OverviewHoldCustomDialog(
-                            show = showCustomHold,
-                            backdrop = backdrop,
-                            currentSeconds = uiState.overviewHoldSeconds,
-                            onConfirm = {
-                                actions.onSetOverviewHoldSeconds(it)
-                                showCustomHold = false
-                            },
-                            onDismiss = { showCustomHold = false },
                         )
                     }
 
@@ -542,6 +532,20 @@ fun SettingPagerMiuix(
             }
         }
     }
+
+    // GlassDialog 是 inline 的 Box，不是走 popupHost 的弹窗：
+    // 它必须排在 Scaffold 之后（否则被页面盖住），而且不能待在 layerBackdrop 的录制子树里
+    // ——玻璃表面在录制层内会自引用，渲染线程会一路递归到爆栈。
+    OverviewHoldCustomDialog(
+        show = showCustomHold,
+        backdrop = backdrop,
+        currentSeconds = uiState.overviewHoldSeconds,
+        onConfirm = {
+            actions.onSetOverviewHoldSeconds(it)
+            showCustomHold = false
+        },
+        onDismiss = { showCustomHold = false },
+    )
 }
 
 @Composable
