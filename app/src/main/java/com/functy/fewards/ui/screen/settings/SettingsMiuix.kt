@@ -20,8 +20,8 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Gamepad
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -40,7 +40,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.functy.fewards.fewardsApp
-import com.functy.fewards.work.TaskNotifier
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Recommend
@@ -71,7 +70,6 @@ import com.functy.fewards.ui.component.miuix.MultilineInputField
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.functy.fewards.ui.viewmodel.ConfigTransferViewModel
 import com.functy.fewards.ui.theme.LocalEnableBlur
-import com.functy.fewards.ui.util.BlurredBar
 import com.functy.fewards.ui.util.rememberBlurBackdrop
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -87,8 +85,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
@@ -108,10 +106,9 @@ fun SettingPagerMiuix(
     bottomInnerPadding: Dp,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
+    val listState = rememberLazyListState()
     val enableBlur = LocalEnableBlur.current
     val backdrop = rememberBlurBackdrop(enableBlur)
-    val blurActive = backdrop != null
-    val barColor = if (blurActive) Color.Transparent else colorScheme.surface
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val view = LocalView.current
@@ -126,18 +123,20 @@ fun SettingPagerMiuix(
 
     Scaffold(
         topBar = {
-            BlurredBar(backdrop) {
-                TopAppBar(
-                    color = barColor,
-                    title = stringResource(R.string.settings),
-                    scrollBehavior = scrollBehavior
-                )
-            }
+            // miuix-glass 顶栏（PR #423）：材质与滚动遮罩都由库驱动，
+            // 页面自己不再套 BlurredBar/textureBlur。
+            GlassTopAppBar(
+                title = stringResource(R.string.settings),
+                isContentScrolled = listState.canScrollBackward,
+                backdrop = backdrop,
+                scrollBehavior = scrollBehavior,
+            )
         },
         contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal),
     ) { innerPadding ->
         Box(modifier = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxHeight()
                     .scrollEndHaptic()

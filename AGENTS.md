@@ -72,9 +72,36 @@ cp app/build/outputs/apk/release/app-release.apk ~/Downloads/Fewards-<versionNam
 - JDK 21。不要降到 17。
 - Maven 走 Aliyun 镜像链（`settings.gradle.kts`）。不要改成直连 Maven Central。
 - miuix 坐标必须带 `-android` 后缀（`miuix-ui-android` 等）。
-- **导航库互斥**：用 `top.yukonga.miuix.kmp:miuix-nav-android`（`miuixNav`）。`miuix-navigation3-ui-android` 的包名覆盖 `androidx.navigation3.ui`，与 `androidx.navigation3:navigation3-ui` **二选一**；两个都留会 Duplicate class。本仓只要 `miuix-nav` + `androidx.navigation3:navigation3-runtime`。
+
+### miuix 版本
+
+当前 miuix（含 `miuix-glass`）取自 [compose-miuix-ui/miuix PR #423](https://github.com/compose-miuix-ui/miuix/pull/423) 分支 `lingqiqi5211:feat/miuix-glass` 的**本机构建产物**，版本号 `0.9.4`。
+
+- **Maven Central 上没有 0.9.4**：Central 最新是 `0.9.4-rc01`（2026-08-13），`miuix-glass` 从未发布；PR #423 未合并，该 fork 的 Actions 是 0 次运行，JitPack 上本仓历史构建全是 Error。所以 `settings.gradle.kts` 里加了 `mavenLocal()`，坐标由 `~/.m2` 提供。
+- 换机器 / 清缓存后必须先重建一次，否则依赖解析失败：
+
+```bash
+git clone --branch feat/miuix-glass https://github.com/lingqiqi5211/miuix.git ~/Desktop/miuix-pr423
+cd ~/Desktop/miuix-pr423
+printf 'sdk.dir=%s\n' "$HOME/Library/Android/sdk" > local.properties
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-21.jdk/Contents/Home ./gradlew -Prelease \
+  :miuix-core:publishAndroidPublicationToMavenLocal :miuix-ui:publishAndroidPublicationToMavenLocal \
+  :miuix-preference:publishAndroidPublicationToMavenLocal :miuix-shader:publishAndroidPublicationToMavenLocal \
+  :miuix-blur:publishAndroidPublicationToMavenLocal :miuix-squircle:publishAndroidPublicationToMavenLocal \
+  :miuix-icons:publishAndroidPublicationToMavenLocal :miuix-nav:publishAndroidPublicationToMavenLocal \
+  :miuix-glass:publishAndroidPublicationToMavenLocal
+```
+
+  `-Prelease` 不能省：默认会带上 `-<githash>-SNAPSHOT` 后缀，版本号就不是 `0.9.4`。只发 Android 制品，别跑全量 `publishToMavenLocal`（会连带编译 iOS/macOS/Wasm 原生目标）。
+- `miuix-glass` 的 aar 声明 `minSdk 33`（AGSL），应用是 31：manifest 的 `tools:overrideLibrary` 里必须同时列 `top.yukonga.miuix.kmp.blur` 与 `top.yukonga.miuix.kmp.glass`。运行期由 `isRuntimeShaderSupported()` 兜底（底栏会因此换成 `FloatingNavigationBar`，见「玻璃材质」一节）。
+- 上游合并发版后应改回 Central 坐标并删掉 `mavenLocal()`。
+
+其余环境约束：
+
+- **导航库互斥**：用 `top.yukonga.miuix.kmp:miuix-nav-android`。`miuix-navigation3-ui-android` 的包名覆盖 `androidx.navigation3.ui`，与 `androidx.navigation3:navigation3-ui` **二选一**；两个都留会 Duplicate class。本仓只要 `miuix-nav` + `androidx.navigation3:navigation3-runtime`。
 - Room / DataStore 在 gradle 里有坐标，**源码未使用**。设置与账号走 SharedPreferences。不要顺手接 Room。
 - 已删除 commonmark / webkit 依赖，不要为「关于页 Markdown」加回来。
+- `local.properties`（`sdk.dir`）**未跟踪**，新克隆的树没有它，Gradle 会直接报 SDK location not found。
 
 ## 目录
 
@@ -160,12 +187,22 @@ app/src/test/java/com/functy/fewards/
 - **添加账号弹窗只有一份**：`ui/component/miuix/AddAccountDialog`（米游社与 WorkBuddy 共用）。不要再各写一份二维码弹窗。
   - 账号页只列**已登录账号**，米游社 / WorkBuddy 用灰色小标题（`SectionHeader`）分组；没有账号时显示 `account_empty` 提示。
   - 右上角「+」用 `WindowListPopup` 弹「添加米游社账号 / 添加 WorkBuddy 账号」；两项都打开同一个 `AddAccountDialog`。菜单行是本文件里的 `AddMenuRow`，**不要换回 miuix `DropdownImpl`**：它恒定给尾部选中勾留 `CheckIconStartPadding + CheckIconSize`（≈32dp），这里没有选中态，那段槽位就是文字后面的一截空白。`WindowListPopup` 要传 `horizontalMargin = 12.dp`，否则菜单右边缘贴着屏幕右边。
-  - 「+」是**带圈按钮**（`IconButton` + `backgroundColor = surfaceContainerHigh`；minWidth/minHeight 与默认 cornerRadius 都是 40dp，给底色即正圆）。它和大标题同一条中线：`TopAppBar` 把 actions 垂直居中在 52dp 的收起高度里，大标题却排在 52dp 之下，所以用 `Modifier.offset` 下移「半个收起高度 + 半个 title1 行高」，再按 `scrollBehavior.state.collapsedFraction` 收回原位。
+  - 「+」是 `GlassIconButton`（miuix-glass 的玻璃圆钮），在 `GlassTopAppBar` 的 `actions` 槽里。**不要退回** `IconButton` + `backgroundColor` + `Modifier.offset` 那套：那段 offset 补正是普通 `TopAppBar` 才需要的（把 actions 从「收起高度垂直居中」挪到大标题中线），`GlassTopAppBar` 自己处理这一层。
   - 弹窗内用 `TabRowWithContour` 切「扫码登录 / 凭据登录」：扫码页生成二维码，凭据页是输入框 + 导入。WorkBuddy 的凭据 Tab 是 Token 粘贴。
   - 开合由调用方的 `show` 状态驱动，只有 `QrState.Confirmed` 才自动关；过期/失败保持打开以露出「重新获取」。凭据导入成功（`onImportCredential` 返回 true）也自动关。
   - 弹窗的**挂载**由调用方的 `mounted` 标志控制（不是 `qrState`）：切到凭据 Tab 会立刻把 `qrState` 归零，只按 `qrState` 判断会让关闭动画演一半就消失。关闭走 `WindowDialog` 下滑淡出动画，`onDismissFinished` 里才置 `mounted=false` 并取消轮询。
   - 二维码申请以「弹窗开合 + Tab」为 key 的 `LaunchedEffect` 驱动，弹出动画结束（`delay(450)`）后才申请；切走再切回扫码 Tab 会重新申请一张新码，过期/失败后重开能自愈。
 - 实时任务通知 ongoing，完成后再提升；自动消失跟 `overviewAutoDismiss` / `overviewHoldSeconds`。
+
+### 玻璃材质（miuix-glass）
+
+- 首页 / 账号 / 设置三页顶栏都是 `GlassTopAppBar`，底栏悬浮态是 `GlassNavigationBar`。**材质、滚动遮罩、按压反馈、指示器跟随全部交给库**，页面不要再套 `BlurredBar` / `textureBlur`，也不要再自己算 `barColor`。
+- 顶栏用带 `isContentScrolled` 的重载，传 `listState.canScrollBackward`；不要用靠 `scrollBehavior.state.contentOffset` 推的那版——列表回顶后大标题可能仍处于收起态，材质会留着不走。
+- `backdrop` 来自 `rememberBlurBackdrop(enableBlur)`（受主题页「模糊效果」开关控制），**录制的子树必须挂 `Modifier.layerBackdrop(backdrop)`**，否则玻璃采样不到内容。玻璃表面本身要放在该子树**外面**，否则自引用。
+- 已删除自写的 `ui/component/FloatingBottomBar.kt`、`ui/component/liquid/`（Kyant0/AndroidLiquidGlass 移植）、`ui/component/miuix/animation/`、`ui/component/miuix/modifier/`。**不要加回来**，这些是 PR #423 落地前的临时实现。
+- 主题页「液态玻璃」开关只切**材质**（`LocalFloatingBottomBarGlass`）：开 = `GlassNavigationBar`（miuix-glass 材质），关 = miuix 自带的 `FloatingNavigationBar`（悬浮胶囊，无折射材质）。悬浮底栏本身仍由「悬浮底栏」开关控制。
+- `GlassNavigationBar` 的面板靠 RuntimeShader（AGSL，API 33+）；31/32 上 `drawBackdrop` 会被 `isRuntimeShaderSupported()` 整条关掉，只剩描边和阴影，在深色页面上读起来是「内容被挖了个洞」。所以底栏用 `isRuntimeShaderSupported()` 分流，低版本退 `FloatingNavigationBar`。`GlassTopAppBar` 不用分流：它的 `bandBrush` 遮罩是纯 Compose 绘制，材质失效时会露出纯色 `fill`。
+- `GlassIconButton` 的按压反馈由库给，不要再自己包 `IconButton`。
 
 ## 导航与预测返回
 
@@ -185,6 +222,7 @@ app/src/test/java/com/functy/fewards/
 - 可配置签到游戏/分区 prefs（改常量，不改设置项）
 - `Dialog.kt` / `DialogMiuix.kt` / `MarkdownContent.kt` / `GithubMarkdown.kt` / Monet CSS WebView
 - `EditText.kt`、`WarningCard.kt`、`ScrollToTop.kt`、`ThemeExt.kt`、`ui/util/Colors.kt`、`MonetColorsProvider`
+- 自写的液态玻璃（`ui/component/FloatingBottomBar.kt`、`ui/component/liquid/`、`ui/component/miuix/animation/`、`ui/component/miuix/modifier/`）——已由 miuix-glass 取代
 - 未使用的 strings（预测返回开关、定时、导航徽标、签到游戏/分区文案）
 
 ## 测试

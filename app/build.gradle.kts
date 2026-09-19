@@ -106,6 +106,7 @@ dependencies {
     implementation(libs.miuix.blur)
     implementation(libs.miuix.nav)
     implementation(libs.miuix.squircle)
+    implementation(libs.miuix.glass)
 
     implementation(platform(libs.okhttp.bom))
     implementation(libs.okhttp)
