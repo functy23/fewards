@@ -197,6 +197,8 @@ app/src/test/java/com/functy/fewards/
 ### 玻璃材质（miuix-glass）
 
 - 首页 / 账号 / 设置三页顶栏都是 `GlassTopAppBar`，底栏悬浮态是 `GlassNavigationBar`。**材质、滚动遮罩、按压反馈、指示器跟随全部交给库**，页面不要再套 `BlurredBar` / `textureBlur`，也不要再自己算 `barColor`。
+- **折射的真实范围**（读 `internal/GlassShader.kt` 得出，别按「整块玻璃弯折内容」去理解或去调）：`shadeMaterial` 里 `isFlat = shaped >= 1.0`，只有**边缘带**内才跑 `refract()` 与 `reflect()`；带外直接早退，只剩模糊 + `GlassMaterial` 的色彩层 + tint。默认 `GlassDefaults.Style`（`CommonMediumRegularLowLight`）的 `GlassEdge.width = 60` 是**源像素**（`SourceDensity = 3`），即 20dp；折射偏移 `thickness * 2`（`thickness = 80` → 约 53dp @3x），比带本身宽，所以看到的是边缘一圈把内容「吸」进来一点，不是整块位移。
+- **`shading` 的取值是上游刻意定的，不要改**：库内**所有**组件调用点（`GlassNavigationBar` / `GlassTopAppBar` 的按钮与 tab / `GlassPopupSurface` / `GlassTabRow` / `GlassSurface`）都传 `shading = false`，只有调用方直接用 `glassPanel`/`glass`（默认 `true`，如库自己的 `GlassDialog`）才有边缘明暗。理由写在 KDoc 里：源系统把表面**要么**声明成 material（一条栏/一个菜单：模糊 + 色彩层 + 描边 + 阴影），**要么**声明成 glass（一个控件：折射 + 明暗），不混用。所以「底栏/顶栏/按钮没有折射」是**上游的设计**，不是我们接错——真机上要判断有没有玻璃，看的是模糊 + 色彩层 + 那圈 bloom 描边 + 边缘带里轻微的内容位移。
 - 顶栏用带 `isContentScrolled` 的重载，传 `listState.canScrollBackward`；不要用靠 `scrollBehavior.state.contentOffset` 推的那版——列表回顶后大标题可能仍处于收起态，材质会留着不走。
 - `backdrop` 来自 `rememberBlurBackdrop(enableBlur)`（受主题页「模糊效果」开关控制），**录制的子树必须挂 `Modifier.layerBackdrop(backdrop)`**，否则玻璃采样不到内容。玻璃表面本身要放在该子树**外面**，否则自引用。
 - 已删除自写的 `ui/component/FloatingBottomBar.kt`、`ui/component/liquid/`（Kyant0/AndroidLiquidGlass 移植）、`ui/component/miuix/animation/`、`ui/component/miuix/modifier/`。**不要加回来**，这些是 PR #423 落地前的临时实现。

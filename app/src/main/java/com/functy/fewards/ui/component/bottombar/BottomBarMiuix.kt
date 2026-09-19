@@ -74,14 +74,18 @@ fun BottomBarMiuix(
         }
     } else {
         // miuix-glass 的 GlassNavigationBar（compose-miuix-ui/miuix PR #423）：
-        // 材质、指示器跟随、按压反馈都由库负责，外部位置仍由调用方给。
+        // 模糊、色彩层、边缘折射/反射、指示器跟随、按压反馈都由库负责，外部位置仍由调用方给。
         // 底栏 inset < 24dp 时固定 24dp，否则 inset + 8dp —— 与库示例同一规则。
+        // 折射不是「整块玻璃弯折内容」：shader 只在距离轮廓 60 源像素（= 20dp @3x）的
+        // 边缘带内跑 refract()，再往里 isFlat 早退，只留模糊 + 色彩层。
         val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             .let { inset -> if (inset < 24.dp) 24.dp else inset + 8.dp }
         // 玻璃面板靠 RuntimeShader（AGSL，API 33+）。31/32 上 drawBackdrop 会被
-        // isRuntimeShaderSupported() 整条关掉，GlassNavigationBar 会只剩描边和阴影，
+        // isRuntimeShaderSupported() 整条关掉，glassPanel 只剩描边和阴影，
         // 在深色页面上读起来就是「内容被挖了个洞」。所以 31/32 退回 miuix 自带的
-        // FloatingNavigationBar：同样是悬浮胶囊，只是没有折射材质。
+        // FloatingNavigationBar：同样是悬浮胶囊，只是没有玻璃材质。
+        // 注意 33+ 也不是「想当然的折射」：miuix-glass 只在边缘带里做折射，其余是
+        // 20dp 模糊 + 色彩层，详见 AGENTS.md「玻璃材质」一节。
         val glassSupported = remember { isRuntimeShaderSupported() }
         if (glass && glassSupported) {
             GlassNavigationBar(
