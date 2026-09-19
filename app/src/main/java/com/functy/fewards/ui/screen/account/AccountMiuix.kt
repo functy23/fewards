@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -152,269 +153,273 @@ fun AccountPagerMiuix(
         if (showWbDialog && state.wbLoginMode == 0) actions.onStartWbQr()
     }
 
-    if (mhyDialogMounted) {
-        AddAccountDialog(
-            show = showMhyDialog,
-            backdrop = backdrop,
-            title = stringResource(R.string.account_add_miyoushe),
-            tabs = listOf(
-                stringResource(R.string.miyoushe_login_qr),
-                stringResource(R.string.miyoushe_login_cookie),
-            ),
-            selectedTab = state.loginMode,
-            onTabSelected = { tab ->
-                dismissInput()
-                actions.onSetLoginMode(tab)
-                // 离开扫码 Tab 时停掉轮询；再切回扫码时下面那个 LaunchedEffect 会重新申请一张新二维码
-                if (tab != 0) actions.onCancelQr()
-            },
-            // 空闲 / 加载中不显示上一轮的二维码（切走再切回时先转圈，而不是闪一张旧码）；
-            // 过期 / 失败仍保留那张码，配合「已失效 + 重新获取」。
-            qrContent = when (state.qrState) {
-                QrState.Idle, QrState.Loading -> ""
-                else -> state.qrContent
-            },
-            qrMessage = stringResource(
-                when (state.qrState) {
-                    QrState.Scanned -> R.string.miyoushe_qr_scanned
-                    QrState.Expired -> R.string.qr_expired
-                    QrState.Error -> R.string.qr_failed
-                    else -> R.string.miyoushe_qr_wait_scan
-                }
-            ),
-            canRetry = state.qrState == QrState.Expired || state.qrState == QrState.Error,
-            credentialLabel = stringResource(R.string.miyoushe_cookie_hint),
-            credentialAction = stringResource(R.string.miyoushe_cookie_import),
-            onImportCredential = { raw ->
-                dismissInput()
-                val accepted = actions.onImportCookie(raw)
-                // 接受后关弹窗（走 GlassDialog 的淡出动画）；失败则留在原地让用户改
-                if (accepted) showMhyDialog = false
-                accepted
-            },
-            onDismissRequest = { showMhyDialog = false },
-            onRetry = { actions.onStartQr() },
-        )
-    }
-
-    if (wbDialogMounted) {
-        AddAccountDialog(
-            show = showWbDialog,
-            backdrop = backdrop,
-            title = stringResource(R.string.account_add_workbuddy),
-            tabs = listOf(
-                stringResource(R.string.workbuddy_login_qr),
-                stringResource(R.string.workbuddy_login_token),
-            ),
-            selectedTab = state.wbLoginMode,
-            onTabSelected = { tab ->
-                dismissInput()
-                actions.onSetWbLoginMode(tab)
-                if (tab != 0) actions.onCancelWbQr()
-            },
-            qrContent = when (state.wbQrState) {
-                QrState.Idle, QrState.Loading -> ""
-                else -> state.wbQrContent
-            },
-            qrMessage = stringResource(
-                when (state.wbQrState) {
-                    QrState.Expired -> R.string.qr_expired
-                    QrState.Error -> R.string.qr_failed
-                    else -> R.string.workbuddy_qr_wait_scan
-                }
-            ),
-            canRetry = state.wbQrState == QrState.Expired || state.wbQrState == QrState.Error,
-            credentialLabel = stringResource(R.string.workbuddy_token_hint),
-            credentialAction = stringResource(R.string.workbuddy_token_import),
-            onImportCredential = { raw ->
-                dismissInput()
-                val accepted = actions.onImportWbToken(raw)
-                if (accepted) showWbDialog = false
-                accepted
-            },
-            onDismissRequest = { showWbDialog = false },
-            onRetry = { actions.onStartWbQr() },
-        )
-    }
-
-    Scaffold(
-        topBar = {
-            // miuix-glass 顶栏（PR #423）。「+」改由顶栏自带的玻璃圆钮承载：
-            // 之前的 offset 补正是为了把它从「收起高度垂直居中」挪到大标题的中线上，
-            // 那是普通 TopAppBar 的排法，GlassTopAppBar 会自己处理这一层。
-            GlassTopAppBar(
-                title = stringResource(R.string.account_title),
-                isContentScrolled = listState.canScrollBackward,
-                backdrop = backdrop,
-                scrollBehavior = scrollBehavior,
-                actions = {
-                    // 菜单本体是 GlassTransformPopup（面板从按钮里「长出来」）。
-                    // 它是 BoxScope 扩展，而 actions 槽是 RowScope，所以这里得套一层 Box；
-                    // anchor 让 GlassIconButton 把自己的材质与 backdrop 共享给面板。
-                    val addOptions = listOf(
-                        stringResource(R.string.account_add_miyoushe),
-                        stringResource(R.string.account_add_workbuddy),
-                    )
-                    Box {
-                        GlassIconButton(
-                            onClick = {
-                                dismissInput()
-                                showAddMenu = true
-                            },
-                            modifier = Modifier.glassPopupAnchor(
-                                anchor = addMenuAnchor,
-                                cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
-                            ),
-                        ) {
-                            Icon(
-                                Icons.Rounded.Add,
-                                contentDescription = stringResource(R.string.account_add),
-                                tint = colorScheme.onSurface,
-                            )
-                        }
-                        GlassTransformPopup(
-                            show = showAddMenu,
-                            onDismissRequest = { showAddMenu = false },
-                            anchor = addMenuAnchor,
-                            backdrop = backdrop,
-                            anchorContent = {
+    // GlassDialog 是 inline 的 Box，不是 WindowDialog 那种走 popupHost 的弹窗：
+    // 必须排在 Scaffold 之后才画在页面之上，也不能待在 layerBackdrop 的录制子树里
+    // （玻璃表面在录制层内会自引用）。所以这里把页面和弹窗放进同一个 Box，弹窗在后。
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                // miuix-glass 顶栏（PR #423）。「+」改由顶栏自带的玻璃圆钮承载：
+                // 之前的 offset 补正是为了把它从「收起高度垂直居中」挪到大标题的中线上，
+                // 那是普通 TopAppBar 的排法，GlassTopAppBar 会自己处理这一层。
+                GlassTopAppBar(
+                    title = stringResource(R.string.account_title),
+                    isContentScrolled = listState.canScrollBackward,
+                    backdrop = backdrop,
+                    scrollBehavior = scrollBehavior,
+                    actions = {
+                        // 菜单本体是 GlassTransformPopup（面板从按钮里「长出来」）。
+                        // 它是 BoxScope 扩展，而 actions 槽是 RowScope，所以这里得套一层 Box；
+                        // anchor 让 GlassIconButton 把自己的材质与 backdrop 共享给面板。
+                        val addOptions = listOf(
+                            stringResource(R.string.account_add_miyoushe),
+                            stringResource(R.string.account_add_workbuddy),
+                        )
+                        Box {
+                            GlassIconButton(
+                                onClick = {
+                                    dismissInput()
+                                    showAddMenu = true
+                                },
+                                modifier = Modifier.glassPopupAnchor(
+                                    anchor = addMenuAnchor,
+                                    cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
+                                ),
+                            ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.Add,
-                                    contentDescription = null,
+                                    Icons.Rounded.Add,
+                                    contentDescription = stringResource(R.string.account_add),
                                     tint = colorScheme.onSurface,
                                 )
-                            },
-                        ) {
-                            addOptions.forEachIndexed { index, text ->
-                                GlassPopupItem(
-                                    text = text,
-                                    onClick = {
-                                        showAddMenu = false
-                                        when (index) {
-                                            0 -> {
-                                                actions.onSetLoginMode(0)
-                                                mhyDialogMounted = true
-                                                showMhyDialog = true
+                            }
+                            GlassTransformPopup(
+                                show = showAddMenu,
+                                onDismissRequest = { showAddMenu = false },
+                                anchor = addMenuAnchor,
+                                backdrop = backdrop,
+                                anchorContent = {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Add,
+                                        contentDescription = null,
+                                        tint = colorScheme.onSurface,
+                                    )
+                                },
+                            ) {
+                                addOptions.forEachIndexed { index, text ->
+                                    GlassPopupItem(
+                                        text = text,
+                                        onClick = {
+                                            showAddMenu = false
+                                            when (index) {
+                                                0 -> {
+                                                    actions.onSetLoginMode(0)
+                                                    mhyDialogMounted = true
+                                                    showMhyDialog = true
+                                                }
+                                                else -> {
+                                                    actions.onSetWbLoginMode(0)
+                                                    wbDialogMounted = true
+                                                    showWbDialog = true
+                                                }
                                             }
-                                            else -> {
-                                                actions.onSetWbLoginMode(0)
-                                                wbDialogMounted = true
-                                                showWbDialog = true
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    },
+                )
+            },
+            popupHost = { },
+            contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
+        ) { innerPadding ->
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .layerBackdrop(backdrop)
+                    .scrollEndHaptic()
+                    .overScrollVertical()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { dismissInput() })
+                    }
+                    .padding(horizontal = 12.dp),
+                contentPadding = innerPadding,
+                overscrollEffect = null,
+            ) {
+                // ==================== 米游社 ====================
+                if (state.mihoyoAccounts.isNotEmpty()) {
+                    item { SectionHeader(stringResource(R.string.miyoushe)) }
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column {
+                                state.mihoyoAccounts.forEach { account ->
+                                    BasicComponent(
+                                        title = account.nickname,
+                                        summary = "stuid=${account.stuid}",
+                                        startAction = {
+                                            AccountFace(
+                                                url = account.avatarUrl,
+                                                label = account.nickname,
+                                                hydrating = account.id in state.mhyHydratingIds,
+                                            )
+                                        },
+                                        endActions = {
+                                            IconButton(
+                                                onClick = {
+                                                    dismissInput()
+                                                    actions.onRemoveMihoyo(account.id)
+                                                },
+                                            ) {
+                                                Icon(
+                                                    Icons.Rounded.Delete,
+                                                    contentDescription = stringResource(R.string.miyoushe_logout),
+                                                    tint = colorScheme.onSurfaceVariantSummary,
+                                                )
                                             }
-                                        }
-                                    },
-                                )
+                                        },
+                                        onClick = { dismissInput() },
+                                    )
+                                }
                             }
                         }
                     }
+                }
+
+                // ==================== WorkBuddy ====================
+                if (state.wbAccounts.isNotEmpty()) {
+                    item { SectionHeader(stringResource(R.string.workbuddy)) }
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column {
+                                state.wbAccounts.forEach { account ->
+                                    BasicComponent(
+                                        title = account.label,
+                                        summary = if (account.uid.isNotEmpty()) {
+                                            "uid=${account.uid}"
+                                        } else {
+                                            "token=${account.token.take(6)}****"
+                                        },
+                                        startAction = {
+                                            AccountFace(
+                                                url = account.avatarUrl,
+                                                label = account.label,
+                                                hydrating = false,
+                                            )
+                                        },
+                                        endActions = {
+                                            IconButton(
+                                                onClick = {
+                                                    dismissInput()
+                                                    actions.onRemoveWb(account.id)
+                                                },
+                                            ) {
+                                                Icon(
+                                                    Icons.Rounded.Delete,
+                                                    contentDescription = stringResource(R.string.workbuddy_logout),
+                                                    tint = colorScheme.onSurfaceVariantSummary,
+                                                )
+                                            }
+                                        },
+                                        onClick = { dismissInput() },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (state.mihoyoAccounts.isEmpty() && state.wbAccounts.isEmpty()) {
+                    item { EmptyHint() }
+                }
+
+                item { Spacer(Modifier.height(bottomInnerPadding)) }
+            }
+        }
+        if (mhyDialogMounted) {
+            AddAccountDialog(
+                show = showMhyDialog,
+                backdrop = backdrop,
+                title = stringResource(R.string.account_add_miyoushe),
+                tabs = listOf(
+                    stringResource(R.string.miyoushe_login_qr),
+                    stringResource(R.string.miyoushe_login_cookie),
+                ),
+                selectedTab = state.loginMode,
+                onTabSelected = { tab ->
+                    dismissInput()
+                    actions.onSetLoginMode(tab)
+                    // 离开扫码 Tab 时停掉轮询；再切回扫码时下面那个 LaunchedEffect 会重新申请一张新二维码
+                    if (tab != 0) actions.onCancelQr()
                 },
+                // 空闲 / 加载中不显示上一轮的二维码（切走再切回时先转圈，而不是闪一张旧码）；
+                // 过期 / 失败仍保留那张码，配合「已失效 + 重新获取」。
+                qrContent = when (state.qrState) {
+                    QrState.Idle, QrState.Loading -> ""
+                    else -> state.qrContent
+                },
+                qrMessage = stringResource(
+                    when (state.qrState) {
+                        QrState.Scanned -> R.string.miyoushe_qr_scanned
+                        QrState.Expired -> R.string.qr_expired
+                        QrState.Error -> R.string.qr_failed
+                        else -> R.string.miyoushe_qr_wait_scan
+                    }
+                ),
+                canRetry = state.qrState == QrState.Expired || state.qrState == QrState.Error,
+                credentialLabel = stringResource(R.string.miyoushe_cookie_hint),
+                credentialAction = stringResource(R.string.miyoushe_cookie_import),
+                onImportCredential = { raw ->
+                    dismissInput()
+                    val accepted = actions.onImportCookie(raw)
+                    // 接受后关弹窗（走 GlassDialog 的淡出动画）；失败则留在原地让用户改
+                    if (accepted) showMhyDialog = false
+                    accepted
+                },
+                onDismissRequest = { showMhyDialog = false },
+                onRetry = { actions.onStartQr() },
             )
-        },
-        popupHost = { },
-        contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
-    ) { innerPadding ->
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxHeight()
-                .layerBackdrop(backdrop)
-                .scrollEndHaptic()
-                .overScrollVertical()
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
-                .pointerInput(Unit) {
-                    detectTapGestures(onTap = { dismissInput() })
-                }
-                .padding(horizontal = 12.dp),
-            contentPadding = innerPadding,
-            overscrollEffect = null,
-        ) {
-            // ==================== 米游社 ====================
-            if (state.mihoyoAccounts.isNotEmpty()) {
-                item { SectionHeader(stringResource(R.string.miyoushe)) }
-                item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column {
-                            state.mihoyoAccounts.forEach { account ->
-                                BasicComponent(
-                                    title = account.nickname,
-                                    summary = "stuid=${account.stuid}",
-                                    startAction = {
-                                        AccountFace(
-                                            url = account.avatarUrl,
-                                            label = account.nickname,
-                                            hydrating = account.id in state.mhyHydratingIds,
-                                        )
-                                    },
-                                    endActions = {
-                                        IconButton(
-                                            onClick = {
-                                                dismissInput()
-                                                actions.onRemoveMihoyo(account.id)
-                                            },
-                                        ) {
-                                            Icon(
-                                                Icons.Rounded.Delete,
-                                                contentDescription = stringResource(R.string.miyoushe_logout),
-                                                tint = colorScheme.onSurfaceVariantSummary,
-                                            )
-                                        }
-                                    },
-                                    onClick = { dismissInput() },
-                                )
-                            }
-                        }
+        }
+
+        if (wbDialogMounted) {
+            AddAccountDialog(
+                show = showWbDialog,
+                backdrop = backdrop,
+                title = stringResource(R.string.account_add_workbuddy),
+                tabs = listOf(
+                    stringResource(R.string.workbuddy_login_qr),
+                    stringResource(R.string.workbuddy_login_token),
+                ),
+                selectedTab = state.wbLoginMode,
+                onTabSelected = { tab ->
+                    dismissInput()
+                    actions.onSetWbLoginMode(tab)
+                    if (tab != 0) actions.onCancelWbQr()
+                },
+                qrContent = when (state.wbQrState) {
+                    QrState.Idle, QrState.Loading -> ""
+                    else -> state.wbQrContent
+                },
+                qrMessage = stringResource(
+                    when (state.wbQrState) {
+                        QrState.Expired -> R.string.qr_expired
+                        QrState.Error -> R.string.qr_failed
+                        else -> R.string.workbuddy_qr_wait_scan
                     }
-                }
-            }
-
-            // ==================== WorkBuddy ====================
-            if (state.wbAccounts.isNotEmpty()) {
-                item { SectionHeader(stringResource(R.string.workbuddy)) }
-                item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column {
-                            state.wbAccounts.forEach { account ->
-                                BasicComponent(
-                                    title = account.label,
-                                    summary = if (account.uid.isNotEmpty()) {
-                                        "uid=${account.uid}"
-                                    } else {
-                                        "token=${account.token.take(6)}****"
-                                    },
-                                    startAction = {
-                                        AccountFace(
-                                            url = account.avatarUrl,
-                                            label = account.label,
-                                            hydrating = false,
-                                        )
-                                    },
-                                    endActions = {
-                                        IconButton(
-                                            onClick = {
-                                                dismissInput()
-                                                actions.onRemoveWb(account.id)
-                                            },
-                                        ) {
-                                            Icon(
-                                                Icons.Rounded.Delete,
-                                                contentDescription = stringResource(R.string.workbuddy_logout),
-                                                tint = colorScheme.onSurfaceVariantSummary,
-                                            )
-                                        }
-                                    },
-                                    onClick = { dismissInput() },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (state.mihoyoAccounts.isEmpty() && state.wbAccounts.isEmpty()) {
-                item { EmptyHint() }
-            }
-
-            item { Spacer(Modifier.height(bottomInnerPadding)) }
+                ),
+                canRetry = state.wbQrState == QrState.Expired || state.wbQrState == QrState.Error,
+                credentialLabel = stringResource(R.string.workbuddy_token_hint),
+                credentialAction = stringResource(R.string.workbuddy_token_import),
+                onImportCredential = { raw ->
+                    dismissInput()
+                    val accepted = actions.onImportWbToken(raw)
+                    if (accepted) showWbDialog = false
+                    accepted
+                },
+                onDismissRequest = { showWbDialog = false },
+                onRetry = { actions.onStartWbQr() },
+            )
         }
     }
 }

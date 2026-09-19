@@ -207,9 +207,10 @@ app/src/test/java/com/functy/fewards/
 - 已玻璃化的清单（照做即可，不要再自造）：顶栏三页 = `GlassTopAppBar`；底栏 = `GlassNavigationBar`；账号页「+」= `GlassIconButton` + `glassPopupAnchor` + `GlassTransformPopup`；**全部三个弹窗**（AddAccountDialog / ScaleDialog / OverviewHoldCustomDialog）= `GlassDialog`；**两个切换框**（AddAccountDialog 内、主题页颜色模式）= `GlassSegmentedTabRow`。
 - `GlassNavigationBar` 的面板靠 RuntimeShader（AGSL，API 33+）；31/32 上 `drawBackdrop` 会被 `isRuntimeShaderSupported()` 整条关掉，只剩描边和阴影，在深色页面上读起来是「内容被挖了个洞」。所以底栏用 `isRuntimeShaderSupported()` 分流，低版本退 `FloatingNavigationBar`。`GlassTopAppBar` 不用分流：它的 `bandBrush` 遮罩是纯 Compose 绘制，材质失效时会露出纯色 `fill`。
 - `GlassIconButton` 的按压反馈由库给，不要再自己包 `IconButton`。
-- **`GlassDialog` 与 `WindowDialog` 不是一回事，换过来有两处必须自己补**：
-  1. 它**没有** `title` / `summary` 槽，也**没有** `onDismissFinished` 回调。标题要自己画（`MiuixTheme.textStyles.title4`），关闭后的收尾（卸载弹窗、停轮询）要在调用方按 `show` 变化自己等一段（见 `AccountMiuix` 里的 `LaunchedEffect(showMhyDialog)` + `delay(200)`，对应 `GlassMotion.fadeOut()` 的 150ms）。
-  2. 它要求 `backdrop: Backdrop` 非空，而且**要挂在录制层外面**（它自己就是玻璃表面）。
+- **`GlassDialog` 与 `WindowDialog` / `OverlayDialog` 完全不是一回事，换过来有三处必须自己补**（前两条是踩过的坑，别再犯）：
+  1. **它是 inline 的 `Box(fillMaxSize)`，不走 `Scaffold.popupHost`。** 所以它必须**排在 `Scaffold` 之后**，否则被不透明的页面整个盖住、什么都看不见。三个调用点都为此调整过：`AccountMiuix` 把页面与弹窗包进同一个 `Box`，`SettingsMiuix` / `ColorPaletteScreenMiuix` 把弹窗挪到 `Scaffold` 收尾之后。
+  2. **它不能待在 `Modifier.layerBackdrop(backdrop)` 的录制子树里。** 玻璃表面自己要在录制层外面，否则「层录制一个会画层的表面」，渲染线程一路递归到爆栈（`Glass.kt` 的 KDoc 明确写了这条）。上面那条的挪动同时解决了这一点——挪之前三个弹窗里有两个正好在录制层内。改动这类弹窗时**必须同时检查**：弹窗位置是否在 `layerBackdrop` 之后。
+  3. 它**没有** `title` / `summary` 槽，也**没有** `onDismissFinished` 回调。标题要自己画（`MiuixTheme.textStyles.title4`），关闭后的收尾（卸载弹窗、停轮询）要在调用方按 `show` 变化自己等一段（见 `AccountMiuix` 里的 `LaunchedEffect(showMhyDialog)` + `delay(200)`，对应 `GlassMotion.fadeOut()` 的 150ms）。
 - **`GlassTransformPopup` / `GlassPopup` / `GlassDropdownPopup` / `GlassSecondaryPopup` 都是 `BoxScope` 扩展**，而 `TopAppBar` 的 `actions` 槽是 `RowScope`。在 actions 里用必须套一层 `Box { … }`。
 - 菜单的接线三件套：`rememberGlassPopupAnchor()` 持有 anchor → 触发按钮加 `Modifier.glassPopupAnchor(anchor, cornerRadius = ButtonSize / 2)` → `GlassTransformPopup(anchor = …, backdrop = …, anchorContent = { 按钮里的那个图标 })`，行用 `GlassPopupItem`。`anchorContent` 是给「面板长出来时复制按钮内容」用的，要传图标本身，不是整个按钮。
 - 源系统里**列表卡片本来就不是玻璃材质**，别去把首页状态卡 / 任务卡 / 账号卡玻璃化。同样，下拉选择器（`WindowSpinnerPreference` / `OverlayDropdownPreference`）**没有**对应的玻璃组件，不要用 `glassPanel` 手搓。
