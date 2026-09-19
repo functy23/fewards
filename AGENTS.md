@@ -179,7 +179,7 @@ app/src/test/java/com/functy/fewards/
 - 设置子项跟父开关 **展开/收起**（Monet 模式），不要灰掉。
 - 停留时间选择用 **OverlaySpinnerPreference**（列表 + 确定），不要一排 TextButton。
 - 主题页：WindowSpinnerPreference；不要把 `Scaffold.popupHost` 置空。
-- 主题颜色模式用玻璃分段 Tab（`GlassSegmentedTabRow`），不是下拉。
+- 主题颜色模式用轮廓 Tab（`TabRowWithContour`），不是下拉。**不要**换成 `GlassSegmentedTabRow`，理由见「玻璃材质」一节。
 - 主页图标 28.dp；复选框行文字 `weight(1f)`，Checkbox 靠右。
 - 图标/头像圆角：miuix `squircleClip(cornerRadius = size * 0.30f)`（`SquircleIcon` / 账号头像共用）。禁止自写 `G2SquircleShape`：`mid = √2−1` 会把 45° 点放到 0.414r，四角内缩约 2×。也不要用普通 `RoundedCornerShape` 充 squircle。
 - 图标 png 在 `drawable-nodpi/`（`miyoushe`、`workbuddy`）。README 宣传图在 `docs/screenshots/`，每个页面**浅色深色各一张**：`<page>-light.png` / `<page>-dark.png`（page = home / account / settings / theme），README 里两行分别展示。换界面后两套都要同步更新。
@@ -204,14 +204,16 @@ app/src/test/java/com/functy/fewards/
 - 已删除自写的 `ui/component/FloatingBottomBar.kt`、`ui/component/liquid/`（Kyant0/AndroidLiquidGlass 移植）、`ui/component/miuix/animation/`、`ui/component/miuix/modifier/`。**不要加回来**，这些是 PR #423 落地前的临时实现。
 - 主题页「液态玻璃」开关只切**材质**（`LocalFloatingBottomBarGlass`）：开 = `GlassNavigationBar`（miuix-glass 材质），关 = miuix 自带的 `FloatingNavigationBar`（悬浮胶囊，无玻璃材质）。悬浮底栏本身仍由「悬浮底栏」开关控制。
 - **「模糊效果」开关已删除**（`enableBlur` / `LocalEnableBlur` / `enable_blur` prefs / 两条 strings 全没了）。理由：模糊是 miuix-glass 的硬前提，关掉等于玻璃全失效。`rememberBlurBackdrop()` **不再返回可空类型**——应用 minSdk 31，而 `isRenderEffectSupported()` 就是 `SDK_INT >= 31`，判断恒真。所以别再加回 `!= null` 判断（编译器会报 `Condition is always 'true'`）。真正的分档只有 AGSL（API 33+），由 miuix-glass 内部各自再判。
-- 已玻璃化的清单（照做即可，不要再自造）：顶栏三页 = `GlassTopAppBar`；底栏 = `GlassNavigationBar`；账号页「+」= `GlassIconButton` + `glassPopupAnchor` + `GlassTransformPopup`；**全部三个弹窗**（AddAccountDialog / ScaleDialog / OverviewHoldCustomDialog）= `GlassDialog`；**两个切换框**（AddAccountDialog 内、主题页颜色模式）= `GlassSegmentedTabRow`。
+- 已玻璃化的清单（照做即可，不要再自造）：顶栏三页 = `GlassTopAppBar`；底栏 = `GlassNavigationBar`；账号页「+」= `GlassIconButton`（actions 槽）+ `GlassTransformPopup`（Scaffold 同级）；**全部三个弹窗**（AddAccountDialog / ScaleDialog / OverviewHoldCustomDialog）= `GlassDialog`；**AddAccountDialog 内的登录方式切换框** = `GlassSegmentedTabRow`。
+- **主题页那排「跟随系统 / 浅色 / 深色」是刻意的例外，保持非玻璃的 `TabRowWithContour`。** 它长在 `LazyColumn` 里，也就是 `layerBackdrop` 的录制子树内，却要采样同一个 backdrop —— 玻璃表面在录制层内会自引用。真机实测：进主题页必崩，`Fatal signal 11 (SIGSEGV)` in RenderThread，`Cause: stack pointer is close to top of stack; likely stack overflow`，栈里全是 `RenderNode::prepareTreeImpl` 在无限递归。库自己的做法是把玻璃 Tab 放进顶栏 `bottomContent`（见 example `GlassPage`），**不在滚动内容里**。不要「顺手统一」。
 - `GlassNavigationBar` 的面板靠 RuntimeShader（AGSL，API 33+）；31/32 上 `drawBackdrop` 会被 `isRuntimeShaderSupported()` 整条关掉，只剩描边和阴影，在深色页面上读起来是「内容被挖了个洞」。所以底栏用 `isRuntimeShaderSupported()` 分流，低版本退 `FloatingNavigationBar`。`GlassTopAppBar` 不用分流：它的 `bandBrush` 遮罩是纯 Compose 绘制，材质失效时会露出纯色 `fill`。
 - `GlassIconButton` 的按压反馈由库给，不要再自己包 `IconButton`。
 - **`GlassDialog` 与 `WindowDialog` / `OverlayDialog` 完全不是一回事，换过来有三处必须自己补**（前两条是踩过的坑，别再犯）：
   1. **它是 inline 的 `Box(fillMaxSize)`，不走 `Scaffold.popupHost`。** 所以它必须**排在 `Scaffold` 之后**，否则被不透明的页面整个盖住、什么都看不见。三个调用点都为此调整过：`AccountMiuix` 把页面与弹窗包进同一个 `Box`，`SettingsMiuix` / `ColorPaletteScreenMiuix` 把弹窗挪到 `Scaffold` 收尾之后。
   2. **它不能待在 `Modifier.layerBackdrop(backdrop)` 的录制子树里。** 玻璃表面自己要在录制层外面，否则「层录制一个会画层的表面」，渲染线程一路递归到爆栈（`Glass.kt` 的 KDoc 明确写了这条）。上面那条的挪动同时解决了这一点——挪之前三个弹窗里有两个正好在录制层内。改动这类弹窗时**必须同时检查**：弹窗位置是否在 `layerBackdrop` 之后。
   3. 它**没有** `title` / `summary` 槽，也**没有** `onDismissFinished` 回调。标题要自己画（`MiuixTheme.textStyles.title4`），关闭后的收尾（卸载弹窗、停轮询）要在调用方按 `show` 变化自己等一段（见 `AccountMiuix` 里的 `LaunchedEffect(showMhyDialog)` + `delay(200)`，对应 `GlassMotion.fadeOut()` 的 150ms）。
-- **`GlassTransformPopup` / `GlassPopup` / `GlassDropdownPopup` / `GlassSecondaryPopup` 都是 `BoxScope` 扩展**，而 `TopAppBar` 的 `actions` 槽是 `RowScope`。在 actions 里用必须套一层 `Box { … }`。
+- **`GlassTransformPopup` 不能放进 `TopAppBar.actions`。** `TopAppBar` 结尾有 `.clipToBounds()`，面板一长出 52dp 的栏高就被裁掉——真机表现是「点加号菜单直接消失」。它必须挂在 `Scaffold` 的**同级**（外层 `Box` 里），只有触发按钮留在 actions 槽。example 的 `GlassPage` 就是这么摆的（popup 在 243 行的外层 Box，不在 topBar 里）。
+- **每个 page 的 `Scaffold` 与 `GlassDialog`/`GlassTransformPopup` 必须包进同一个 `Box(Modifier.fillMaxSize())`。** pager 的 page 槽和 `NavDisplay` 的 entry 槽都只接受**一个**子节点，两个平级兄弟会被裁掉——真机表现同样是「弹窗永远不出现」。三个页面（Account / Settings / ColorPalette）都是这个结构。
 - 菜单的接线三件套：`rememberGlassPopupAnchor()` 持有 anchor → 触发按钮加 `Modifier.glassPopupAnchor(anchor, cornerRadius = ButtonSize / 2)` → `GlassTransformPopup(anchor = …, backdrop = …, anchorContent = { 按钮里的那个图标 })`，行用 `GlassPopupItem`。`anchorContent` 是给「面板长出来时复制按钮内容」用的，要传图标本身，不是整个按钮。
 - 源系统里**列表卡片本来就不是玻璃材质**，别去把首页状态卡 / 任务卡 / 账号卡玻璃化。同样，下拉选择器（`WindowSpinnerPreference` / `OverlayDropdownPreference`）**没有**对应的玻璃组件，不要用 `glassPanel` 手搓。
 
