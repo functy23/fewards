@@ -168,64 +168,25 @@ fun AccountPagerMiuix(
                     backdrop = backdrop,
                     scrollBehavior = scrollBehavior,
                     actions = {
-                        // 菜单本体是 GlassTransformPopup（面板从按钮里「长出来」）。
-                        // 它是 BoxScope 扩展，而 actions 槽是 RowScope，所以这里得套一层 Box；
-                        // anchor 让 GlassIconButton 把自己的材质与 backdrop 共享给面板。
-                        val addOptions = listOf(
-                            stringResource(R.string.account_add_miyoushe),
-                            stringResource(R.string.account_add_workbuddy),
-                        )
-                        Box {
-                            GlassIconButton(
-                                onClick = {
-                                    dismissInput()
-                                    showAddMenu = true
-                                },
-                                modifier = Modifier.glassPopupAnchor(
-                                    anchor = addMenuAnchor,
-                                    cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
-                                ),
-                            ) {
-                                Icon(
-                                    Icons.Rounded.Add,
-                                    contentDescription = stringResource(R.string.account_add),
-                                    tint = colorScheme.onSurface,
-                                )
-                            }
-                            GlassTransformPopup(
-                                show = showAddMenu,
-                                onDismissRequest = { showAddMenu = false },
+                        // 只放按钮。菜单本体**不能**放这里：GlassTopAppBar 继承 TopAppBar 的
+                        // .clipToBounds()，面板一长出 52dp 的栏高就被裁掉 —— 真机表现就是
+                        // 「点加号菜单直接消失」。菜单挂在下面那个外层 Box 上（与 example 的
+                        // GlassPage 一致：popup 是 Scaffold 的同级兄弟，不在 topBar 里）。
+                        GlassIconButton(
+                            onClick = {
+                                dismissInput()
+                                showAddMenu = true
+                            },
+                            modifier = Modifier.glassPopupAnchor(
                                 anchor = addMenuAnchor,
-                                backdrop = backdrop,
-                                anchorContent = {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Add,
-                                        contentDescription = null,
-                                        tint = colorScheme.onSurface,
-                                    )
-                                },
-                            ) {
-                                addOptions.forEachIndexed { index, text ->
-                                    GlassPopupItem(
-                                        text = text,
-                                        onClick = {
-                                            showAddMenu = false
-                                            when (index) {
-                                                0 -> {
-                                                    actions.onSetLoginMode(0)
-                                                    mhyDialogMounted = true
-                                                    showMhyDialog = true
-                                                }
-                                                else -> {
-                                                    actions.onSetWbLoginMode(0)
-                                                    wbDialogMounted = true
-                                                    showWbDialog = true
-                                                }
-                                            }
-                                        },
-                                    )
-                                }
-                            }
+                                cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
+                            ),
+                        ) {
+                            Icon(
+                                Icons.Rounded.Add,
+                                contentDescription = stringResource(R.string.account_add),
+                                tint = colorScheme.onSurface,
+                            )
                         }
                     },
                 )
@@ -337,6 +298,47 @@ fun AccountPagerMiuix(
                 item { Spacer(Modifier.height(bottomInnerPadding)) }
             }
         }
+        // 菜单本体：Scaffold 的同级兄弟，画在页面之上且不受顶栏 clipToBounds 影响。
+        // 它是 BoxScope 扩展，这里的 Box(Modifier.fillMaxSize()) 正好提供 receiver。
+        val addOptions = listOf(
+            stringResource(R.string.account_add_miyoushe),
+            stringResource(R.string.account_add_workbuddy),
+        )
+        GlassTransformPopup(
+            show = showAddMenu,
+            onDismissRequest = { showAddMenu = false },
+            anchor = addMenuAnchor,
+            backdrop = backdrop,
+            anchorContent = {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = null,
+                    tint = colorScheme.onSurface,
+                )
+            },
+        ) {
+            addOptions.forEachIndexed { index, text ->
+                GlassPopupItem(
+                    text = text,
+                    onClick = {
+                        showAddMenu = false
+                        when (index) {
+                            0 -> {
+                                actions.onSetLoginMode(0)
+                                mhyDialogMounted = true
+                                showMhyDialog = true
+                            }
+                            else -> {
+                                actions.onSetWbLoginMode(0)
+                                wbDialogMounted = true
+                                showWbDialog = true
+                            }
+                        }
+                    },
+                )
+            }
+        }
+
         if (mhyDialogMounted) {
             AddAccountDialog(
                 show = showMhyDialog,

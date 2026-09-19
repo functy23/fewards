@@ -83,9 +83,9 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.glass.GlassSegmentedTabRow
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.preference.ArrowPreference
@@ -124,326 +124,332 @@ fun ColorPaletteScreenMiuix(
         extrasReady = true
     }
 
-    Scaffold(
-        topBar = {
-            BlurredBar(backdrop = barBlurBackdrop, blurActive = blurActive) {
-                SmallTopAppBar(
-                    title = stringResource(R.string.settings_theme),
-                    scrollBehavior = scrollBehavior,
-                    color = barColor,
-                    titleColor = colorScheme.onSurface,
-                    navigationIcon = {
-                        IconButton(
-                            onClick = actions.onBack
-                        ) {
-                            val layoutDirection = LocalLayoutDirection.current
-                            Icon(
-                                modifier = Modifier.graphicsLayer {
-                                    if (layoutDirection == LayoutDirection.Rtl) scaleX = -1f
-                                },
-                                imageVector = MiuixIcons.Back,
-                                contentDescription = null,
-                                tint = colorScheme.onBackground
-                            )
-                        }
-                    },
-                )
-            }
-        },
-        contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
-    ) { innerPadding ->
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(colorScheme.surface)
-                .layerBackdrop(barBlurBackdrop),
-        ) {
-            LazyColumn(
-                state = lazyListState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .scrollEndHaptic()
-                    .overScrollVertical()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection)
-                    .padding(horizontal = 12.dp),
-                contentPadding = innerPadding,
-                overscrollEffect = null,
-            ) {
-                item {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    val isDark = state.currentColorMode.isDark ||
-                        state.currentColorMode.isSystem && isSystemInDarkTheme()
-                    ThemePreviewCardMiuix(
-                        keyColor = uiState.keyColor,
-                        isDark = isDark,
-                        miuixMonet = uiState.miuixMonet,
-                        enableFloatingBottomBar = uiState.enableFloatingBottomBar,
-                        enableFloatingBottomBarBlur = uiState.enableFloatingBottomBarBlur,
-                        paletteStyle = state.currentPaletteStyle,
-                        colorSpec = state.currentColorSpec,
-                    )
-                }
-                item {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    // 轮廓 Tab 换成 miuix-glass 的分段玻璃 Tab（就是 example 里
-                    // Privacy / Security 那一款），材质与顶栏一致。
-                    GlassSegmentedTabRow(
-                        tabs = listOf(
-                            stringResource(id = R.string.settings_theme_mode_system),
-                            stringResource(id = R.string.settings_theme_mode_light),
-                            stringResource(id = R.string.settings_theme_mode_dark),
-                        ),
-                        selectedIndex = (if (uiState.themeMode >= 3) uiState.themeMode - 3 else uiState.themeMode).coerceIn(0, 2),
-                        onSelect = { index ->
-                            actions.onSetThemeMode(index)
-                        },
-                        backdrop = barBlurBackdrop,
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                    )
-                }
-                item {
-                    Card(
-                        modifier = Modifier
-                            .padding(top = 12.dp)
-                            .fillMaxWidth(),
-                    ) {
-                        SwitchPreference(
-                            title = stringResource(id = R.string.settings_monet),
-                            startAction = {
+    // 页面与弹窗必须包进**同一个** Box：NavDisplay 的 entry 槽只接受一个子节点，
+    // 两个平级兄弟会被裁掉（真机表现：弹窗永远不出现）。
+    // 弹窗还要排在 Scaffold 之后（否则被页面盖住），且不在 layerBackdrop 录制子树内。
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                BlurredBar(backdrop = barBlurBackdrop, blurActive = blurActive) {
+                    SmallTopAppBar(
+                        title = stringResource(R.string.settings_theme),
+                        scrollBehavior = scrollBehavior,
+                        color = barColor,
+                        titleColor = colorScheme.onSurface,
+                        navigationIcon = {
+                            IconButton(
+                                onClick = actions.onBack
+                            ) {
+                                val layoutDirection = LocalLayoutDirection.current
                                 Icon(
-                                    Icons.Rounded.Wallpaper,
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    contentDescription = stringResource(id = R.string.settings_monet),
+                                    modifier = Modifier.graphicsLayer {
+                                        if (layoutDirection == LayoutDirection.Rtl) scaleX = -1f
+                                    },
+                                    imageVector = MiuixIcons.Back,
+                                    contentDescription = null,
                                     tint = colorScheme.onBackground
                                 )
-                            },
-                            checked = uiState.miuixMonet,
-                            onCheckedChange = {
-                                actions.onSetMiuixMonet(it)
                             }
-                        )
+                        },
+                    )
+                }
+            },
+            contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
+        ) { innerPadding ->
 
-                        AnimatedVisibility(
-                            visible = uiState.miuixMonet && extrasReady
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(colorScheme.surface)
+                    .layerBackdrop(barBlurBackdrop),
+            ) {
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .scrollEndHaptic()
+                        .overScrollVertical()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection)
+                        .padding(horizontal = 12.dp),
+                    contentPadding = innerPadding,
+                    overscrollEffect = null,
+                ) {
+                    item {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        val isDark = state.currentColorMode.isDark ||
+                            state.currentColorMode.isSystem && isSystemInDarkTheme()
+                        ThemePreviewCardMiuix(
+                            keyColor = uiState.keyColor,
+                            isDark = isDark,
+                            miuixMonet = uiState.miuixMonet,
+                            enableFloatingBottomBar = uiState.enableFloatingBottomBar,
+                            enableFloatingBottomBarBlur = uiState.enableFloatingBottomBarBlur,
+                            paletteStyle = state.currentPaletteStyle,
+                            colorSpec = state.currentColorSpec,
+                        )
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        // 这排**不能**用 GlassSegmentedTabRow：它长在 LazyColumn 里，也就是
+                        // layerBackdrop(barBlurBackdrop) 的录制子树内，而它又要采样同一个 backdrop
+                        // —— 玻璃表面在录制层内会自引用，RenderThread 会 prepareTreeImpl 无限递归
+                        // 到爆栈（真机实测 SIGSEGV + "likely stack overflow"）。
+                        // 库自己的做法是把玻璃 Tab 放进顶栏 bottomContent（见 example GlassPage），
+                        // 不在滚动内容里。所以这排保留非玻璃的轮廓 Tab。
+                        TabRowWithContour(
+                            tabs = listOf(
+                                stringResource(id = R.string.settings_theme_mode_system),
+                                stringResource(id = R.string.settings_theme_mode_light),
+                                stringResource(id = R.string.settings_theme_mode_dark),
+                            ),
+                            selectedTabIndex = (if (uiState.themeMode >= 3) uiState.themeMode - 3 else uiState.themeMode).coerceIn(0, 2),
+                            onTabSelected = { index ->
+                                actions.onSetThemeMode(index)
+                            },
+                        )
+                    }
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .padding(top = 12.dp)
+                                .fillMaxWidth(),
                         ) {
-                            Column {
-                                val colorItems = listOf(
-                                    stringResource(id = R.string.settings_key_color_default),
-                                    stringResource(id = R.string.color_red),
-                                    stringResource(id = R.string.color_pink),
-                                    stringResource(id = R.string.color_purple),
-                                    stringResource(id = R.string.color_deep_purple),
-                                    stringResource(id = R.string.color_indigo),
-                                    stringResource(id = R.string.color_blue),
-                                    stringResource(id = R.string.color_cyan),
-                                    stringResource(id = R.string.color_teal),
-                                    stringResource(id = R.string.color_green),
-                                    stringResource(id = R.string.color_yellow),
-                                    stringResource(id = R.string.color_amber),
-                                    stringResource(id = R.string.color_orange),
-                                    stringResource(id = R.string.color_brown),
-                                    stringResource(id = R.string.color_blue_grey),
-                                    stringResource(id = R.string.color_sakura),
-                                )
-                                val colorValues = listOf(0) + keyColorOptions
-                                WindowSpinnerPreference(
-                                    title = stringResource(id = R.string.settings_key_color),
-                                    items = colorItems.map { DropdownItem(title = it) },
+                            SwitchPreference(
+                                title = stringResource(id = R.string.settings_monet),
+                                startAction = {
+                                    Icon(
+                                        Icons.Rounded.Wallpaper,
+                                        modifier = Modifier.padding(end = 6.dp),
+                                        contentDescription = stringResource(id = R.string.settings_monet),
+                                        tint = colorScheme.onBackground
+                                    )
+                                },
+                                checked = uiState.miuixMonet,
+                                onCheckedChange = {
+                                    actions.onSetMiuixMonet(it)
+                                }
+                            )
+
+                            AnimatedVisibility(
+                                visible = uiState.miuixMonet && extrasReady
+                            ) {
+                                Column {
+                                    val colorItems = listOf(
+                                        stringResource(id = R.string.settings_key_color_default),
+                                        stringResource(id = R.string.color_red),
+                                        stringResource(id = R.string.color_pink),
+                                        stringResource(id = R.string.color_purple),
+                                        stringResource(id = R.string.color_deep_purple),
+                                        stringResource(id = R.string.color_indigo),
+                                        stringResource(id = R.string.color_blue),
+                                        stringResource(id = R.string.color_cyan),
+                                        stringResource(id = R.string.color_teal),
+                                        stringResource(id = R.string.color_green),
+                                        stringResource(id = R.string.color_yellow),
+                                        stringResource(id = R.string.color_amber),
+                                        stringResource(id = R.string.color_orange),
+                                        stringResource(id = R.string.color_brown),
+                                        stringResource(id = R.string.color_blue_grey),
+                                        stringResource(id = R.string.color_sakura),
+                                    )
+                                    val colorValues = listOf(0) + keyColorOptions
+                                    WindowSpinnerPreference(
+                                        title = stringResource(id = R.string.settings_key_color),
+                                        items = colorItems.map { DropdownItem(title = it) },
+                                        startAction = {
+                                            Icon(
+                                                Icons.Rounded.Colorize,
+                                                modifier = Modifier.padding(end = 6.dp),
+                                                contentDescription = stringResource(id = R.string.settings_key_color),
+                                                tint = colorScheme.onBackground
+                                            )
+                                        },
+                                        selectedIndex = colorValues.indexOf(uiState.keyColor).takeIf { it >= 0 } ?: 0,
+                                        onSelectedIndexChange = { index ->
+                                            actions.onSetKeyColor(colorValues[index])
+                                        }
+                                    )
+
+                                    AnimatedVisibility(
+                                        visible = uiState.keyColor != 0
+                                    ) {
+                                        Column {
+                                            val styles = PaletteStyle.entries
+                                            WindowSpinnerPreference(
+                                                title = stringResource(R.string.settings_color_style),
+                                                startAction = {
+                                                    Icon(
+                                                        Icons.Rounded.Style,
+                                                        modifier = Modifier.padding(end = 6.dp),
+                                                        contentDescription = stringResource(id = R.string.settings_color_style),
+                                                        tint = colorScheme.onBackground
+                                                    )
+                                                },
+                                                items = styles.map { DropdownItem(title = it.name) },
+                                                selectedIndex = styles.indexOfFirst { it.name == uiState.colorStyle }.coerceAtLeast(0),
+                                                onSelectedIndexChange = { index ->
+                                                    actions.onSetColorStyle(styles[index].name)
+                                                }
+                                            )
+
+                                            val specs = ColorSpec.SpecVersion.entries
+                                            WindowSpinnerPreference(
+                                                title = stringResource(R.string.settings_color_spec),
+                                                startAction = {
+                                                    Icon(
+                                                        Icons.Rounded.DesignServices,
+                                                        modifier = Modifier.padding(end = 6.dp),
+                                                        contentDescription = stringResource(id = R.string.settings_color_spec),
+                                                        tint = colorScheme.onBackground
+                                                    )
+                                                },
+                                                items = specs.map { DropdownItem(title = it.name) },
+                                                selectedIndex = specs.indexOfFirst { it.name == uiState.colorSpec }.coerceAtLeast(0),
+                                                onSelectedIndexChange = { index ->
+                                                    actions.onSetColorSpec(specs[index].name)
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .padding(top = 12.dp)
+                                .fillMaxWidth(),
+                        ) {
+                            // 「模糊效果」开关已删除：模糊是 miuix-glass 的硬前提，
+                            // 关掉等于玻璃全失效，所以恒开、只由硬件能力决定。
+                            SwitchPreference(
+                                title = stringResource(id = R.string.settings_floating_bottom_bar),
+                                summary = stringResource(id = R.string.settings_floating_bottom_bar_summary),
+                                startAction = {
+                                    Icon(
+                                        Icons.Rounded.CallToAction,
+                                        modifier = Modifier.padding(end = 6.dp),
+                                        contentDescription = stringResource(id = R.string.settings_floating_bottom_bar),
+                                        tint = colorScheme.onBackground
+                                    )
+                                },
+                                checked = uiState.enableFloatingBottomBar,
+                                onCheckedChange = {
+                                    actions.onSetEnableFloatingBottomBar(it)
+                                }
+                            )
+                            AnimatedVisibility(visible = uiState.enableFloatingBottomBar && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                SwitchPreference(
+                                    title = stringResource(id = R.string.settings_enable_glass),
+                                    summary = stringResource(id = R.string.settings_enable_glass_summary),
                                     startAction = {
                                         Icon(
-                                            Icons.Rounded.Colorize,
+                                            Icons.Rounded.WaterDrop,
                                             modifier = Modifier.padding(end = 6.dp),
-                                            contentDescription = stringResource(id = R.string.settings_key_color),
+                                            contentDescription = stringResource(id = R.string.settings_enable_glass),
                                             tint = colorScheme.onBackground
                                         )
                                     },
-                                    selectedIndex = colorValues.indexOf(uiState.keyColor).takeIf { it >= 0 } ?: 0,
-                                    onSelectedIndexChange = { index ->
-                                        actions.onSetKeyColor(colorValues[index])
+                                    checked = uiState.enableFloatingBottomBarBlur,
+                                    onCheckedChange = {
+                                        actions.onSetEnableFloatingBottomBarBlur(it)
                                     }
                                 )
-
-                                AnimatedVisibility(
-                                    visible = uiState.keyColor != 0
-                                ) {
-                                    Column {
-                                        val styles = PaletteStyle.entries
-                                        WindowSpinnerPreference(
-                                            title = stringResource(R.string.settings_color_style),
-                                            startAction = {
-                                                Icon(
-                                                    Icons.Rounded.Style,
-                                                    modifier = Modifier.padding(end = 6.dp),
-                                                    contentDescription = stringResource(id = R.string.settings_color_style),
-                                                    tint = colorScheme.onBackground
-                                                )
-                                            },
-                                            items = styles.map { DropdownItem(title = it.name) },
-                                            selectedIndex = styles.indexOfFirst { it.name == uiState.colorStyle }.coerceAtLeast(0),
-                                            onSelectedIndexChange = { index ->
-                                                actions.onSetColorStyle(styles[index].name)
-                                            }
-                                        )
-
-                                        val specs = ColorSpec.SpecVersion.entries
-                                        WindowSpinnerPreference(
-                                            title = stringResource(R.string.settings_color_spec),
-                                            startAction = {
-                                                Icon(
-                                                    Icons.Rounded.DesignServices,
-                                                    modifier = Modifier.padding(end = 6.dp),
-                                                    contentDescription = stringResource(id = R.string.settings_color_spec),
-                                                    tint = colorScheme.onBackground
-                                                )
-                                            },
-                                            items = specs.map { DropdownItem(title = it.name) },
-                                            selectedIndex = specs.indexOfFirst { it.name == uiState.colorSpec }.coerceAtLeast(0),
-                                            onSelectedIndexChange = { index ->
-                                                actions.onSetColorSpec(specs[index].name)
-                                            }
-                                        )
-                                    }
-                                }
                             }
                         }
                     }
-                }
-                item {
-                    Card(
-                        modifier = Modifier
-                            .padding(top = 12.dp)
-                            .fillMaxWidth(),
-                    ) {
-                        // 「模糊效果」开关已删除：模糊是 miuix-glass 的硬前提，
-                        // 关掉等于玻璃全失效，所以恒开、只由硬件能力决定。
-                        SwitchPreference(
-                            title = stringResource(id = R.string.settings_floating_bottom_bar),
-                            summary = stringResource(id = R.string.settings_floating_bottom_bar_summary),
-                            startAction = {
-                                Icon(
-                                    Icons.Rounded.CallToAction,
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    contentDescription = stringResource(id = R.string.settings_floating_bottom_bar),
-                                    tint = colorScheme.onBackground
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .padding(top = 12.dp)
+                                .fillMaxWidth(),
+                        ) {
+                            WindowSpinnerPreference(
+                                    title = stringResource(id = R.string.settings_back_animation),
+                                    items = listOf(
+                                        stringResource(id = R.string.back_anim_none),
+                                        stringResource(id = R.string.back_anim_miux),
+                                        stringResource(id = R.string.back_anim_aosp),
+                                        stringResource(id = R.string.back_anim_scale),
+                                        stringResource(id = R.string.back_anim_classic),
+                                    ).map { DropdownItem(title = it) },
+                                    startAction = {
+                                        Icon(
+                                            Icons.AutoMirrored.Rounded.MenuOpen,
+                                            modifier = Modifier.padding(end = 6.dp),
+                                            contentDescription = stringResource(id = R.string.settings_back_animation),
+                                            tint = colorScheme.onBackground
+                                        )
+                                    },
+                                    selectedIndex = uiState.predictiveBackAnimation.coerceIn(0, 4),
+                                    onSelectedIndexChange = actions.onSetPredictiveBackAnimation
                                 )
-                            },
-                            checked = uiState.enableFloatingBottomBar,
-                            onCheckedChange = {
-                                actions.onSetEnableFloatingBottomBar(it)
-                            }
-                        )
-                        AnimatedVisibility(visible = uiState.enableFloatingBottomBar && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_enable_glass),
-                                summary = stringResource(id = R.string.settings_enable_glass_summary),
+
+                            var sliderValue by remember(uiState.pageScale) { mutableFloatStateOf(uiState.pageScale) }
+                            ArrowPreference(
+                                title = stringResource(id = R.string.settings_page_scale),
+                                summary = stringResource(id = R.string.settings_page_scale_summary),
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.WaterDrop,
+                                        Icons.Rounded.AspectRatio,
                                         modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_enable_glass),
+                                        contentDescription = stringResource(id = R.string.settings_page_scale),
                                         tint = colorScheme.onBackground
                                     )
                                 },
-                                checked = uiState.enableFloatingBottomBarBlur,
-                                onCheckedChange = {
-                                    actions.onSetEnableFloatingBottomBarBlur(it)
-                                }
+                                endActions = {
+                                    Text(
+                                        text = "${(sliderValue * 100).toInt()}%",
+                                        color = colorScheme.onSurfaceVariantActions,
+                                    )
+                                },
+                                onClick = { showScaleDialog.value = !showScaleDialog.value },
+                                holdDownState = showScaleDialog.value,
+                                bottomAction = {
+                                    Slider(
+                                        value = sliderValue,
+                                        onValueChange = {
+                                            sliderValue = it
+                                        },
+                                        onValueChangeFinished = {
+                                            actions.onSetPageScale(sliderValue)
+                                        },
+                                        valueRange = 0.8f..1.1f,
+                                        showKeyPoints = true,
+                                        keyPoints = listOf(0.8f, 0.9f, 1f, 1.1f),
+                                        magnetThreshold = 0.01f,
+                                        hapticEffect = SliderDefaults.SliderHapticEffect.Step,
+                                    )
+                                },
                             )
                         }
                     }
-                }
-                item {
-                    Card(
-                        modifier = Modifier
-                            .padding(top = 12.dp)
-                            .fillMaxWidth(),
-                    ) {
-                        WindowSpinnerPreference(
-                                title = stringResource(id = R.string.settings_back_animation),
-                                items = listOf(
-                                    stringResource(id = R.string.back_anim_none),
-                                    stringResource(id = R.string.back_anim_miux),
-                                    stringResource(id = R.string.back_anim_aosp),
-                                    stringResource(id = R.string.back_anim_scale),
-                                    stringResource(id = R.string.back_anim_classic),
-                                ).map { DropdownItem(title = it) },
-                                startAction = {
-                                    Icon(
-                                        Icons.AutoMirrored.Rounded.MenuOpen,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_back_animation),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                selectedIndex = uiState.predictiveBackAnimation.coerceIn(0, 4),
-                                onSelectedIndexChange = actions.onSetPredictiveBackAnimation
+                    item {
+                        Spacer(
+                            Modifier.height(
+                                WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+                                        WindowInsets.captionBar.asPaddingValues().calculateBottomPadding() +
+                                        12.dp
                             )
-
-                        var sliderValue by remember(uiState.pageScale) { mutableFloatStateOf(uiState.pageScale) }
-                        ArrowPreference(
-                            title = stringResource(id = R.string.settings_page_scale),
-                            summary = stringResource(id = R.string.settings_page_scale_summary),
-                            startAction = {
-                                Icon(
-                                    Icons.Rounded.AspectRatio,
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    contentDescription = stringResource(id = R.string.settings_page_scale),
-                                    tint = colorScheme.onBackground
-                                )
-                            },
-                            endActions = {
-                                Text(
-                                    text = "${(sliderValue * 100).toInt()}%",
-                                    color = colorScheme.onSurfaceVariantActions,
-                                )
-                            },
-                            onClick = { showScaleDialog.value = !showScaleDialog.value },
-                            holdDownState = showScaleDialog.value,
-                            bottomAction = {
-                                Slider(
-                                    value = sliderValue,
-                                    onValueChange = {
-                                        sliderValue = it
-                                    },
-                                    onValueChangeFinished = {
-                                        actions.onSetPageScale(sliderValue)
-                                    },
-                                    valueRange = 0.8f..1.1f,
-                                    showKeyPoints = true,
-                                    keyPoints = listOf(0.8f, 0.9f, 1f, 1.1f),
-                                    magnetThreshold = 0.01f,
-                                    hapticEffect = SliderDefaults.SliderHapticEffect.Step,
-                                )
-                            },
                         )
                     }
-                }
-                item {
-                    Spacer(
-                        Modifier.height(
-                            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
-                                    WindowInsets.captionBar.asPaddingValues().calculateBottomPadding() +
-                                    12.dp
-                        )
-                    )
                 }
             }
         }
+        // GlassDialog 是 inline 的 Box，不是走 popupHost 的弹窗：它必须排在 Scaffold 之后
+        // （否则被页面盖住），也不能待在 layerBackdrop 的录制子树里——玻璃表面
+        // 在录制层内会自引用，渲染线程会一路递归到爆栈。
+        ScaleDialog(
+            show = showScaleDialog.value,
+            backdrop = barBlurBackdrop,
+            onDismissRequest = { showScaleDialog.value = false },
+            volumeState = { uiState.pageScale },
+            onVolumeChange = {
+                actions.onSetPageScale(it)
+            }
+        )
     }
-
-    // GlassDialog 是 inline 的 Box，不是走 popupHost 的弹窗：它必须排在 Scaffold 之后
-    // （否则被页面盖住），也不能待在 layerBackdrop 的录制子树里——玻璃表面
-    // 在录制层内会自引用，渲染线程会一路递归到爆栈。
-    ScaleDialog(
-        show = showScaleDialog.value,
-        backdrop = barBlurBackdrop,
-        onDismissRequest = { showScaleDialog.value = false },
-        volumeState = { uiState.pageScale },
-        onVolumeChange = {
-            actions.onSetPageScale(it)
-        }
-    )
 }
 
 @SuppressLint("ConfigurationScreenWidthHeight")
