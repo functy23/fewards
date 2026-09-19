@@ -9,7 +9,10 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <uses-sdk tools:overrideLibrary="top.yukonga.miuix.kmp.blur" />
+    <!-- miuix-blur / miuix-glass 的 aar 声明 minSdk 33（其 AGSL 需要 TIRAMISU），
+         应用 minSdk 31；两者在 31/32 上分别由 isRenderEffectSupported /
+         isRuntimeShaderSupported 兜底，不会走到 AGSL 路径。 -->
+    <uses-sdk tools:overrideLibrary="top.yukonga.miuix.kmp.blur,top.yukonga.miuix.kmp.glass" />
 
     <application
         android:name=".FewardsApplication"

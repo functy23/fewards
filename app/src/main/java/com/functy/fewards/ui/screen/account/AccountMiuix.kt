@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
@@ -31,15 +31,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
@@ -47,7 +44,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -55,6 +51,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.functy.fewards.R
 import com.functy.fewards.ui.component.IconSquircleCornerFraction
+import com.functy.fewards.ui.theme.LocalEnableBlur
+import com.functy.fewards.ui.util.rememberBlurBackdrop
 import com.functy.fewards.ui.component.miuix.AddAccountDialog
 import com.functy.fewards.ui.viewmodel.AccountViewModel
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -68,15 +66,15 @@ import top.yukonga.miuix.kmp.basic.ListPopupDefaults
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TopAppBar
-import top.yukonga.miuix.kmp.basic.TopAppBarDefaults
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import top.yukonga.miuix.kmp.window.WindowListPopup
-import kotlin.math.roundToInt
 
 /**
  * 账号页（Miuix）：
@@ -90,6 +88,7 @@ fun AccountPagerMiuix(
     bottomInnerPadding: Dp,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
+    val listState = rememberLazyListState()
     val state by accountViewModel.uiState.collectAsStateWithLifecycle()
     val actions = accountViewModel.accountActions
     val focusManager = LocalFocusManager.current
@@ -104,19 +103,8 @@ fun AccountPagerMiuix(
         dismissInput()
     }
 
-    // TopAppBar 把 actions 垂直居中在「收起高度」（52dp）里，而大标题排在 52dp 之下。
-    // 用与大标题同款的 title1 量一次行高，把「+」往下挪到和大标题同一条中线上；
-    // 滚动收起时再按 collapsedFraction 收回，免得图标掉到收起栏下面。
-    val textMeasurer = rememberTextMeasurer()
-    val titleLineHeightPx = with(LocalDensity.current) {
-        textMeasurer.measure(
-            text = AnnotatedString(stringResource(R.string.account_title)),
-            style = MiuixTheme.textStyles.title1,
-        ).size.height
-    }
-    val plusOffsetPx = with(LocalDensity.current) {
-        (TopAppBarDefaults.CollapsedHeight / 2).toPx() + titleLineHeightPx / 2f
-    }
+    val enableBlur = LocalEnableBlur.current
+    val backdrop = rememberBlurBackdrop(enableBlur)
 
     var showAddMenu by remember { mutableStateOf(false) }
     // show* 驱动 WindowDialog 的开合；mounted* 保证关闭动画播完之前不卸载弹窗
@@ -242,29 +230,21 @@ fun AccountPagerMiuix(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                color = colorScheme.surface,
+            // miuix-glass 顶栏（PR #423）。「+」改由顶栏自带的玻璃圆钮承载：
+            // 之前的 offset 补正是为了把它从「收起高度垂直居中」挪到大标题的中线上，
+            // 那是普通 TopAppBar 的排法，GlassTopAppBar 会自己处理这一层。
+            GlassTopAppBar(
                 title = stringResource(R.string.account_title),
+                isContentScrolled = listState.canScrollBackward,
+                backdrop = backdrop,
                 scrollBehavior = scrollBehavior,
                 actions = {
-                    Box(
-                        // 和大标题对齐：actions 默认垂直居中在「收起高度」（52dp）里，
-                        // 大标题却排在 52dp 之下，所以整体下移「半个收起高度 + 半个行高」。
-                        // 滚动收起时按 collapsedFraction 收回原位；offset 的 lambda 在布局阶段读，
-                        // 不订阅重组。
-                        modifier = Modifier.offset {
-                            val collapsed = scrollBehavior.state.collapsedFraction
-                            IntOffset(0, (plusOffsetPx * (1f - collapsed)).roundToInt())
-                        },
-                    ) {
-                        IconButton(
+                    Box {
+                        GlassIconButton(
                             onClick = {
                                 dismissInput()
                                 showAddMenu = true
                             },
-                            // 带圈按钮：miuix IconButton 的 minWidth/minHeight 与默认
-                            // cornerRadius 都是 40dp，给个底色就是正圆。
-                            backgroundColor = colorScheme.surfaceContainerHigh,
                         ) {
                             Icon(
                                 Icons.Rounded.Add,
@@ -320,8 +300,10 @@ fun AccountPagerMiuix(
         contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxHeight()
+                .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
                 .scrollEndHaptic()
                 .overScrollVertical()
                 .nestedScroll(scrollBehavior.nestedScrollConnection)

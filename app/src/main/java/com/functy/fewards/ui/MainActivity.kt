@@ -63,7 +63,7 @@ import com.functy.fewards.ui.theme.FewardsTheme
 import com.functy.fewards.ui.theme.LocalColorMode
 import com.functy.fewards.ui.theme.LocalEnableBlur
 import com.functy.fewards.ui.theme.LocalEnableFloatingBottomBar
-import com.functy.fewards.ui.theme.LocalEnableFloatingBottomBarBlur
+import com.functy.fewards.ui.theme.LocalFloatingBottomBarGlass
 import com.functy.fewards.ui.animation.predictiveback.PredictiveBackAnimation
 import com.functy.fewards.ui.animation.predictiveback.installerNavTransition
 import com.functy.fewards.ui.util.rememberBlurBackdrop
@@ -129,7 +129,7 @@ class MainActivity : ComponentActivity() {
                 LocalColorMode provides appSettings.colorMode.value,
                 LocalEnableBlur provides uiState.enableBlur,
                 LocalEnableFloatingBottomBar provides uiState.enableFloatingBottomBar,
-                LocalEnableFloatingBottomBarBlur provides uiState.enableFloatingBottomBarBlur,
+                LocalFloatingBottomBarGlass provides uiState.enableFloatingBottomBarBlur,
             ) {
                 FewardsTheme(appSettings = appSettings) {
                     val mainScreenEntry = @Composable {
@@ -206,7 +206,7 @@ fun MainScreen(
     val navController = LocalNavigator.current
     val enableBlur = LocalEnableBlur.current
     val enableFloatingBottomBar = LocalEnableFloatingBottomBar.current
-    val enableFloatingBottomBarBlur = LocalEnableFloatingBottomBarBlur.current
+    val floatingBottomBarGlass = LocalFloatingBottomBarGlass.current
     val useNavigationRail = useNavigationRail(enableFloatingBottomBar)
     val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { MainPagerConfig.PAGE_COUNT })
     val mainPagerState = rememberMainPagerState(
@@ -242,7 +242,7 @@ fun MainScreen(
             Box(modifier = if (blurBackdrop != null) Modifier.layerBackdrop(blurBackdrop) else Modifier) {
                 HorizontalPager(
                     modifier = Modifier
-                        .then(if (enableFloatingBottomBar && enableFloatingBottomBarBlur) Modifier.layerBackdrop(backdrop) else Modifier),
+                        .then(if (enableFloatingBottomBar && floatingBottomBarGlass) Modifier.layerBackdrop(backdrop) else Modifier),
                     state = mainPagerState.pagerState,
                     beyondViewportPageCount = if (contentReady) 2 else 0,
                     overscrollEffect = null,
