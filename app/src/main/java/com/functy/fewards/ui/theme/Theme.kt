@@ -117,8 +117,6 @@ fun isInDarkTheme(): Boolean {
 
 val LocalColorMode = staticCompositionLocalOf { 0 }
 
-val LocalEnableBlur = staticCompositionLocalOf { false }
-
 val LocalEnableFloatingBottomBar = staticCompositionLocalOf { false }
 
 /** 悬浮底栏的玻璃材质。0 = 半透明容器色，1 = miuix-glass 玻璃（PR #423）。 */

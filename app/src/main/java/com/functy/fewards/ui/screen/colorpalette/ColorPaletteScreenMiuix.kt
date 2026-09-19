@@ -35,7 +35,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuOpen
 import androidx.compose.material.icons.rounded.AspectRatio
-import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.CallToAction
 import androidx.compose.material.icons.rounded.Colorize
 import androidx.compose.material.icons.rounded.DesignServices
@@ -71,7 +70,6 @@ import com.materialkolor.rememberDynamicColorScheme
 import com.functy.fewards.R
 import com.functy.fewards.ui.component.bottombar.useNavigationRail
 import com.functy.fewards.ui.component.miuix.ScaleDialog
-import com.functy.fewards.ui.theme.LocalEnableBlur
 import com.functy.fewards.ui.theme.LocalThemeTargetColors
 import com.functy.fewards.ui.theme.keyColorOptions
 import com.functy.fewards.ui.util.BlurredBar
@@ -85,9 +83,9 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
-import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.glass.GlassSegmentedTabRow
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.preference.ArrowPreference
@@ -104,15 +102,14 @@ fun ColorPaletteScreenMiuix(
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val lazyListState = rememberLazyListState()
-    val enableBlur = LocalEnableBlur.current
-    val barBlurBackdrop = rememberBlurBackdrop(enableBlur)
+    val barBlurBackdrop = rememberBlurBackdrop()
     val scrolled by remember {
         derivedStateOf {
             lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 8
         }
     }
     // 对齐关于页：进场不要立刻 textureBlur，否则和位移抢帧。
-    val blurActive = barBlurBackdrop != null && scrolled
+    val blurActive = scrolled
     val barColor = if (blurActive) {
         Color.Transparent
     } else {
@@ -160,7 +157,7 @@ fun ColorPaletteScreenMiuix(
             modifier = Modifier
                 .fillMaxSize()
                 .background(colorScheme.surface)
-                .then(if (barBlurBackdrop != null) Modifier.layerBackdrop(barBlurBackdrop) else Modifier),
+                .layerBackdrop(barBlurBackdrop),
         ) {
             LazyColumn(
                 state = lazyListState,
@@ -189,16 +186,20 @@ fun ColorPaletteScreenMiuix(
                 }
                 item {
                     Spacer(modifier = Modifier.height(12.dp))
-                    TabRowWithContour(
+                    // 轮廓 Tab 换成 miuix-glass 的分段玻璃 Tab（就是 example 里
+                    // Privacy / Security 那一款），材质与顶栏一致。
+                    GlassSegmentedTabRow(
                         tabs = listOf(
                             stringResource(id = R.string.settings_theme_mode_system),
                             stringResource(id = R.string.settings_theme_mode_light),
                             stringResource(id = R.string.settings_theme_mode_dark),
                         ),
-                        selectedTabIndex = (if (uiState.themeMode >= 3) uiState.themeMode - 3 else uiState.themeMode).coerceIn(0, 2),
-                        onTabSelected = { index ->
+                        selectedIndex = (if (uiState.themeMode >= 3) uiState.themeMode - 3 else uiState.themeMode).coerceIn(0, 2),
+                        onSelect = { index ->
                             actions.onSetThemeMode(index)
                         },
+                        backdrop = barBlurBackdrop,
+                        modifier = Modifier.padding(horizontal = 12.dp),
                     )
                 }
                 item {
@@ -314,24 +315,8 @@ fun ColorPaletteScreenMiuix(
                             .padding(top = 12.dp)
                             .fillMaxWidth(),
                     ) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_enable_blur),
-                                summary = stringResource(id = R.string.settings_enable_blur_summary),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.BlurOn,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_enable_blur),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                checked = uiState.enableBlur,
-                                onCheckedChange = {
-                                    actions.onSetEnableBlur(it)
-                                }
-                            )
-                        }
+                        // 「模糊效果」开关已删除：模糊是 miuix-glass 的硬前提，
+                        // 关掉等于玻璃全失效，所以恒开、只由硬件能力决定。
                         SwitchPreference(
                             title = stringResource(id = R.string.settings_floating_bottom_bar),
                             summary = stringResource(id = R.string.settings_floating_bottom_bar_summary),
@@ -434,6 +419,7 @@ fun ColorPaletteScreenMiuix(
                         )
                         ScaleDialog(
                             show = showScaleDialog.value,
+                            backdrop = barBlurBackdrop,
                             onDismissRequest = { showScaleDialog.value = false },
                             volumeState = { uiState.pageScale },
                             onVolumeChange = {

@@ -55,7 +55,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
@@ -69,7 +68,6 @@ import com.functy.fewards.R
 import com.functy.fewards.ui.component.miuix.MultilineInputField
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.functy.fewards.ui.viewmodel.ConfigTransferViewModel
-import com.functy.fewards.ui.theme.LocalEnableBlur
 import com.functy.fewards.ui.util.rememberBlurBackdrop
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -77,7 +75,6 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.Lifecycle
@@ -85,7 +82,10 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.glass.GlassDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.preference.ArrowPreference
@@ -107,8 +107,7 @@ fun SettingPagerMiuix(
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
-    val enableBlur = LocalEnableBlur.current
-    val backdrop = rememberBlurBackdrop(enableBlur)
+    val backdrop = rememberBlurBackdrop()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val view = LocalView.current
@@ -134,7 +133,7 @@ fun SettingPagerMiuix(
         },
         contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal),
     ) { innerPadding ->
-        Box(modifier = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier) {
+        Box(modifier = Modifier.layerBackdrop(backdrop)) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -446,6 +445,7 @@ fun SettingPagerMiuix(
                         )
                         OverviewHoldCustomDialog(
                             show = showCustomHold,
+                            backdrop = backdrop,
                             currentSeconds = uiState.overviewHoldSeconds,
                             onConfirm = {
                                 actions.onSetOverviewHoldSeconds(it)
@@ -547,16 +547,25 @@ fun SettingPagerMiuix(
 @Composable
 private fun OverviewHoldCustomDialog(
     show: Boolean,
+    backdrop: LayerBackdrop,
     currentSeconds: Float,
     onConfirm: (Float) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var text by remember(show) { mutableStateOf(formatHoldSeconds(currentSeconds)) }
-    OverlayDialog(
-        show = show,
-        title = stringResource(R.string.settings_overview_hold_custom_title),
+    GlassDialog(
+        visible = show,
         onDismissRequest = onDismiss,
-        content = {
+        backdrop = backdrop,
+    ) {
+        // GlassDialog 没有标题槽，标题自己画。
+        Text(
+            text = stringResource(R.string.settings_overview_hold_custom_title),
+            style = MiuixTheme.textStyles.title4,
+            color = colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(12.dp))
+        Column(modifier = Modifier.fillMaxWidth()) {
             TextField(
                 modifier = Modifier.padding(bottom = 16.dp),
                 value = text,
@@ -590,6 +599,6 @@ private fun OverviewHoldCustomDialog(
                     colors = ButtonDefaults.textButtonColorsPrimary(),
                 )
             }
-        },
-    )
+        }
+    }
 }

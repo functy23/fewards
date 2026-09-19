@@ -34,10 +34,6 @@ class SettingsRepositoryImpl : SettingsRepository {
         get() = prefs.getString("color_spec", ColorSpec.SpecVersion.SPEC_2025.name) ?: ColorSpec.SpecVersion.SPEC_2025.name
         set(value) = prefs.edit { putString("color_spec", value) }
 
-    override var enableBlur: Boolean
-        get() = prefs.getBoolean("enable_blur", false)
-        set(value) = prefs.edit { putBoolean("enable_blur", value) }
-
     override var enableFloatingBottomBar: Boolean
         get() = prefs.getBoolean("enable_floating_bottom_bar", false)
         set(value) = prefs.edit { putBoolean("enable_floating_bottom_bar", value) }

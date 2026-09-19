@@ -63,8 +63,6 @@
     <string name="settings_key_color_default">默认</string>
     <string name="settings_color_style">色彩风格</string>
     <string name="settings_color_spec">色彩规范</string>
-    <string name="settings_enable_blur">模糊效果</string>
-    <string name="settings_enable_blur_summary">为顶栏与底栏启用模糊效果。</string>
     <string name="settings_floating_bottom_bar">悬浮底栏</string>
     <string name="settings_floating_bottom_bar_summary">使用 Apple 风格的悬浮底栏。</string>
     <string name="settings_enable_glass">液态玻璃</string>

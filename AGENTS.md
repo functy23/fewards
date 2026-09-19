@@ -179,18 +179,18 @@ app/src/test/java/com/functy/fewards/
 - 设置子项跟父开关 **展开/收起**（Monet 模式），不要灰掉。
 - 停留时间选择用 **OverlaySpinnerPreference**（列表 + 确定），不要一排 TextButton。
 - 主题页：WindowSpinnerPreference；不要把 `Scaffold.popupHost` 置空。
-- 主题颜色模式用轮廓 Tab（不是下拉）。
+- 主题颜色模式用玻璃分段 Tab（`GlassSegmentedTabRow`），不是下拉。
 - 主页图标 28.dp；复选框行文字 `weight(1f)`，Checkbox 靠右。
 - 图标/头像圆角：miuix `squircleClip(cornerRadius = size * 0.30f)`（`SquircleIcon` / 账号头像共用）。禁止自写 `G2SquircleShape`：`mid = √2−1` 会把 45° 点放到 0.414r，四角内缩约 2×。也不要用普通 `RoundedCornerShape` 充 squircle。
 - 图标 png 在 `drawable-nodpi/`（`miyoushe`、`workbuddy`）。README 宣传图在 `docs/screenshots/`，每个页面**浅色深色各一张**：`<page>-light.png` / `<page>-dark.png`（page = home / account / settings / theme），README 里两行分别展示。换界面后两套都要同步更新。
 - 账号头像网络图：`AccountMiuix.UrlImage`（OkHttp + G2 裁剪）。加载中 `InfiniteProgressIndicator`，失败回落到字母头像。
 - **添加账号弹窗只有一份**：`ui/component/miuix/AddAccountDialog`（米游社与 WorkBuddy 共用）。不要再各写一份二维码弹窗。
   - 账号页只列**已登录账号**，米游社 / WorkBuddy 用灰色小标题（`SectionHeader`）分组；没有账号时显示 `account_empty` 提示。
-  - 右上角「+」用 `WindowListPopup` 弹「添加米游社账号 / 添加 WorkBuddy 账号」；两项都打开同一个 `AddAccountDialog`。菜单行是本文件里的 `AddMenuRow`，**不要换回 miuix `DropdownImpl`**：它恒定给尾部选中勾留 `CheckIconStartPadding + CheckIconSize`（≈32dp），这里没有选中态，那段槽位就是文字后面的一截空白。`WindowListPopup` 要传 `horizontalMargin = 12.dp`，否则菜单右边缘贴着屏幕右边。
+  - 右上角「+」用 **`GlassTransformPopup`** 弹「添加米游社账号 / 添加 WorkBuddy 账号」；两项都打开同一个 `AddAccountDialog`。不要退回 `WindowListPopup` + 自写 `AddMenuRow`，也别用 miuix `DropdownImpl`（它恒定给尾部选中勾留 ≈32dp，这里没有选中态）。
   - 「+」是 `GlassIconButton`（miuix-glass 的玻璃圆钮），在 `GlassTopAppBar` 的 `actions` 槽里。**不要退回** `IconButton` + `backgroundColor` + `Modifier.offset` 那套：那段 offset 补正是普通 `TopAppBar` 才需要的（把 actions 从「收起高度垂直居中」挪到大标题中线），`GlassTopAppBar` 自己处理这一层。
-  - 弹窗内用 `TabRowWithContour` 切「扫码登录 / 凭据登录」：扫码页生成二维码，凭据页是输入框 + 导入。WorkBuddy 的凭据 Tab 是 Token 粘贴。
+  - 弹窗内用 **`GlassSegmentedTabRow`** 切「扫码登录 / 凭据登录」：扫码页生成二维码，凭据页是输入框 + 导入。WorkBuddy 的凭据 Tab 是 Token 粘贴。
   - 开合由调用方的 `show` 状态驱动，只有 `QrState.Confirmed` 才自动关；过期/失败保持打开以露出「重新获取」。凭据导入成功（`onImportCredential` 返回 true）也自动关。
-  - 弹窗的**挂载**由调用方的 `mounted` 标志控制（不是 `qrState`）：切到凭据 Tab 会立刻把 `qrState` 归零，只按 `qrState` 判断会让关闭动画演一半就消失。关闭走 `WindowDialog` 下滑淡出动画，`onDismissFinished` 里才置 `mounted=false` 并取消轮询。
+  - 弹窗的**挂载**由调用方的 `mounted` 标志控制（不是 `qrState`）：切到凭据 Tab 会立刻把 `qrState` 归零，只按 `qrState` 判断会让关闭动画演一半就消失。关闭动画是 `GlassDialog` 的缩放淡出；它**没有** `onDismissFinished`，所以 `mounted=false` + 取消轮询放在 `LaunchedEffect(show*)` 里 `delay(200)` 之后。
   - 二维码申请以「弹窗开合 + Tab」为 key 的 `LaunchedEffect` 驱动，弹出动画结束（`delay(450)`）后才申请；切走再切回扫码 Tab 会重新申请一张新码，过期/失败后重开能自愈。
 - 实时任务通知 ongoing，完成后再提升；自动消失跟 `overviewAutoDismiss` / `overviewHoldSeconds`。
 
@@ -200,11 +200,19 @@ app/src/test/java/com/functy/fewards/
 - **折射的真实范围**（读 `internal/GlassShader.kt` 得出，别按「整块玻璃弯折内容」去理解或去调）：`shadeMaterial` 里 `isFlat = shaped >= 1.0`，只有**边缘带**内才跑 `refract()` 与 `reflect()`；带外直接早退，只剩模糊 + `GlassMaterial` 的色彩层 + tint。默认 `GlassDefaults.Style`（`CommonMediumRegularLowLight`）的 `GlassEdge.width = 60` 是**源像素**（`SourceDensity = 3`），即 20dp；折射偏移 `thickness * 2`（`thickness = 80` → 约 53dp @3x），比带本身宽，所以看到的是边缘一圈把内容「吸」进来一点，不是整块位移。
 - **`shading` 的取值是上游刻意定的，不要改**：库内**所有**组件调用点（`GlassNavigationBar` / `GlassTopAppBar` 的按钮与 tab / `GlassPopupSurface` / `GlassTabRow` / `GlassSurface`）都传 `shading = false`，只有调用方直接用 `glassPanel`/`glass`（默认 `true`，如库自己的 `GlassDialog`）才有边缘明暗。理由写在 KDoc 里：源系统把表面**要么**声明成 material（一条栏/一个菜单：模糊 + 色彩层 + 描边 + 阴影），**要么**声明成 glass（一个控件：折射 + 明暗），不混用。所以「底栏/顶栏/按钮没有折射」是**上游的设计**，不是我们接错——真机上要判断有没有玻璃，看的是模糊 + 色彩层 + 那圈 bloom 描边 + 边缘带里轻微的内容位移。
 - 顶栏用带 `isContentScrolled` 的重载，传 `listState.canScrollBackward`；不要用靠 `scrollBehavior.state.contentOffset` 推的那版——列表回顶后大标题可能仍处于收起态，材质会留着不走。
-- `backdrop` 来自 `rememberBlurBackdrop(enableBlur)`（受主题页「模糊效果」开关控制），**录制的子树必须挂 `Modifier.layerBackdrop(backdrop)`**，否则玻璃采样不到内容。玻璃表面本身要放在该子树**外面**，否则自引用。
+- `backdrop` 来自 `rememberBlurBackdrop()`（无参数、非空，见上一条），**录制的子树必须挂 `Modifier.layerBackdrop(backdrop)`**，否则玻璃采样不到内容。玻璃表面本身要放在该子树**外面**，否则自引用。
 - 已删除自写的 `ui/component/FloatingBottomBar.kt`、`ui/component/liquid/`（Kyant0/AndroidLiquidGlass 移植）、`ui/component/miuix/animation/`、`ui/component/miuix/modifier/`。**不要加回来**，这些是 PR #423 落地前的临时实现。
-- 主题页「液态玻璃」开关只切**材质**（`LocalFloatingBottomBarGlass`）：开 = `GlassNavigationBar`（miuix-glass 材质），关 = miuix 自带的 `FloatingNavigationBar`（悬浮胶囊，无折射材质）。悬浮底栏本身仍由「悬浮底栏」开关控制。
+- 主题页「液态玻璃」开关只切**材质**（`LocalFloatingBottomBarGlass`）：开 = `GlassNavigationBar`（miuix-glass 材质），关 = miuix 自带的 `FloatingNavigationBar`（悬浮胶囊，无玻璃材质）。悬浮底栏本身仍由「悬浮底栏」开关控制。
+- **「模糊效果」开关已删除**（`enableBlur` / `LocalEnableBlur` / `enable_blur` prefs / 两条 strings 全没了）。理由：模糊是 miuix-glass 的硬前提，关掉等于玻璃全失效。`rememberBlurBackdrop()` **不再返回可空类型**——应用 minSdk 31，而 `isRenderEffectSupported()` 就是 `SDK_INT >= 31`，判断恒真。所以别再加回 `!= null` 判断（编译器会报 `Condition is always 'true'`）。真正的分档只有 AGSL（API 33+），由 miuix-glass 内部各自再判。
+- 已玻璃化的清单（照做即可，不要再自造）：顶栏三页 = `GlassTopAppBar`；底栏 = `GlassNavigationBar`；账号页「+」= `GlassIconButton` + `glassPopupAnchor` + `GlassTransformPopup`；**全部三个弹窗**（AddAccountDialog / ScaleDialog / OverviewHoldCustomDialog）= `GlassDialog`；**两个切换框**（AddAccountDialog 内、主题页颜色模式）= `GlassSegmentedTabRow`。
 - `GlassNavigationBar` 的面板靠 RuntimeShader（AGSL，API 33+）；31/32 上 `drawBackdrop` 会被 `isRuntimeShaderSupported()` 整条关掉，只剩描边和阴影，在深色页面上读起来是「内容被挖了个洞」。所以底栏用 `isRuntimeShaderSupported()` 分流，低版本退 `FloatingNavigationBar`。`GlassTopAppBar` 不用分流：它的 `bandBrush` 遮罩是纯 Compose 绘制，材质失效时会露出纯色 `fill`。
 - `GlassIconButton` 的按压反馈由库给，不要再自己包 `IconButton`。
+- **`GlassDialog` 与 `WindowDialog` 不是一回事，换过来有两处必须自己补**：
+  1. 它**没有** `title` / `summary` 槽，也**没有** `onDismissFinished` 回调。标题要自己画（`MiuixTheme.textStyles.title4`），关闭后的收尾（卸载弹窗、停轮询）要在调用方按 `show` 变化自己等一段（见 `AccountMiuix` 里的 `LaunchedEffect(showMhyDialog)` + `delay(200)`，对应 `GlassMotion.fadeOut()` 的 150ms）。
+  2. 它要求 `backdrop: Backdrop` 非空，而且**要挂在录制层外面**（它自己就是玻璃表面）。
+- **`GlassTransformPopup` / `GlassPopup` / `GlassDropdownPopup` / `GlassSecondaryPopup` 都是 `BoxScope` 扩展**，而 `TopAppBar` 的 `actions` 槽是 `RowScope`。在 actions 里用必须套一层 `Box { … }`。
+- 菜单的接线三件套：`rememberGlassPopupAnchor()` 持有 anchor → 触发按钮加 `Modifier.glassPopupAnchor(anchor, cornerRadius = ButtonSize / 2)` → `GlassTransformPopup(anchor = …, backdrop = …, anchorContent = { 按钮里的那个图标 })`，行用 `GlassPopupItem`。`anchorContent` 是给「面板长出来时复制按钮内容」用的，要传图标本身，不是整个按钮。
+- 源系统里**列表卡片本来就不是玻璃材质**，别去把首页状态卡 / 任务卡 / 账号卡玻璃化。同样，下拉选择器（`WindowSpinnerPreference` / `OverlayDropdownPreference`）**没有**对应的玻璃组件，不要用 `glassPanel` 手搓。
 
 ## 导航与预测返回
 

@@ -1,7 +1,6 @@
 package com.functy.fewards.ui.screen.account
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -51,30 +49,29 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.functy.fewards.R
 import com.functy.fewards.ui.component.IconSquircleCornerFraction
-import com.functy.fewards.ui.theme.LocalEnableBlur
 import com.functy.fewards.ui.util.rememberBlurBackdrop
 import com.functy.fewards.ui.component.miuix.AddAccountDialog
 import com.functy.fewards.ui.viewmodel.AccountViewModel
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.DropdownDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
-import top.yukonga.miuix.kmp.basic.ListPopupColumn
-import top.yukonga.miuix.kmp.basic.ListPopupDefaults
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassPopupItem
 import top.yukonga.miuix.kmp.glass.GlassTopAppBar
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
+import top.yukonga.miuix.kmp.glass.GlassTransformPopup
+import top.yukonga.miuix.kmp.glass.glassPopupAnchor
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import top.yukonga.miuix.kmp.squircle.squircleClip
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
-import top.yukonga.miuix.kmp.window.WindowListPopup
 
 /**
  * 账号页（Miuix）：
@@ -103,11 +100,11 @@ fun AccountPagerMiuix(
         dismissInput()
     }
 
-    val enableBlur = LocalEnableBlur.current
-    val backdrop = rememberBlurBackdrop(enableBlur)
+    val backdrop = rememberBlurBackdrop()
 
+    val addMenuAnchor = rememberGlassPopupAnchor()
     var showAddMenu by remember { mutableStateOf(false) }
-    // show* 驱动 WindowDialog 的开合；mounted* 保证关闭动画播完之前不卸载弹窗
+    // show* 驱动 GlassDialog 的开合；mounted* 保证关闭动画播完之前不卸载弹窗
     // （切到 Cookie/Token Tab 会立刻把 qrState 归零，只靠 qrState 判断会动画演一半就消失）
     var showMhyDialog by remember { mutableStateOf(false) }
     var showWbDialog by remember { mutableStateOf(false) }
@@ -120,6 +117,24 @@ fun AccountPagerMiuix(
     }
     LaunchedEffect(state.wbQrState) {
         if (state.wbQrState == QrState.Confirmed) showWbDialog = false
+    }
+
+    // GlassDialog 没有 onDismissFinished（那是 WindowDialog 的），所以关闭后的收尾放在这里：
+    // 等它的淡出动画（GlassMotion.fadeOut 150ms）播完再卸载弹窗并停掉轮询。
+    // 之前用 WindowDialog 时这段在 onDismissFinished 里，换成玻璃弹窗后必须自己等。
+    LaunchedEffect(showMhyDialog) {
+        if (!showMhyDialog) {
+            kotlinx.coroutines.delay(200)
+            mhyDialogMounted = false
+            actions.onCancelQr()
+        }
+    }
+    LaunchedEffect(showWbDialog) {
+        if (!showWbDialog) {
+            kotlinx.coroutines.delay(200)
+            wbDialogMounted = false
+            actions.onCancelWbQr()
+        }
     }
     // 停在扫码 Tab 且没有活着的会话时申请二维码。
     // 以「弹窗开合 + Tab」为 key：弹窗弹出动画（folme spring）结束后才申请，
@@ -140,6 +155,7 @@ fun AccountPagerMiuix(
     if (mhyDialogMounted) {
         AddAccountDialog(
             show = showMhyDialog,
+            backdrop = backdrop,
             title = stringResource(R.string.account_add_miyoushe),
             tabs = listOf(
                 stringResource(R.string.miyoushe_login_qr),
@@ -172,15 +188,11 @@ fun AccountPagerMiuix(
             onImportCredential = { raw ->
                 dismissInput()
                 val accepted = actions.onImportCookie(raw)
-                // 接受后关弹窗（走 WindowDialog 的淡出动画）；失败则留在原地让用户改
+                // 接受后关弹窗（走 GlassDialog 的淡出动画）；失败则留在原地让用户改
                 if (accepted) showMhyDialog = false
                 accepted
             },
             onDismissRequest = { showMhyDialog = false },
-            onDismissFinished = {
-                mhyDialogMounted = false
-                actions.onCancelQr()
-            },
             onRetry = { actions.onStartQr() },
         )
     }
@@ -188,6 +200,7 @@ fun AccountPagerMiuix(
     if (wbDialogMounted) {
         AddAccountDialog(
             show = showWbDialog,
+            backdrop = backdrop,
             title = stringResource(R.string.account_add_workbuddy),
             tabs = listOf(
                 stringResource(R.string.workbuddy_login_qr),
@@ -220,10 +233,6 @@ fun AccountPagerMiuix(
                 accepted
             },
             onDismissRequest = { showWbDialog = false },
-            onDismissFinished = {
-                wbDialogMounted = false
-                actions.onCancelWbQr()
-            },
             onRetry = { actions.onStartWbQr() },
         )
     }
@@ -239,12 +248,23 @@ fun AccountPagerMiuix(
                 backdrop = backdrop,
                 scrollBehavior = scrollBehavior,
                 actions = {
+                    // 菜单本体是 GlassTransformPopup（面板从按钮里「长出来」）。
+                    // 它是 BoxScope 扩展，而 actions 槽是 RowScope，所以这里得套一层 Box；
+                    // anchor 让 GlassIconButton 把自己的材质与 backdrop 共享给面板。
+                    val addOptions = listOf(
+                        stringResource(R.string.account_add_miyoushe),
+                        stringResource(R.string.account_add_workbuddy),
+                    )
                     Box {
                         GlassIconButton(
                             onClick = {
                                 dismissInput()
                                 showAddMenu = true
                             },
+                            modifier = Modifier.glassPopupAnchor(
+                                anchor = addMenuAnchor,
+                                cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
+                            ),
                         ) {
                             Icon(
                                 Icons.Rounded.Add,
@@ -252,44 +272,38 @@ fun AccountPagerMiuix(
                                 tint = colorScheme.onSurface,
                             )
                         }
-                        WindowListPopup(
+                        GlassTransformPopup(
                             show = showAddMenu,
-                            // 加一点水平边距，否则菜单右边缘会贴着屏幕右边
-                            popupPositionProvider = ListPopupDefaults.dropdownPositionProvider(
-                                horizontalMargin = 12.dp,
-                            ),
                             onDismissRequest = { showAddMenu = false },
+                            anchor = addMenuAnchor,
+                            backdrop = backdrop,
+                            anchorContent = {
+                                Icon(
+                                    imageVector = Icons.Rounded.Add,
+                                    contentDescription = null,
+                                    tint = colorScheme.onSurface,
+                                )
+                            },
                         ) {
-                            val addOptions = listOf(
-                                stringResource(R.string.account_add_miyoushe),
-                                stringResource(R.string.account_add_workbuddy),
-                            )
-                            ListPopupColumn {
-                                // 不用 miuix 的 DropdownImpl：它恒定给尾部的「选中勾」留
-                                // CheckIconStartPadding + CheckIconSize（≈32dp），
-                                // 这里没有选中态，那道槽位就成了文字后面的一段空白。
-                                addOptions.forEachIndexed { index, text ->
-                                    AddMenuRow(
-                                        text = text,
-                                        isFirst = index == 0,
-                                        isLast = index == addOptions.lastIndex,
-                                        onClick = {
-                                            showAddMenu = false
-                                            when (index) {
-                                                0 -> {
-                                                    actions.onSetLoginMode(0)
-                                                    mhyDialogMounted = true
-                                                    showMhyDialog = true
-                                                }
-                                                else -> {
-                                                    actions.onSetWbLoginMode(0)
-                                                    wbDialogMounted = true
-                                                    showWbDialog = true
-                                                }
+                            addOptions.forEachIndexed { index, text ->
+                                GlassPopupItem(
+                                    text = text,
+                                    onClick = {
+                                        showAddMenu = false
+                                        when (index) {
+                                            0 -> {
+                                                actions.onSetLoginMode(0)
+                                                mhyDialogMounted = true
+                                                showMhyDialog = true
                                             }
-                                        },
-                                    )
-                                }
+                                            else -> {
+                                                actions.onSetWbLoginMode(0)
+                                                wbDialogMounted = true
+                                                showWbDialog = true
+                                            }
+                                        }
+                                    },
+                                )
                             }
                         }
                     }
@@ -303,7 +317,7 @@ fun AccountPagerMiuix(
             state = listState,
             modifier = Modifier
                 .fillMaxHeight()
-                .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
+                .layerBackdrop(backdrop)
                 .scrollEndHaptic()
                 .overScrollVertical()
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
@@ -402,44 +416,6 @@ fun AccountPagerMiuix(
 
             item { Spacer(Modifier.height(bottomInnerPadding)) }
         }
-    }
-}
-
-/**
- * 「添加账号」菜单的一行。样式对齐 miuix DropdownImpl 的弹出态，
- * 但不带尾部选中勾，因此文字后面不会多出一段为勾留的空白。
- */
-@Composable
-private fun AddMenuRow(
-    text: String,
-    isFirst: Boolean,
-    isLast: Boolean,
-    onClick: () -> Unit,
-) {
-    val verticalPadding = if (isFirst || isLast) {
-        DropdownDefaults.FirstLastVerticalPadding
-    } else {
-        DropdownDefaults.MiddleVerticalPadding
-    }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = DropdownDefaults.MinHeight)
-            .clickable(onClick = onClick)
-            .padding(
-                start = DropdownDefaults.InsideHorizontalPadding,
-                end = DropdownDefaults.InsideHorizontalPadding,
-                top = verticalPadding,
-                bottom = verticalPadding,
-            ),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Text(
-            text = text,
-            fontSize = MiuixTheme.textStyles.body1.fontSize,
-            fontWeight = FontWeight.Medium,
-            color = colorScheme.onSurfaceContainer,
-        )
     }
 }
 
