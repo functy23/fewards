@@ -1,98 +1,117 @@
-# Fewards
+<div align="center">
 
-**Android 自动签到**：米游社（游戏签到 + 米游币任务）与 WorkBuddy（每日积分），一次点击跑完全部。
+# 🎁 Fewards
 
-[![test](https://github.com/functy23/fewards/actions/workflows/test.yml/badge.svg)](https://github.com/functy23/fewards/actions/workflows/test.yml)
-[![release](https://img.shields.io/github/v/release/functy23/fewards)](https://github.com/functy23/fewards/releases/latest)
+**Android auto check-in for HoYoLAB (米游社) and WorkBuddy — one tap runs every daily task.**
 
-Kotlin + Jetpack Compose，界面全程 **Miuix**（HyperOS 风格）。
+[![Fewards](https://img.shields.io/badge/Fewards-AUTO-orange.svg)](https://github.com/functy23/fewards)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.0%2B-purple.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
+[![Top Language](https://img.shields.io/github/languages/top/functy23/fewards?style=flat)](https://github.com/functy23/fewards)
+[![Platform](https://img.shields.io/badge/platform-Android%2012%2B-lightgrey.svg?logo=android&logoColor=white)](https://github.com/functy23/fewards)
+
+[![CI](https://img.shields.io/github/actions/workflow/status/functy23/fewards/test.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/functy23/fewards/actions/workflows/test.yml)
+
+[![Release](https://img.shields.io/github/v/release/functy23/fewards?style=flat&logo=github)](https://github.com/functy23/fewards/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/functy23/fewards/total?label=Downloads&logo=github)](https://github.com/functy23/fewards/releases)
+[![Stars](https://img.shields.io/github/stars/functy23/fewards?style=flat&logo=github)](https://github.com/functy23/fewards/stargazers)
+[![Repo Size](https://img.shields.io/github/repo-size/functy23/fewards?style=flat&logo=github)](https://github.com/functy23/fewards)
+[![Contributors](https://img.shields.io/github/contributors/functy23/fewards?color=ee8449&logo=githubsponsors)](https://github.com/functy23/fewards/graphs/contributors)
+
+[Issues](https://github.com/functy23/fewards/issues) • [AGENTS.md](AGENTS.md) • [Releases](https://github.com/functy23/fewards/releases)
+
+**English** | [简体中文](doc/README_zh-CN.md)
+</div>
+
+---
+
+Kotlin + Jetpack Compose, with a **Miuix** UI throughout (HyperOS style).
 
 <p align="center">
-  <img src="docs/screenshots/home-light.png" width="24%" alt="首页（浅色）" />
-  <img src="docs/screenshots/account-light.png" width="24%" alt="账号（浅色）" />
-  <img src="docs/screenshots/settings-light.png" width="24%" alt="设置（浅色）" />
-  <img src="docs/screenshots/theme-light.png" width="24%" alt="主题（浅色）" />
+  <img src="docs/screenshots/home-light.png" width="24%" alt="Home (light)" />
+  <img src="docs/screenshots/account-light.png" width="24%" alt="Accounts (light)" />
+  <img src="docs/screenshots/settings-light.png" width="24%" alt="Settings (light)" />
+  <img src="docs/screenshots/theme-light.png" width="24%" alt="Theme (light)" />
 </p>
 <p align="center">
-  <sub>浅色 · 首页 · 账号 · 设置 · 主题</sub>
+  <sub>Light · Home · Accounts · Settings · Theme</sub>
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/home-dark.png" width="24%" alt="首页（深色）" />
-  <img src="docs/screenshots/account-dark.png" width="24%" alt="账号（深色）" />
-  <img src="docs/screenshots/settings-dark.png" width="24%" alt="设置（深色）" />
-  <img src="docs/screenshots/theme-dark.png" width="24%" alt="主题（深色）" />
+  <img src="docs/screenshots/home-dark.png" width="24%" alt="Home (dark)" />
+  <img src="docs/screenshots/account-dark.png" width="24%" alt="Accounts (dark)" />
+  <img src="docs/screenshots/settings-dark.png" width="24%" alt="Settings (dark)" />
+  <img src="docs/screenshots/theme-dark.png" width="24%" alt="Theme (dark)" />
 </p>
 <p align="center">
-  <sub>深色 · 首页 · 账号 · 设置 · 主题</sub>
+  <sub>Dark · Home · Accounts · Settings · Theme</sub>
 </p>
 
-## 下载
+## Download
 
-到 [Releases](https://github.com/functy23/fewards/releases/latest) 下载最新 `Fewards-<版本>-release.apk`（release + R8）。
+Download the latest `Fewards-<version>-release.apk` (release + R8) from [Releases](https://github.com/functy23/fewards/releases/latest).
 
-## 能做什么
+## What it can do
 
 | | |
 |---|---|
-| **米游社** | 扫码登录（stoken v2）或 Cookie；原神 / 星铁 / 绝区零每日签到；米游币任务（社区签到 / 看帖 / 点赞 / 分享）；验证码策略（默认跳过，可选打码接口） |
-| **WorkBuddy** | 微信 / QQ 扫码授权或粘贴桌面端 accessToken；每日积分自动签到 |
+| **HoYoLAB (米游社)** | QR-code login (stoken v2) or Cookie; daily check-in for Genshin Impact / Honkai: Star Rail / Zenless Zone Zero; 米游币 (Miyoushe Coin) tasks (community check-in / read posts / like / share); CAPTCHA strategy (skipped by default, optional captcha-solving API) |
+| **WorkBuddy** | WeChat / QQ QR-code authorization, or paste the desktop accessToken; automatic daily points check-in |
 
-- **多账号** — 米游社与 WorkBuddy 都支持多个账号，同一账号重复授权按 uid 更新而非新增
-- **一条链路** — 首页「开始执行」与控制中心「签到」磁贴走同一套流程，执行中实时进度通知
-- **后台可续** — 执行走 WorkManager，进程被杀后仍能跑完
-- **本地优先** — 凭据只存本机 SharedPreferences，日志不打印 token / cookie
+- **Multiple accounts** — both HoYoLAB (米游社) and WorkBuddy support several accounts; re-authorizing the same account updates it by uid instead of adding a new one
+- **One pipeline** — the home screen's "Start" button and the Control Center "check-in" tile run the same flow, with live progress notifications while it runs
+- **Keeps running in the background** — execution goes through WorkManager, so it still finishes after the process is killed
+- **Local-first** — credentials are stored only in the device's own SharedPreferences, and logs never print tokens / cookies
 
-## 使用
+## Usage
 
-1. **账号** — 右上角「+」添加：米游社扫码或粘贴含 stoken + mid 的 Cookie；WorkBuddy 用微信 / QQ 扫码授权，或粘贴桌面端 accessToken
-2. **设置** — 开关任务分项、验证码策略、通知与完成总览
-3. **首页** — 勾选任务 → 开始执行
+1. **Accounts** — add one with "+" in the top-right corner: scan the QR code for HoYoLAB (米游社), or paste a Cookie containing stoken + mid; for WorkBuddy, authorize by scanning with WeChat / QQ, or paste the desktop accessToken
+2. **Settings** — toggle individual tasks, the CAPTCHA strategy, notifications and the completion overview
+3. **Home** — tick the tasks → Start
 
-macOS 想直接取桌面端 token：
+On macOS, to grab the desktop token directly:
 
 ```bash
 chmod +x scripts/workbuddy-token.sh
 ./scripts/workbuddy-token.sh
 ```
 
-## 构建
+## Build
 
-给用户装的包必须是 **release + R8**：
+The package you ship to users must be **release + R8**:
 
 ```bash
 ./gradlew :app:assembleRelease
-# 产物：app/build/outputs/apk/release/app-release.apk
+# Output: app/build/outputs/apk/release/app-release.apk
 ```
 
-测试：`./gradlew :app:testDebugUnitTest`
+Tests: `./gradlew :app:testDebugUnitTest`
 
-工具链：AGP 9.4.0 / Kotlin 2.4.10 / Compose BOM 2026.08.00 / miuix 0.9.3 / miuix-nav 0.9.4-rc01 / minSdk 31 / target 37 / Java 21。
+Toolchain: AGP 9.4.0 / Kotlin 2.4.10 / Compose BOM 2026.08.00 / miuix 0.9.4 / miuix-nav 0.9.4 / minSdk 31 / target 37 / Java 21.
 
-## 架构
+## Architecture
 
 ```
 app/src/main/java/com/functy/fewards/
-├── core/mihoyo/          # DS 签名、常量、HTTP、引擎
-├── core/workbuddy/       # 签到引擎、扫码授权协议
-├── data/repository/      # 设置、账号、配置导入导出
-├── ui/screen/            # 主页 / 账号 / 设置 / 主题 / 关于（Miuix）
+├── core/mihoyo/          # DS signing, constants, HTTP, engine
+├── core/workbuddy/       # check-in engine, QR authorization protocol
+├── data/repository/      # settings, accounts, config import/export
+├── ui/screen/            # home / accounts / settings / theme / about (Miuix)
 ├── ui/viewmodel/
-└── work/                 # WorkManager worker、通知
+└── work/                 # WorkManager workers, notifications
 ```
 
-Agent 约定见 [AGENTS.md](AGENTS.md)。
+Agent conventions live in [AGENTS.md](AGENTS.md).
 
-## 接口与参考
+## APIs and references
 
-- 米游社 DS salt、act_id、地址以 [MiyoQian](https://github.com/Womsxd/MiyoQian) 为准，抓包后可改 `DsSign.kt` / `MihoyoConstants.kt`；stoken 换 cookie 走 `getCookieAccountInfoBySToken`
-- WorkBuddy 签到：`copilot.tencent.com/billing/meter/*`
-- WorkBuddy 扫码授权：`copilot.tencent.com/v2/plugin/auth/state|token` + `/v2/plugin/login/account`（`platform=CLI`；未扫码返回非 0 码，属正常等待）
-- 打码接口：POST `{gt, challenge}` → `{validate}`
-- UI 参考 [KernelSU manager](https://github.com/tiann/KernelSU) 与 [InstallerX Revived](https://github.com/wxxsfxyzm/InstallerX-Revived)
+- HoYoLAB (米游社) DS salt, act_id and endpoints follow [MiyoQian](https://github.com/Womsxd/MiyoQian); after sniffing traffic you can edit `DsSign.kt` / `MihoyoConstants.kt`; the stoken → cookie exchange goes through `getCookieAccountInfoBySToken`
+- WorkBuddy check-in: `copilot.tencent.com/billing/meter/*`
+- WorkBuddy QR authorization: `copilot.tencent.com/v2/plugin/auth/state|token` + `/v2/plugin/login/account` (`platform=CLI`; a non-zero code before the QR code is scanned is the normal waiting state)
+- Captcha-solving API: POST `{gt, challenge}` → `{validate}`
+- UI references: [KernelSU manager](https://github.com/tiann/KernelSU) and [InstallerX Revived](https://github.com/wxxsfxyzm/InstallerX-Revived)
 
-早期同功能仓库已归档，请只用本仓库：[autofewards](https://github.com/functy23/autofewards)、[autorewards-runner](https://github.com/functy23/autorewards-runner)（Flutter 母本）。
+Earlier repositories with the same functionality are archived — use only this one: [autofewards](https://github.com/functy23/autofewards), [autorewards-runner](https://github.com/functy23/autorewards-runner) (the Flutter original).
 
-## 免责声明
+## Disclaimer
 
-仅供学习交流，遵守各平台条款；账号风险自负。
+For learning and study only; comply with each platform's terms; you bear the account risk yourself.

@@ -2,6 +2,15 @@
 
 给改这个仓库的 agent 用。人读 README。版本号、依赖坐标、SDK 以 `build.gradle.kts` / `gradle/libs.versions.toml` / `settings.gradle.kts` 为准，不要把某次构建的版本号抄进本文件当永久事实。
 
+## 文档约定（双语 + 徽章）
+
+README 为**英文主文档**（`README.md`）+ **中文全量翻译**（`doc/README_zh-CN.md`），
+两份内容一一对应，**改一边必须同步另一边**。两份文件顶部是同一组 shields.io 徽章
+（语言/平台/CI/License/Release/Downloads/Stars/Repo Size/Contributors 按仓库实际能力裁剪，
+没有的能力不放，避免死链），徽章下面一行语言切换：
+`README.md` 用 `**English** | [简体中文](doc/README_zh-CN.md)`，
+中文版用 `[English](../README.md) | **简体中文**`。增删徽章时两份一起改。
+
 ## 这是什么
 
 Android 自动签到 App：米游社（游戏社区签到 + 米游币任务）+ WorkBuddy（每日积分）。Kotlin + Compose，**界面只有 Miuix**。仓库：`https://github.com/functy23/fewards`。包名 `com.functy.fewards`。
