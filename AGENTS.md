@@ -226,7 +226,8 @@ app/src/test/java/com/functy/fewards/
   3. 它**没有** `title` / `summary` 槽，也**没有** `onDismissFinished` 回调。标题要自己画（`MiuixTheme.textStyles.title4`），关闭后的收尾（卸载弹窗、停轮询）要在调用方按 `show` 变化自己等一段（见 `AccountMiuix` 里的 `LaunchedEffect(showMhyDialog)` + `delay(200)`，对应 `GlassMotion.fadeOut()` 的 150ms）。
 - **`GlassTransformPopup` 不能放进 `TopAppBar.actions`。** `TopAppBar` 结尾有 `.clipToBounds()`，面板一长出 52dp 的栏高就被裁掉——真机表现是「点加号菜单直接消失」。它必须挂在 `Scaffold` 的**同级**（外层 `Box` 里），只有触发按钮留在 actions 槽。example 的 `GlassPage` 就是这么摆的（popup 在 243 行的外层 Box，不在 topBar 里）。
 - **每个 page 的 `Scaffold` 与 `GlassDialog`/`GlassTransformPopup` 必须包进同一个 `Box(Modifier.fillMaxSize())`。** pager 的 page 槽和 `NavDisplay` 的 entry 槽都只接受**一个**子节点，两个平级兄弟会被裁掉——真机表现同样是「弹窗永远不出现」。三个页面（Account / Settings / ColorPalette）都是这个结构。
-- 菜单的接线三件套：`rememberGlassPopupAnchor()` 持有 anchor → 触发按钮加 `Modifier.glassPopupAnchor(anchor, cornerRadius = ButtonSize / 2)` → `GlassTransformPopup(anchor = …, backdrop = …, anchorContent = { 按钮里的那个图标 })`，行用 `GlassPopupItem`。`anchorContent` 是给「面板长出来时复制按钮内容」用的，要传图标本身，不是整个按钮。
+- 菜单的接线**四件套**：`rememberGlassPopupAnchor()` 持有 anchor → 触发按钮加 `Modifier.glassPopupAnchor(anchor, cornerRadius = ButtonSize / 2)` → **按钮里的图标再加 `Modifier.glassPopupAnchorContent(anchor)`** → `GlassTransformPopup(anchor = …, backdrop = …, anchorContent = { 按钮里的那个图标 })`，行用 `GlassPopupItem`。`anchorContent` 是给「面板长出来时复制按钮内容」用的，要传图标本身，不是整个按钮。
+- **`glassPopupAnchorContent` 不能省**（漏掉就是「点加号图标瞬移」的真因）。锚点有两个矩形：`glassPopupAnchor` 报的 `containerBounds`（整个控件）与 `glassPopupAnchorContent` 报的 `contentBounds`（图标那一小块）。不给 `contentBounds` 时 `GlassTransformPopup` 用 `anchorContent = startRect`（整个圆钮）来摆副本，而副本内容是按该矩形的 **TopStart** 放的 —— 图标于是落到圆钮左上角：锚点左上 `(1075.5, 311.5)` + 半个图标盒 `(42, 42)` = `(1117.5, 353.5)`，与真机逐帧实测的 `(1117, 354)` 完全吻合。症状：点「+」图标先跳到左上方、菜单展开、关菜单时同一处再闪一下才回到按钮上。
 - 源系统里**列表卡片本来就不是玻璃材质**，别去把首页状态卡 / 任务卡 / 账号卡玻璃化。同样，下拉选择器（`WindowSpinnerPreference` / `OverlayDropdownPreference`）**没有**对应的玻璃组件，不要用 `glassPanel` 手搓。
 
 ## 导航与预测返回
@@ -249,6 +250,15 @@ app/src/test/java/com/functy/fewards/
 - `EditText.kt`、`WarningCard.kt`、`ScrollToTop.kt`、`ThemeExt.kt`、`ui/util/Colors.kt`、`MonetColorsProvider`
 - 自写的液态玻璃（`ui/component/FloatingBottomBar.kt`、`ui/component/liquid/`、`ui/component/miuix/animation/`、`ui/component/miuix/modifier/`）——已由 miuix-glass 取代
 - 未使用的 strings（预测返回开关、定时、导航徽标、签到游戏/分区文案）
+
+## 抓 UI 轨迹（纯视觉 BUG 用）
+
+logcat 看不到这类问题（App 自己不打帧级日志），要看的是**帧时间线**：`bash scripts/ui-trace.sh [输出目录]`。
+
+- 链路：唤醒屏幕 → 从 uiautomator 树里找控件坐标（不写死）→ `screenrecord` 录一段 → `ffmpeg` 抽成灰度 raw → 逐帧量控件亮像素的包围盒。
+- 输出 `timeline.txt`（逐帧中心/bbox/尺寸）与 `keyframes.png`（关键帧拼图）。
+- 踩过的坑，改脚本时别踩回去：屏幕休眠时 `screenrecord` 只报 `UNASSIGNED_LAYER_STACK` 并写出 0 字节；不等 `--time-limit` 走完就 `adb pull` 会拿到 `moov atom not found` 的半个文件；上一轮残留的 `screenrecord` 会让新一轮写不出 moov（脚本里先 `pkill`）；`screenrecord` 是变帧率，`r_frame_rate` 会谎报 60，真实帧率得用「总帧数 / 容器时长」；抽帧必须带 `-fps_mode passthrough`，否则补帧会让帧号与时间对不上；底栏 tab 要按「text 恰好等于 账号」+ 屏幕下半部找，子串匹配会命中 `content-description` 里的「添加账号」。
+- 判定玻璃菜单动画好坏的两个硬指标：副本 bbox 宽度在整段动画里恒定（≈68.6px，坏的时候会拉到 247.5px）；按钮 bbox 在按下/松开时中心不位移（坏的时候左移 27px）。
 
 ## 测试
 

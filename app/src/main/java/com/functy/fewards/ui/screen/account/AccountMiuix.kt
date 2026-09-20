@@ -21,9 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,13 +33,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -61,6 +62,7 @@ import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TopAppBarDefaults
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.glass.GlassIconButton
 import top.yukonga.miuix.kmp.glass.GlassPopupItem
@@ -68,11 +70,17 @@ import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.glass.GlassTransformPopup
 import top.yukonga.miuix.kmp.glass.glassPopupAnchor
+import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
 import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.AddCircle
+import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.squircle.squircleClip
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import kotlin.math.roundToInt
 
 /**
  * 账号页（Miuix）：
@@ -102,6 +110,22 @@ fun AccountPagerMiuix(
     }
 
     val backdrop = rememberBlurBackdrop()
+
+    // GlassTopAppBar 把 actions 垂直居中在「收起高度」（52dp）里，而大标题排在 52dp 之下，
+    // 所以右上角按钮默认停在大标题上方。用与大标题同款的 title1 量一次行高，把它下移到
+    // 大标题的中线上；滚动收起时按 collapsedFraction 收回原位，免得图标掉到收起栏下面。
+    // offset 的 lambda 在布局阶段读，不订阅重组。这段位移只加在**外层 Box** 上，按钮自己的
+    // modifier 链要留给 glassPopupAnchor（原因见 actions 槽那段注释）。
+    val textMeasurer = rememberTextMeasurer()
+    val titleLineHeightPx = with(LocalDensity.current) {
+        textMeasurer.measure(
+            text = AnnotatedString(stringResource(R.string.account_title)),
+            style = MiuixTheme.textStyles.title1,
+        ).size.height
+    }
+    val addButtonOffsetPx = with(LocalDensity.current) {
+        (TopAppBarDefaults.CollapsedHeight / 2).toPx() + titleLineHeightPx / 2f
+    }
 
     val addMenuAnchor = rememberGlassPopupAnchor()
     var showAddMenu by remember { mutableStateOf(false) }
@@ -159,9 +183,9 @@ fun AccountPagerMiuix(
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
-                // miuix-glass 顶栏（PR #423）。「+」改由顶栏自带的玻璃圆钮承载：
-                // 之前的 offset 补正是为了把它从「收起高度垂直居中」挪到大标题的中线上，
-                // 那是普通 TopAppBar 的排法，GlassTopAppBar 会自己处理这一层。
+                // miuix-glass 顶栏（PR #423）。「+」由顶栏自带的玻璃圆钮（GlassIconButton）承载，
+                // 对齐补正见上面 Box 那段：GlassTopAppBar 的 actions 同样居中在收起高度里，
+                // 不会自己把按钮挪到大标题的中线上。
                 GlassTopAppBar(
                     title = stringResource(R.string.account_title),
                     isContentScrolled = listState.canScrollBackward,
@@ -172,21 +196,39 @@ fun AccountPagerMiuix(
                         // .clipToBounds()，面板一长出 52dp 的栏高就被裁掉 —— 真机表现就是
                         // 「点加号菜单直接消失」。菜单挂在下面那个外层 Box 上（与 example 的
                         // GlassPage 一致：popup 是 Scaffold 的同级兄弟，不在 topBar 里）。
-                        GlassIconButton(
-                            onClick = {
-                                dismissInput()
-                                showAddMenu = true
+                        // 对齐补正必须套在**外层 Box** 上，不能写进 GlassIconButton 自己的 modifier 链。
+                        // glassPopupAnchor 用 boundsInRoot() 上报锚点，而它取的是该节点最外层布局
+                        // 修饰符的位置：同一条链里的 Modifier.offset 只挪链内内容，不改这个位置。
+                        // 写在链里 → 锚点少算这段位移，点「+」时按钮先消失、玻璃胶囊在 45dp 之上冒
+                        // 出来，关菜单时又在上面停一下才跳回真实位置。
+                        Box(
+                            modifier = Modifier.offset {
+                                val collapsed = scrollBehavior.state.collapsedFraction
+                                IntOffset(0, (addButtonOffsetPx * (1f - collapsed)).roundToInt())
                             },
-                            modifier = Modifier.glassPopupAnchor(
-                                anchor = addMenuAnchor,
-                                cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
-                            ),
                         ) {
-                            Icon(
-                                Icons.Rounded.Add,
-                                contentDescription = stringResource(R.string.account_add),
-                                tint = colorScheme.onSurface,
-                            )
+                            GlassIconButton(
+                                onClick = {
+                                    dismissInput()
+                                    showAddMenu = true
+                                },
+                                modifier = Modifier.glassPopupAnchor(
+                                    anchor = addMenuAnchor,
+                                    cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
+                                ),
+                            ) {
+                                Icon(
+                                    imageVector = MiuixIcons.AddCircle,
+                                    contentDescription = stringResource(R.string.account_add),
+                                    // glassPopupAnchorContent 不能省：它把「要复制的内容」收窄成这个
+                                    // 24dp 图标自己的矩形。缺它时 contentBounds 为空，弹窗退回用整个
+                                    // 锚点矩形当副本，而副本内容是按该矩形的 TopStart 摆的 —— 图标
+                                    // 副本于是落在圆钮左上角。真机逐帧实测：按下后副本中心从
+                                    // (1152,389) 跳到 (1117,354)，正好是「圆钮左上角 + 半个图标」。
+                                    modifier = Modifier.size(24.dp).glassPopupAnchorContent(addMenuAnchor),
+                                    tint = colorScheme.onSurface,
+                                )
+                            }
                         }
                     },
                 )
@@ -234,8 +276,9 @@ fun AccountPagerMiuix(
                                                 },
                                             ) {
                                                 Icon(
-                                                    Icons.Rounded.Delete,
+                                                    imageVector = MiuixIcons.Delete,
                                                     contentDescription = stringResource(R.string.miyoushe_logout),
+                                                    modifier = Modifier.size(24.dp),
                                                     tint = colorScheme.onSurfaceVariantSummary,
                                                 )
                                             }
@@ -277,8 +320,9 @@ fun AccountPagerMiuix(
                                                 },
                                             ) {
                                                 Icon(
-                                                    Icons.Rounded.Delete,
+                                                    imageVector = MiuixIcons.Delete,
                                                     contentDescription = stringResource(R.string.workbuddy_logout),
+                                                    modifier = Modifier.size(24.dp),
                                                     tint = colorScheme.onSurfaceVariantSummary,
                                                 )
                                             }
@@ -311,8 +355,9 @@ fun AccountPagerMiuix(
             backdrop = backdrop,
             anchorContent = {
                 Icon(
-                    imageVector = Icons.Rounded.Add,
+                    imageVector = MiuixIcons.AddCircle,
                     contentDescription = null,
+                    modifier = Modifier.size(24.dp),
                     tint = colorScheme.onSurface,
                 )
             },
