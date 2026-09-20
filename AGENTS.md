@@ -2,6 +2,15 @@
 
 给改这个仓库的 agent 用。人读 README。版本号、依赖坐标、SDK 以 `build.gradle.kts` / `gradle/libs.versions.toml` / `settings.gradle.kts` 为准，不要把某次构建的版本号抄进本文件当永久事实。
 
+## 文档约定（双语 + 徽章）
+
+README 为**英文主文档**（`README.md`）+ **中文全量翻译**（`doc/README_zh-CN.md`），
+两份内容一一对应，**改一边必须同步另一边**。两份文件顶部是同一组 shields.io 徽章
+（语言/平台/CI/License/Release/Downloads/Stars/Repo Size/Contributors 按仓库实际能力裁剪，
+没有的能力不放，避免死链），徽章下面一行语言切换：
+`README.md` 用 `**English** | [简体中文](doc/README_zh-CN.md)`，
+中文版用 `[English](../README.md) | **简体中文**`。增删徽章时两份一起改。
+
 ## 这是什么
 
 Android 自动签到 App：米游社（游戏社区签到 + 米游币任务）+ WorkBuddy（每日积分）。Kotlin + Compose，**界面只有 Miuix**。仓库：`https://github.com/functy23/fewards`。包名 `com.functy.fewards`。
@@ -187,7 +196,9 @@ app/src/test/java/com/functy/fewards/
 - **添加账号弹窗只有一份**：`ui/component/miuix/AddAccountDialog`（米游社与 WorkBuddy 共用）。不要再各写一份二维码弹窗。
   - 账号页只列**已登录账号**，米游社 / WorkBuddy 用灰色小标题（`SectionHeader`）分组；没有账号时显示 `account_empty` 提示。
   - 右上角「+」用 **`GlassTransformPopup`** 弹「添加米游社账号 / 添加 WorkBuddy 账号」；两项都打开同一个 `AddAccountDialog`。不要退回 `WindowListPopup` + 自写 `AddMenuRow`，也别用 miuix `DropdownImpl`（它恒定给尾部选中勾留 ≈32dp，这里没有选中态）。
-  - 「+」是 `GlassIconButton`（miuix-glass 的玻璃圆钮），在 `GlassTopAppBar` 的 `actions` 槽里。**不要退回** `IconButton` + `backgroundColor` + `Modifier.offset` 那套：那段 offset 补正是普通 `TopAppBar` 才需要的（把 actions 从「收起高度垂直居中」挪到大标题中线），`GlassTopAppBar` 自己处理这一层。
+  - 「+」是 `GlassIconButton`（miuix-glass 的玻璃圆钮），图标用 **`MiuixIcons.AddCircle`**，在 `GlassTopAppBar` 的 `actions` 槽里。**不要退回** `IconButton` + `backgroundColor`（`IconButton` 只留给行内操作，见下）。
+  - `GlassTopAppBar` 同样把 actions 垂直居中在「收起高度」（52dp）里，而大标题排在 52dp 之下，所以栏内按钮**默认停在大标题上方**。要和大标题对齐就得补一段 `Modifier.offset`：按 `MiuixTheme.textStyles.title1` 量一次标题行高，下移 `CollapsedHeight / 2 + 行高 / 2`，再按 `scrollBehavior.state.collapsedFraction` 收回原位（offset 的 lambda 在布局阶段读，不订阅重组）。这段补正**不能**省。
+  - 这段 `Modifier.offset` 必须套在**外层 `Box`** 上，**不能**写进 `GlassIconButton` 自己的 modifier 链（哪怕写在 `glassPopupAnchor` 前面）。`glassPopupAnchor` 用 `boundsInRoot()` 上报锚点，而它取的是该节点**最外层布局修饰符**的位置——同一条链里的 `offset` 只挪链内内容、不改这个位置，锚点于是少算整段位移。症状：点「+」按钮先消失、玻璃胶囊在真实位置上方约一个位移处冒出来，关菜单时又在上面停一下才跳回。
   - 弹窗内用 **`GlassSegmentedTabRow`** 切「扫码登录 / 凭据登录」：扫码页生成二维码，凭据页是输入框 + 导入。WorkBuddy 的凭据 Tab 是 Token 粘贴。
   - 开合由调用方的 `show` 状态驱动，只有 `QrState.Confirmed` 才自动关；过期/失败保持打开以露出「重新获取」。凭据导入成功（`onImportCredential` 返回 true）也自动关。
   - 弹窗的**挂载**由调用方的 `mounted` 标志控制（不是 `qrState`）：切到凭据 Tab 会立刻把 `qrState` 归零，只按 `qrState` 判断会让关闭动画演一半就消失。关闭动画是 `GlassDialog` 的缩放淡出；它**没有** `onDismissFinished`，所以 `mounted=false` + 取消轮询放在 `LaunchedEffect(show*)` 里 `delay(200)` 之后。
@@ -208,6 +219,7 @@ app/src/test/java/com/functy/fewards/
 - **主题页那排「跟随系统 / 浅色 / 深色」是刻意的例外，保持非玻璃的 `TabRowWithContour`。** 它长在 `LazyColumn` 里，也就是 `layerBackdrop` 的录制子树内，却要采样同一个 backdrop —— 玻璃表面在录制层内会自引用。真机实测：进主题页必崩，`Fatal signal 11 (SIGSEGV)` in RenderThread，`Cause: stack pointer is close to top of stack; likely stack overflow`，栈里全是 `RenderNode::prepareTreeImpl` 在无限递归。库自己的做法是把玻璃 Tab 放进顶栏 `bottomContent`（见 example `GlassPage`），**不在滚动内容里**。不要「顺手统一」。
 - `GlassNavigationBar` 的面板靠 RuntimeShader（AGSL，API 33+）；31/32 上 `drawBackdrop` 会被 `isRuntimeShaderSupported()` 整条关掉，只剩描边和阴影，在深色页面上读起来是「内容被挖了个洞」。所以底栏用 `isRuntimeShaderSupported()` 分流，低版本退 `FloatingNavigationBar`。`GlassTopAppBar` 不用分流：它的 `bandBrush` 遮罩是纯 Compose 绘制，材质失效时会露出纯色 `fill`。
 - `GlassIconButton` 的按压反馈由库给，不要再自己包 `IconButton`。
+- 账号页图标一律走 **miuix 图标集**（`MiuixIcons.*` + `Modifier.size(24.dp)`）：行内删除用 `MiuixIcons.Delete`（配 miuix `IconButton`），顶栏「+」用 `MiuixIcons.AddCircle`。不要再从 `androidx.compose.material.icons` 取；账号页已不 import 后者。
 - **`GlassDialog` 与 `WindowDialog` / `OverlayDialog` 完全不是一回事，换过来有三处必须自己补**（前两条是踩过的坑，别再犯）：
   1. **它是 inline 的 `Box(fillMaxSize)`，不走 `Scaffold.popupHost`。** 所以它必须**排在 `Scaffold` 之后**，否则被不透明的页面整个盖住、什么都看不见。三个调用点都为此调整过：`AccountMiuix` 把页面与弹窗包进同一个 `Box`，`SettingsMiuix` / `ColorPaletteScreenMiuix` 把弹窗挪到 `Scaffold` 收尾之后。
   2. **它不能待在 `Modifier.layerBackdrop(backdrop)` 的录制子树里。** 玻璃表面自己要在录制层外面，否则「层录制一个会画层的表面」，渲染线程一路递归到爆栈（`Glass.kt` 的 KDoc 明确写了这条）。上面那条的挪动同时解决了这一点——挪之前三个弹窗里有两个正好在录制层内。改动这类弹窗时**必须同时检查**：弹窗位置是否在 `layerBackdrop` 之后。
