@@ -47,8 +47,20 @@ class AccountViewModel : ViewModel() {
     }
 
     fun refresh() {
+        repairBingLabels()
         publishAccounts()
         hydrateMissingProfiles()
+    }
+
+    /**
+     * 修正老的 Bing 占位标签。
+     * 标签在纳管时写死，改名之后已有账号不会自己更新，所以在读取侧就地改一次。
+     */
+    private fun repairBingLabels() {
+        accounts.bingAccounts().forEach { account ->
+            val fixed = BingIdentity.normalizeLabel(account.label)
+            if (fixed != account.label) accounts.addBingAccount(account.copy(label = fixed))
+        }
     }
 
     private fun publishAccounts() {

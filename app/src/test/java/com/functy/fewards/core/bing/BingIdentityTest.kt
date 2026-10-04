@@ -55,4 +55,20 @@ class BingIdentityTest {
         assertTrue(label.startsWith("Bing · "))
         assertTrue(label.contains(BingIdentity.fingerprint("token-x").take(6)))
     }
+
+    @Test
+    fun legacyFallbackLabelIsRewritten() {
+        // v3.0.0 之前这个任务的显示名叫 Bing Rewards，老账号的标签是那样写死的
+        assertEquals("Bing · 9faf71", BingIdentity.normalizeLabel("Bing Rewards · 9faf71"))
+    }
+
+    @Test
+    fun normalizeKeepsCurrentAndUserLabels() {
+        assertEquals("Bing · 9faf71", BingIdentity.normalizeLabel("Bing · 9faf71"))
+        // 服务端给的真昵称、以及用户自己没改过的其它写法，一律不动
+        assertEquals("张三", BingIdentity.normalizeLabel("张三"))
+        assertEquals("", BingIdentity.normalizeLabel(""))
+        // 只是碰巧带 Bing 字样，不是旧兜底格式
+        assertEquals("Bing Rewards 账号", BingIdentity.normalizeLabel("Bing Rewards 账号"))
+    }
 }

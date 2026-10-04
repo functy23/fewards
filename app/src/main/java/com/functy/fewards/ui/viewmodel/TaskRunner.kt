@@ -2,6 +2,7 @@ package com.functy.fewards.ui.viewmodel
 
 import com.functy.fewards.core.AppLog
 import com.functy.fewards.core.bing.BingEngine
+import com.functy.fewards.core.bing.BingIdentity
 import com.functy.fewards.core.mihoyo.MihoyoApi
 import com.functy.fewards.core.mihoyo.MihoyoEngine
 import com.functy.fewards.core.mihoyo.MihoyoProfileHydrator
@@ -203,6 +204,12 @@ object TaskRunner {
             val deferred = async {
                 _state.value = _state.value.copy(bingRunning = true, bingStatus = TaskStatus.QUERYING)
                 try {
+                    // 老的占位标签一并修正（同 WorkBuddy 处理历史昵称的做法），
+                    // 免得用户从没打开过账号页时标签一直停在旧写法。
+                    accounts.bingAccounts().forEach { acc ->
+                        val fixed = BingIdentity.normalizeLabel(acc.label)
+                        if (fixed != acc.label) accounts.addBingAccount(acc.copy(label = fixed))
+                    }
                     val list = accounts.bingAccounts()
                     if (list.isEmpty() || !repo.bingMasterEnabled) {
                         if (list.isEmpty()) AppLog.w("BING", "Bing 未配置账号，跳过")

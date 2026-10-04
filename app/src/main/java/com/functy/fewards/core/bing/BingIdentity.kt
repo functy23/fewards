@@ -22,6 +22,25 @@ object BingIdentity {
 
     fun accountId(refreshToken: String): String = "bing_" + fingerprint(refreshToken)
 
+    /** 现行兜底标签前缀。 */
+    const val LABEL_PREFIX = "Bing · "
+
+    /** 历史上用过的兜底标签前缀（那时这个任务的显示名还叫 Bing Rewards）。 */
+    private const val LEGACY_LABEL_PREFIX = "Bing Rewards · "
+
     /** 没有可用昵称时的兜底标签。 */
-    fun fallbackLabel(refreshToken: String): String = "Bing · " + fingerprint(refreshToken).take(6)
+    fun fallbackLabel(refreshToken: String): String = LABEL_PREFIX + fingerprint(refreshToken).take(6)
+
+    /**
+     * 把历史遗留的兜底标签改写成现行写法。
+     *
+     * 账号标签是**纳管那一刻**写死的，之后改显示名不会自动回溯到已有账号，
+     * 所以读取侧要过一道；不匹配旧前缀的原样返回。
+     */
+    fun normalizeLabel(label: String): String =
+        if (label.startsWith(LEGACY_LABEL_PREFIX)) {
+            LABEL_PREFIX + label.removePrefix(LEGACY_LABEL_PREFIX)
+        } else {
+            label
+        }
 }
