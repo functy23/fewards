@@ -56,6 +56,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.functy.fewards.R
 import com.functy.fewards.ui.component.IconSquircleCornerFraction
 import com.functy.fewards.ui.component.miuix.AddAccountDialog
+import com.functy.fewards.ui.component.miuix.BingAuthWebView
 import com.functy.fewards.ui.viewmodel.AccountViewModel
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
@@ -80,9 +81,10 @@ import kotlin.math.roundToInt
 
 /**
  * 账号页（Miuix）：
- *  - 只展示已登录账号，米游社与 WorkBuddy 用灰色小标题分组；
- *  - 右上角「+」弹出列表，选择「添加米游社账号 / 添加 WorkBuddy 账号」；
- *  - 两者都打开同一个 AddAccountDialog，弹窗内可切换扫码 / 凭据登录。
+ *  - 只展示已登录账号，米游社 / WorkBuddy / Bing 用灰色小标题分组；
+ *  - 右上角「+」弹出列表，选择要添加哪一类账号；
+ *  - 三者都打开同一个 AddAccountDialog：米游社与 WorkBuddy 是「扫码 / 凭据」，
+ *    Bing 是「内嵌 WebView 授权 / refresh_token」——它没有二维码，主区换成授权页。
  */
 @Composable
 fun AccountPagerMiuix(
@@ -123,8 +125,10 @@ fun AccountPagerMiuix(
     // （切到 Cookie/Token Tab 会立刻把 qrState 归零，只靠 qrState 判断会动画演一半就消失）
     var showMhyDialog by remember { mutableStateOf(false) }
     var showWbDialog by remember { mutableStateOf(false) }
+    var showBingDialog by remember { mutableStateOf(false) }
     var mhyDialogMounted by remember { mutableStateOf(false) }
     var wbDialogMounted by remember { mutableStateOf(false) }
+    var bingDialogMounted by remember { mutableStateOf(false) }
 
     // 扫码成功才自动关弹窗；过期 / 失败保持打开以露出「重新获取」
     LaunchedEffect(state.qrState) {
@@ -132,6 +136,10 @@ fun AccountPagerMiuix(
     }
     LaunchedEffect(state.wbQrState) {
         if (state.wbQrState == QrState.Confirmed) showWbDialog = false
+    }
+    // Bing：授权换 token 成功才自动关弹窗
+    LaunchedEffect(state.bingAuthPhase) {
+        if (state.bingAuthPhase == QrState.Confirmed) showBingDialog = false
     }
     // 停在扫码 Tab 且没有活着的会话时申请二维码。
     // 以「弹窗开合 + Tab」为 key：弹窗弹出动画（folme spring）结束后才申请，
@@ -147,6 +155,13 @@ fun AccountPagerMiuix(
         if (state.wbQrState == QrState.Waiting || state.wbQrState == QrState.Scanned) return@LaunchedEffect
         kotlinx.coroutines.delay(450)
         if (showWbDialog && state.wbLoginMode == 0) actions.onStartWbQr()
+    }
+    // Bing 授权页只是本地拼 URL，同样等弹窗动画结束再生成，避免每帧换一次 state
+    LaunchedEffect(showBingDialog, state.bingLoginMode) {
+        if (!showBingDialog || state.bingLoginMode != 0) return@LaunchedEffect
+        if (state.bingAuthPhase == QrState.Waiting) return@LaunchedEffect
+        kotlinx.coroutines.delay(450)
+        if (showBingDialog && state.bingLoginMode == 0) actions.onStartBingAuth()
     }
 
     if (mhyDialogMounted) {
@@ -240,6 +255,63 @@ fun AccountPagerMiuix(
         )
     }
 
+    if (bingDialogMounted) {
+        AddAccountDialog(
+            show = showBingDialog,
+            title = stringResource(R.string.account_add_bing),
+            tabs = listOf(
+                stringResource(R.string.bing_login_web),
+                stringResource(R.string.bing_login_token),
+            ),
+            selectedTab = state.bingLoginMode,
+            onTabSelected = { tab ->
+                dismissInput()
+                actions.onSetBingLoginMode(tab)
+                if (tab != 0) actions.onCancelBingAuth()
+            },
+            // Bing 没有二维码：主区由 primaryContent 换成授权页
+            qrContent = "",
+            qrMessage = stringResource(
+                when (state.bingAuthPhase) {
+                    QrState.Loading -> R.string.bing_web_processing
+                    QrState.Expired -> R.string.qr_expired
+                    QrState.Error -> R.string.qr_failed
+                    else -> R.string.bing_web_hint
+                }
+            ),
+            canRetry = state.bingAuthPhase == QrState.Expired || state.bingAuthPhase == QrState.Error,
+            credentialLabel = stringResource(R.string.bing_token_hint),
+            credentialAction = stringResource(R.string.bing_token_import),
+            onImportCredential = { raw ->
+                dismissInput()
+                val accepted = actions.onImportBingToken(raw)
+                if (accepted) showBingDialog = false
+                accepted
+            },
+            onDismissRequest = { showBingDialog = false },
+            onDismissFinished = {
+                bingDialogMounted = false
+                actions.onCancelBingAuth()
+            },
+            onRetry = { actions.onStartBingAuth() },
+            primaryContent = {
+                if (state.bingAuthUrl.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(420.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        InfiniteProgressIndicator(color = colorScheme.primary)
+                    }
+                } else {
+                    BingAuthWebView(
+                        url = state.bingAuthUrl,
+                        onRedirect = { url -> actions.onBingRedirect(url) },
+                    )
+                }
+            },
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -283,6 +355,7 @@ fun AccountPagerMiuix(
                             val addOptions = listOf(
                                 stringResource(R.string.account_add_miyoushe),
                                 stringResource(R.string.account_add_workbuddy),
+                                stringResource(R.string.account_add_bing),
                             )
                             ListPopupColumn {
                                 // 不用 miuix 的 DropdownImpl：它恒定给尾部的「选中勾」留
@@ -301,10 +374,15 @@ fun AccountPagerMiuix(
                                                     mhyDialogMounted = true
                                                     showMhyDialog = true
                                                 }
-                                                else -> {
+                                                1 -> {
                                                     actions.onSetWbLoginMode(0)
                                                     wbDialogMounted = true
                                                     showWbDialog = true
+                                                }
+                                                else -> {
+                                                    actions.onSetBingLoginMode(0)
+                                                    bingDialogMounted = true
+                                                    showBingDialog = true
                                                 }
                                             }
                                         },
@@ -414,7 +492,48 @@ fun AccountPagerMiuix(
                 }
             }
 
-            if (state.mihoyoAccounts.isEmpty() && state.wbAccounts.isEmpty()) {
+            // ==================== Bing ====================
+            if (state.bingAccounts.isNotEmpty()) {
+                item { SectionHeader(stringResource(R.string.bing_rewards)) }
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column {
+                            state.bingAccounts.forEach { account ->
+                                BasicComponent(
+                                    title = account.label,
+                                    summary = bingSummary(account),
+                                    startAction = {
+                                        AccountFace(
+                                            url = "",
+                                            label = account.label,
+                                            hydrating = false,
+                                        )
+                                    },
+                                    endActions = {
+                                        IconButton(
+                                            onClick = {
+                                                dismissInput()
+                                                actions.onRemoveBing(account.id)
+                                            },
+                                        ) {
+                                            Icon(
+                                                Icons.Rounded.Delete,
+                                                contentDescription = stringResource(R.string.bing_logout),
+                                                tint = colorScheme.onSurfaceVariantSummary,
+                                            )
+                                        }
+                                    },
+                                    onClick = { dismissInput() },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (state.mihoyoAccounts.isEmpty() && state.wbAccounts.isEmpty() &&
+                state.bingAccounts.isEmpty()
+            ) {
                 item { EmptyHint() }
             }
 
@@ -461,7 +580,18 @@ private fun AddMenuRow(
     }
 }
 
-/** 灰色小标题：区分米游社 / WorkBuddy 账号分组。 */
+/**
+ * Bing 账号的副标题：上次同步到的积分快照 + 地区。
+ * 积分是执行时顺手记下来的只读快照，不额外发请求。
+ */
+@Composable
+private fun bingSummary(account: com.functy.fewards.data.repository.AccountRepository.BingAccount): String {
+    if (account.lastBalance < 0) return stringResource(R.string.bing_balance_unknown)
+    val balance = stringResource(R.string.bing_balance, account.lastBalance)
+    return if (account.country.isNotEmpty()) balance + " · " + account.country else balance
+}
+
+/** 灰色小标题：区分米游社 / WorkBuddy / Bing 账号分组。 */
 @Composable
 private fun SectionHeader(text: String) {
     Text(

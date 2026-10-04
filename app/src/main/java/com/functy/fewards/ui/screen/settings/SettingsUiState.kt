@@ -31,6 +31,10 @@ data class SettingsUiState(
     // WorkBuddy
     val wbMasterEnabled: Boolean = true,
 
+    // Bing
+    val bingMasterEnabled: Boolean = true,
+    val bingAppCheckIn: Boolean = true,
+
     // 通知与完成总览
     val taskNotification: Boolean = true,
     val overviewAutoDismiss: Boolean = true,
@@ -52,6 +56,9 @@ data class SettingsScreenActions(
     val onSetMhyCaptchaApiUrl: (String) -> Unit,
     // WorkBuddy
     val onSetWbMaster: (Boolean) -> Unit,
+    // Bing
+    val onSetBingMaster: (Boolean) -> Unit,
+    val onSetBingAppCheckIn: (Boolean) -> Unit,
     // 通知与完成总览
     val onSetTaskNotification: (Boolean) -> Unit,
     val onSetOverviewAutoDismiss: (Boolean) -> Unit,

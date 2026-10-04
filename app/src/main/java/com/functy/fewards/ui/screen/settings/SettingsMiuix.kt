@@ -341,6 +341,50 @@ fun SettingPagerMiuix(
                         )
                     }
 
+                    // ==================== Bing ====================
+                    Card(
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .fillMaxWidth(),
+                    ) {
+                        SwitchPreference(
+                            title = stringResource(id = R.string.settings_bing_master),
+                            summary = stringResource(id = R.string.settings_bing_master_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.WorkspacePremium,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_bing_master),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.bingMasterEnabled,
+                            onCheckedChange = actions.onSetBingMaster
+                        )
+                        AnimatedVisibility(
+                            visible = uiState.bingMasterEnabled,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically(),
+                        ) {
+                            Column {
+                                SwitchPreference(
+                                    title = stringResource(id = R.string.settings_bing_app_checkin),
+                                    summary = stringResource(id = R.string.settings_bing_app_checkin_summary),
+                                    startAction = {
+                                        Icon(
+                                            Icons.Rounded.Notifications,
+                                            modifier = Modifier.padding(end = 6.dp),
+                                            contentDescription = stringResource(id = R.string.settings_bing_app_checkin),
+                                            tint = colorScheme.onBackground
+                                        )
+                                    },
+                                    checked = uiState.bingAppCheckIn,
+                                    onCheckedChange = actions.onSetBingAppCheckIn
+                                )
+                            }
+                        }
+                    }
+
                     // ==================== 通知与完成总览 ====================
                     Card(
                         modifier = Modifier

@@ -41,8 +41,9 @@ import top.yukonga.miuix.kmp.window.WindowDialog
  * 「添加账号」弹窗（米游社 / WorkBuddy 共用同一套控件）。
  *
  * 弹窗内用 TabRowWithContour 切换登录方式：
- *  - 扫码 Tab：显示二维码（[qrContent] 为空时显示加载圈），带复制链接 / 浏览器打开 / 重新获取；
- *  - 凭据 Tab：一个输入框 + 导入按钮（米游社 = Cookie，WorkBuddy = Access Token）。
+ *  - 主 Tab：显示二维码（[qrContent] 为空时显示加载圈），带复制链接 / 浏览器打开 / 重新获取；
+ *    传了 [primaryContent] 时改为渲染它（Bing 用内嵌 WebView 走 OAuth 授权，没有二维码）；
+ *  - 凭据 Tab：一个输入框 + 导入按钮（米游社 = Cookie，WorkBuddy = Access Token，Bing = refresh_token）。
  *
  * 状态由调用方驱动；关闭走 WindowDialog 自带下滑淡出动画，
  * 动画结束后才回调 [onDismissFinished]（调用方在那里停轮询）。
@@ -64,6 +65,11 @@ fun AddAccountDialog(
     onDismissRequest: () -> Unit,
     onDismissFinished: () -> Unit,
     onRetry: () -> Unit,
+    /**
+     * 主 Tab 的自定义内容。为 null 时渲染内置二维码区；
+     * 非 null 时完全由调用方决定主 Tab 长什么样（Bing 传的是授权 WebView）。
+     */
+    primaryContent: (@Composable () -> Unit)? = null,
 ) {
     var credential by rememberSaveable { mutableStateOf("") }
     // 关闭后清空输入，避免下次打开残留上一次的 Cookie / Token
@@ -89,12 +95,10 @@ fun AddAccountDialog(
                 Spacer(Modifier.height(16.dp))
 
                 if (selectedTab == 0) {
-                    QrSection(
-                        content = qrContent,
-                        message = qrMessage,
-                        canRetry = canRetry,
-                        onRetry = onRetry,
-                    )
+                    // 主区：默认是二维码；Bing 传入内嵌授权 WebView。
+                    // 说明文案与「重新获取」按钮两种形态共用，所以放在主区之外。
+                    if (primaryContent != null) primaryContent() else QrMedia(content = qrContent)
+                    QrFooter(message = qrMessage, canRetry = canRetry, onRetry = onRetry)
                 } else {
                     CredentialSection(
                         value = credential,
@@ -119,9 +123,32 @@ fun AddAccountDialog(
     )
 }
 
+/** 主区（二维码形态）：固定 240dp，避免各阶段弹窗高度跳动。 */
 @Composable
-private fun QrSection(
-    content: String,
+private fun QrMedia(content: String) {
+    Box(
+        modifier = Modifier.size(240.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (content.isNotEmpty()) {
+            QrImage(content = content)
+        } else {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                InfiniteProgressIndicator(color = colorScheme.primary)
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.processing),
+                    fontSize = 14.sp,
+                    color = colorScheme.onSurfaceVariantSummary,
+                )
+            }
+        }
+    }
+}
+
+/** 主区下方的说明文案 + 可选的「重新获取」。 */
+@Composable
+private fun QrFooter(
     message: String,
     canRetry: Boolean,
     onRetry: () -> Unit,
@@ -130,25 +157,6 @@ private fun QrSection(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // 固定 240dp 二维码区，避免各阶段弹窗高度跳动
-        Box(
-            modifier = Modifier.size(240.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (content.isNotEmpty()) {
-                QrImage(content = content)
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    InfiniteProgressIndicator(color = colorScheme.primary)
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = stringResource(R.string.processing),
-                        fontSize = 14.sp,
-                        color = colorScheme.onSurfaceVariantSummary,
-                    )
-                }
-            }
-        }
         Spacer(Modifier.height(10.dp))
         Text(
             text = message,

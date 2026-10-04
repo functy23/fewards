@@ -8,7 +8,7 @@ import org.json.JSONObject
 
 /**
  * 账号与登录态仓储。所有 token / cookie 仅存本机 SharedPreferences（sec 前缀），绝不外传。
- * 键：sec.mhy.accounts（JSON 数组）、sec.wb.accounts（JSON 数组）。
+ * 键：sec.mhy.accounts（JSON 数组）、sec.wb.accounts（JSON 数组）、sec.bing.accounts（JSON 数组）。
  */
 class AccountRepository {
 
@@ -157,6 +157,87 @@ class AccountRepository {
     }
 
     fun workBuddyConfigured(): Boolean = workBuddyAccounts().isNotEmpty()
+
+    // ==================== Bing / Microsoft Rewards ====================
+
+    /**
+     * Bing 账号（微软积分 / Microsoft Rewards）。
+     *
+     * 只存 OAuth 凭据：refresh_token 是长期凭据（用户只需在 WebView 里登录一次），
+     * access_token 是它的短期缓存，过期由引擎自动换新。
+     * [country] 首次纳管时可能为空，拉到 dapi 的 profile 后回填；空值按
+     * [com.functy.fewards.core.bing.BingConstants.DEFAULT_COUNTRY] 处理。
+     * [lastBalance] 是上次执行时的积分快照（仅用于账号页展示），-1 表示未知。
+     */
+    data class BingAccount(
+        val id: String,
+        val label: String,
+        val refreshToken: String,
+        val accessToken: String = "",
+        val expiresAt: Long = 0L,
+        val country: String = "",
+        val lastBalance: Int = -1,
+    )
+
+    fun bingAccounts(): List<BingAccount> {
+        val raw = prefs.getString("sec.bing.accounts", null) ?: return emptyList()
+        return runCatching {
+            val arr = JSONArray(raw)
+            (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                BingAccount(
+                    id = o.optString("id"),
+                    label = o.optString("label"),
+                    refreshToken = o.optString("refreshToken"),
+                    accessToken = o.optString("accessToken"),
+                    expiresAt = o.optLong("expiresAt"),
+                    country = o.optString("country"),
+                    lastBalance = o.optInt("lastBalance", -1),
+                )
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    /**
+     * 写入 / 更新一个 Bing 账号（多账号：同一账号重复授权 = 更新，而不是多出一条）。
+     * 去重顺序：相同的 id -> 相同的 refresh_token。
+     *
+     * 已知限制：refresh_token 会随每次刷新轮换，所以对**同一**微软账号重新走一遍完整
+     * 授权登录会得到不同的 token，因而可能新增一条；账号页可手动删掉多余的那条。
+     * 日常使用不需要重新登录（refresh_token 长期有效），因此正常路径不会重复。
+     */
+    fun addBingAccount(account: BingAccount) {
+        val list = bingAccounts().toMutableList()
+        val index = list.indexOfFirst { existing ->
+            existing.id == account.id ||
+                (account.refreshToken.isNotEmpty() && existing.refreshToken == account.refreshToken)
+        }
+        if (index >= 0) list[index] = account else list.add(account)
+        saveBing(list)
+    }
+
+    fun removeBingAccount(id: String) {
+        saveBing(bingAccounts().filter { it.id != id })
+    }
+
+    private fun saveBing(list: List<BingAccount>) {
+        val arr = JSONArray()
+        list.forEach { a ->
+            arr.put(
+                JSONObject()
+                    .put("id", a.id)
+                    .put("label", a.label)
+                    .put("refreshToken", a.refreshToken)
+                    .put("accessToken", a.accessToken)
+                    .put("expiresAt", a.expiresAt)
+                    .put("country", a.country)
+                    .put("lastBalance", a.lastBalance)
+            )
+        }
+        prefs.edit { putString("sec.bing.accounts", arr.toString()) }
+    }
+
+    fun bingConfigured(): Boolean = bingAccounts().isNotEmpty()
 
     // ==================== 本地完成标记 ====================
 

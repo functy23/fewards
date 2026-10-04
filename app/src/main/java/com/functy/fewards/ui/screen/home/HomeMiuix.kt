@@ -126,11 +126,13 @@ fun HomePagerMiuix(
                                 summary = summary,
                                 onToggleWb = actions.onToggleWb,
                                 onToggleMhy = actions.onToggleMhy,
+                                onToggleBing = actions.onToggleBing,
                                 modifier = Modifier.weight(1f),
                             )
                             ExecuteCard(
                                 wbChecked = summary.runWb,
                                 mhyChecked = summary.runMhy,
+                                bingChecked = summary.runBing,
                                 enabled = !state.running && summary.canRun,
                                 running = state.running,
                                 onRun = actions.onRun,
@@ -294,6 +296,13 @@ private fun TaskListCard(state: HomeUiState, summary: HomeSummary) {
                     status = statusText(state.mhyStatus),
                 )
             }
+            if (summary.bingVisible) {
+                TaskRow(
+                    resId = R.drawable.bing,
+                    name = stringResource(R.string.bing_rewards),
+                    status = statusText(state.bingStatus),
+                )
+            }
         }
     }
 }
@@ -332,13 +341,14 @@ private fun TaskRow(
     }
 }
 
-/** 左侧：两个复选框行（squircle 图标 + 名字 + 右侧复选框，固定间距防重叠）。 */
+/** 左侧：复选框行（squircle 图标 + 名字 + 右侧复选框，固定间距防重叠）。 */
 @Composable
 private fun TaskPickerCard(
     state: HomeUiState,
     summary: HomeSummary,
     onToggleWb: (Boolean) -> Unit,
     onToggleMhy: (Boolean) -> Unit,
+    onToggleBing: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(modifier = modifier.fillMaxHeight()) {
@@ -349,24 +359,34 @@ private fun TaskPickerCard(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            if (summary.wbVisible) {
-                PickerRow(
-                    resId = R.drawable.workbuddy,
-                    name = stringResource(R.string.workbuddy),
-                    checked = state.wbChecked,
-                    onCheckedChange = onToggleWb,
-                )
+            // 只有可见的行会渲染，间隔也只在相邻两行之间插入
+            val rows = buildList {
+                if (summary.wbVisible) add(0)
+                if (summary.mhyVisible) add(1)
+                if (summary.bingVisible) add(2)
             }
-            if (summary.wbVisible && summary.mhyVisible) {
-                Spacer(Modifier.height(8.dp))
-            }
-            if (summary.mhyVisible) {
-                PickerRow(
-                    resId = R.drawable.miyoushe,
-                    name = stringResource(R.string.miyoushe),
-                    checked = state.mhyChecked,
-                    onCheckedChange = onToggleMhy,
-                )
+            rows.forEachIndexed { index, kind ->
+                if (index > 0) Spacer(Modifier.height(8.dp))
+                when (kind) {
+                    0 -> PickerRow(
+                        resId = R.drawable.workbuddy,
+                        name = stringResource(R.string.workbuddy),
+                        checked = state.wbChecked,
+                        onCheckedChange = onToggleWb,
+                    )
+                    1 -> PickerRow(
+                        resId = R.drawable.miyoushe,
+                        name = stringResource(R.string.miyoushe),
+                        checked = state.mhyChecked,
+                        onCheckedChange = onToggleMhy,
+                    )
+                    else -> PickerRow(
+                        resId = R.drawable.bing,
+                        name = stringResource(R.string.bing_rewards),
+                        checked = state.bingChecked,
+                        onCheckedChange = onToggleBing,
+                    )
+                }
             }
         }
     }
@@ -405,9 +425,10 @@ private fun PickerRow(
 private fun ExecuteCard(
     wbChecked: Boolean,
     mhyChecked: Boolean,
+    bingChecked: Boolean,
     enabled: Boolean,
     running: Boolean,
-    onRun: (Boolean, Boolean) -> Unit,
+    onRun: (Boolean, Boolean, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val haptic = LocalHapticFeedback.current
@@ -429,7 +450,7 @@ private fun ExecuteCard(
                 text = stringResource(if (running) R.string.home_running else R.string.home_start_execute),
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onRun(wbChecked, mhyChecked)
+                    onRun(wbChecked, mhyChecked, bingChecked)
                 },
                 enabled = enabled,
                 colors = ButtonDefaults.textButtonColorsPrimary(),

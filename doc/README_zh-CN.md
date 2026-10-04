@@ -2,7 +2,7 @@
 
 # 🎁 Fewards
 
-**Android 自动签到：米游社（HoYoLAB）与 WorkBuddy，一键跑完全部日常任务。**
+**Android 自动签到：米游社（HoYoLAB）、WorkBuddy 与微软积分（Microsoft Rewards），一键跑完全部日常任务。**
 
 [![Fewards](https://img.shields.io/badge/Fewards-AUTO-orange.svg)](https://github.com/functy23/fewards)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0%2B-purple.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
@@ -56,15 +56,16 @@ Kotlin + Jetpack Compose，界面全程 **Miuix**（HyperOS 风格）。
 |---|---|
 | **米游社** | 扫码登录（stoken v2）或 Cookie；原神 / 星铁 / 绝区零每日签到；米游币任务（社区签到 / 看帖 / 点赞 / 分享）；验证码策略（默认跳过，可选打码接口） |
 | **WorkBuddy** | 微信 / QQ 扫码授权或粘贴桌面端 accessToken；每日积分自动签到 |
+| **Bing**（微软积分） | 应用内嵌网页登录微软账号（OAuth 授权码 + refresh_token，登录一次长期免重登）；自动领取每日活动卡片 / 更多促销 / 阅读赚分，以及 Bing App 每日连签；并展示积分余额。**只做领取，绝不自动搜索** |
 
-- **多账号** — 米游社与 WorkBuddy 都支持多个账号，同一账号重复授权按 uid 更新而非新增
+- **多账号** — 米游社、WorkBuddy 与微软积分都支持多个账号，同一账号重复授权按 uid 更新而非新增
 - **一条链路** — 首页「开始执行」与控制中心「签到」磁贴走同一套流程，执行中实时进度通知
 - **后台可续** — 执行走 WorkManager，进程被杀后仍能跑完
 - **本地优先** — 凭据只存本机 SharedPreferences，日志不打印 token / cookie
 
 ## 使用
 
-1. **账号** — 右上角「+」添加：米游社扫码或粘贴含 stoken + mid 的 Cookie；WorkBuddy 用微信 / QQ 扫码授权，或粘贴桌面端 accessToken
+1. **账号** — 右上角「+」添加：米游社扫码或粘贴含 stoken + mid 的 Cookie；WorkBuddy 用微信 / QQ 扫码授权，或粘贴桌面端 accessToken；微软积分在应用内网页登录微软账号，或粘贴 refresh_token
 2. **设置** — 开关任务分项、验证码策略、通知与完成总览
 3. **首页** — 勾选任务 → 开始执行
 
@@ -94,6 +95,7 @@ chmod +x scripts/workbuddy-token.sh
 app/src/main/java/com/functy/fewards/
 ├── core/mihoyo/          # DS 签名、常量、HTTP、引擎
 ├── core/workbuddy/       # 签到引擎、扫码授权协议
+├── core/bing/            # 微软积分 dapi 客户端、OAuth、领取判定
 ├── data/repository/      # 设置、账号、配置导入导出
 ├── ui/screen/            # 主页 / 账号 / 设置 / 主题 / 关于（Miuix）
 ├── ui/viewmodel/
@@ -107,6 +109,7 @@ Agent 约定见 [AGENTS.md](AGENTS.md)。
 - 米游社 DS salt、act_id、地址以 [MiyoQian](https://github.com/Womsxd/MiyoQian) 为准，抓包后可改 `DsSign.kt` / `MihoyoConstants.kt`；stoken 换 cookie 走 `getCookieAccountInfoBySToken`
 - WorkBuddy 签到：`copilot.tencent.com/billing/meter/*`
 - WorkBuddy 扫码授权：`copilot.tencent.com/v2/plugin/auth/state|token` + `/v2/plugin/login/account`（`platform=CLI`；未扫码返回非 0 码，属正常等待）
+- 微软积分：OAuth 授权码走 `login.live.com/oauth20_authorize.srf`（公开客户端，`scope=service::prod.rewardsplatform.microsoft.com::MBI_SSL`，回跳 `oauth20_desktop.srf`），之后走 dapi —— `GET prod.rewardsplatform.microsoft.com/dapi/me?channel=SAAndroid&options=511` 与 `POST /dapi/me/activities`（`type:101` + `offerid` 领卡片，`type:103` 为 Bing App 每日连签）。**刻意不做自动搜索**
 - 打码接口：POST `{gt, challenge}` → `{validate}`
 - UI 参考 [KernelSU manager](https://github.com/tiann/KernelSU) 与 [InstallerX Revived](https://github.com/wxxsfxyzm/InstallerX-Revived)
 

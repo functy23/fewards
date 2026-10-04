@@ -1,6 +1,7 @@
 package com.functy.fewards.ui.viewmodel
 
 import com.functy.fewards.core.AppLog
+import com.functy.fewards.core.bing.BingEngine
 import com.functy.fewards.core.mihoyo.MihoyoApi
 import com.functy.fewards.core.mihoyo.MihoyoEngine
 import com.functy.fewards.core.mihoyo.MihoyoProfileHydrator
@@ -18,8 +19,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * 任务执行逻辑：wb + mhy 并行（async）。
+ * 任务执行逻辑：wb + mhy + bing 并行（async）。
  * 入队入口在 work.TaskWorker.enqueue，保证进程被杀后仍可执行。
+ *
+ * bing 是纯 HTTP 的领取任务（只领活动卡片与 App 连签，不做搜索），
+ * 单次运行通常在几秒内结束，不需要前台服务。
  */
 object TaskRunner {
 
@@ -28,8 +32,10 @@ object TaskRunner {
     data class TaskUiState(
         val wbStatus: TaskStatus = TaskStatus.UNCONFIGURED,
         val mhyStatus: TaskStatus = TaskStatus.UNCONFIGURED,
+        val bingStatus: TaskStatus = TaskStatus.UNCONFIGURED,
         val wbRunning: Boolean = false,
         val mhyRunning: Boolean = false,
+        val bingRunning: Boolean = false,
         val running: Boolean = false,
         val lastRunSummary: String = "",
     )
@@ -45,6 +51,7 @@ object TaskRunner {
         _state.value = _state.value.copy(
             wbStatus = resolveStatus(configured = accounts.workBuddyConfigured(), done = accounts.isDoneToday("wb")),
             mhyStatus = resolveStatus(configured = accounts.mihoyoConfigured(), done = accounts.isDoneToday("mhy")),
+            bingStatus = resolveStatus(configured = accounts.bingConfigured(), done = accounts.isDoneToday("bing")),
         )
     }
 
@@ -54,16 +61,17 @@ object TaskRunner {
         else -> TaskStatus.NOT_DONE
     }
 
-    /** 直接执行（Worker 调用；wb 与 mhy 并行）。 */
-    suspend fun execute(runWb: Boolean, runMhy: Boolean): String {
+    /** 直接执行（Worker 调用；wb / mhy / bing 三者并行）。 */
+    suspend fun execute(runWb: Boolean, runMhy: Boolean, runBing: Boolean = false): String {
         if (_state.value.running) return "已有任务在执行中"
         _state.value = _state.value.copy(
             running = true,
             wbStatus = if (runWb && _state.value.wbStatus != TaskStatus.UNCONFIGURED) TaskStatus.QUERYING else _state.value.wbStatus,
             mhyStatus = if (runMhy && _state.value.mhyStatus != TaskStatus.UNCONFIGURED) TaskStatus.QUERYING else _state.value.mhyStatus,
+            bingStatus = if (runBing && _state.value.bingStatus != TaskStatus.UNCONFIGURED) TaskStatus.QUERYING else _state.value.bingStatus,
         )
         RunTasksTileService.refresh(fewardsApp)
-        val totalSteps = listOf(runWb, runMhy).count { it }
+        val totalSteps = listOf(runWb, runMhy, runBing).count { it }
         var doneSteps = 0
         var allOk = true
         if (totalSteps > 0) {
@@ -79,10 +87,12 @@ object TaskRunner {
                 }
                 val wbJob: Job = if (runWb) launchJobWb(summaries, ::onStepDone) else Job()
                 val mhyJob: Job = if (runMhy) launchJobMhy(summaries, ::onStepDone) else Job()
-                listOf(wbJob, mhyJob).filter { it.isActive || it.isCompleted }.forEach { }
-                // 等待两个并行分支结束
+                val bingJob: Job = if (runBing) launchJobBing(summaries, ::onStepDone) else Job()
+                listOf(wbJob, mhyJob, bingJob).filter { it.isActive || it.isCompleted }.forEach { }
+                // 等待三个并行分支结束
                 if (runWb) wbJob.join()
                 if (runMhy) mhyJob.join()
+                if (runBing) bingJob.join()
             }
         } finally {
             _state.value = _state.value.copy(running = false)
@@ -102,6 +112,10 @@ object TaskRunner {
 
     private fun MutableStateFlow<TaskUiState>.updateMhyRunning(v: Boolean) {
         value = value.copy(mhyRunning = v)
+    }
+
+    private fun MutableStateFlow<TaskUiState>.updateBingRunning(v: Boolean) {
+        value = value.copy(bingRunning = v)
     }
 
     private suspend fun launchJobWb(summaries: MutableList<String>, onStepDone: (Boolean) -> Unit): Job =
@@ -179,6 +193,40 @@ object TaskRunner {
                     AppLog.e("MHY", "米游社执行异常: ${t.message}")
                     _state.value = _state.value.copy(mhyRunning = false, mhyStatus = TaskStatus.NOT_DONE)
                     summaries.add("米游社: 异常")
+                }
+            }
+            deferred
+        }
+
+    private suspend fun launchJobBing(summaries: MutableList<String>, onStepDone: (Boolean) -> Unit): Job =
+        kotlinx.coroutines.coroutineScope {
+            val deferred = async {
+                _state.value = _state.value.copy(bingRunning = true, bingStatus = TaskStatus.QUERYING)
+                try {
+                    val list = accounts.bingAccounts()
+                    if (list.isEmpty() || !repo.bingMasterEnabled) {
+                        if (list.isEmpty()) AppLog.w("BING", "Bing 未配置账号，跳过")
+                        _state.value = _state.value.copy(bingRunning = false, bingStatus = TaskStatus.UNCONFIGURED)
+                        return@async
+                    }
+                    val engine = BingEngine(
+                        client = MihoyoApi.defaultClient(),
+                        accounts = list,
+                        appCheckIn = repo.bingAppCheckIn,
+                        persist = { accounts.addBingAccount(it) },
+                    )
+                    val ok = engine.runAll()
+                    if (ok) accounts.markDoneToday("bing")
+                    _state.value = _state.value.copy(
+                        bingRunning = false,
+                        bingStatus = if (ok) TaskStatus.DONE else TaskStatus.NOT_DONE
+                    )
+                    summaries.add("Bing: " + (if (ok) "完成" else "存在失败项"))
+                    onStepDone(ok)
+                } catch (t: Throwable) {
+                    AppLog.e("BING", "Bing 执行异常: " + t.message)
+                    _state.value = _state.value.copy(bingRunning = false, bingStatus = TaskStatus.NOT_DONE)
+                    summaries.add("Bing: 异常")
                 }
             }
             deferred

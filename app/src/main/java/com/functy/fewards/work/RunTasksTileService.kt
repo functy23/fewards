@@ -30,14 +30,15 @@ class RunTasksTileService : TileService() {
             val settings = SettingsRepositoryImpl()
             val runWb = settings.wbMasterEnabled && accounts.workBuddyConfigured()
             val runMhy = settings.mhyMasterEnabled && accounts.mihoyoConfigured()
-            if (!runWb && !runMhy) {
+            val runBing = settings.bingMasterEnabled && accounts.bingConfigured()
+            if (!runWb && !runMhy && !runBing) {
                 AppLog.w("SYS", "控制中心签到：没有可执行的已配置任务")
                 applyState(false)
             } else {
                 applyState(true)
                 TaskNotifier.startRun(getString(R.string.notify_running))
-                AppLog.i("SYS", "控制中心开始执行：WorkBuddy=$runWb 米游社=$runMhy")
-                TaskWorker.enqueue(applicationContext, runWb, runMhy)
+                AppLog.i("SYS", "控制中心开始执行：WorkBuddy=$runWb 米游社=$runMhy Bing=$runBing")
+                TaskWorker.enqueue(applicationContext, runWb, runMhy, runBing)
             }
         }
         if (isLocked) {

@@ -109,4 +109,12 @@ class SettingsRepositoryImpl : SettingsRepository {
     override var wbMasterEnabled: Boolean
         get() = prefs.getBoolean("wb_master_enabled", true)
         set(value) = prefs.edit { putBoolean("wb_master_enabled", value) }
+
+    override var bingMasterEnabled: Boolean
+        get() = prefs.getBoolean("bing_master_enabled", true)
+        set(value) = prefs.edit { putBoolean("bing_master_enabled", value) }
+
+    override var bingAppCheckIn: Boolean
+        get() = prefs.getBoolean("bing_app_checkin", true)
+        set(value) = prefs.edit { putBoolean("bing_app_checkin", value) }
 }

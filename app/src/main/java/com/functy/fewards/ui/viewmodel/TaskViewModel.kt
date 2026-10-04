@@ -39,8 +39,10 @@ class TaskViewModel : ViewModel() {
                     it.copy(
                         wbStatus = runner.wbStatus,
                         mhyStatus = runner.mhyStatus,
+                        bingStatus = runner.bingStatus,
                         wbRunning = runner.wbRunning,
                         mhyRunning = runner.mhyRunning,
+                        bingRunning = runner.bingRunning,
                         running = runner.running,
                         lastRunSummary = runner.lastRunSummary,
                     )
@@ -58,6 +60,11 @@ class TaskViewModel : ViewModel() {
                 } else {
                     resolveStatus(accounts.workBuddyConfigured(), accounts.isDoneToday("wb"))
                 },
+                bingStatus = if (runner.bingRunning) {
+                    runner.bingStatus
+                } else {
+                    resolveStatus(accounts.bingConfigured(), accounts.isDoneToday("bing"))
+                },
                 mhyStatus = if (runner.mhyRunning) {
                     runner.mhyStatus
                 } else {
@@ -65,13 +72,16 @@ class TaskViewModel : ViewModel() {
                 },
                 wbRunning = runner.wbRunning,
                 mhyRunning = runner.mhyRunning,
+                bingRunning = runner.bingRunning,
                 running = runner.running,
                 lastRunSummary = runner.lastRunSummary,
                 wbChecked = it.wbChecked,
                 mhyChecked = it.mhyChecked,
+                bingChecked = it.bingChecked,
                 // 总开关：关掉的任务首页整行不出现（见 HomeUiState.summary()）
                 wbEnabled = repo.wbMasterEnabled,
                 mhyEnabled = repo.mhyMasterEnabled,
+                bingEnabled = repo.bingMasterEnabled,
             )
         }
     }
@@ -90,13 +100,18 @@ class TaskViewModel : ViewModel() {
         _uiState.update { it.copy(mhyChecked = checked) }
     }
 
+    fun toggleBing(checked: Boolean) {
+        _uiState.update { it.copy(bingChecked = checked) }
+    }
+
     val homeActions = HomeActions(
-        onRun = { runWb, runMhy ->
+        onRun = { runWb, runMhy, runBing ->
             TaskNotifier.startRun("正在执行…")
-            AppLog.i("SYS", "开始执行：WorkBuddy=$runWb 米游社=$runMhy")
-            TaskWorker.enqueue(fewardsApp, runWb, runMhy)
+            AppLog.i("SYS", "开始执行：WorkBuddy=$runWb 米游社=$runMhy Bing=$runBing")
+            TaskWorker.enqueue(fewardsApp, runWb, runMhy, runBing)
         },
         onToggleWb = ::toggleWb,
         onToggleMhy = ::toggleMhy,
+        onToggleBing = ::toggleBing,
     )
 }

@@ -26,6 +26,44 @@ class ConfigTransferParserTest {
     }
 
     @Test
+    fun parsesBingAccountsFromBundle() {
+        val json = """
+            {
+              "_format": "fewards-config",
+              "version": 1,
+              "bings": [
+                {"id":"bing_abc","label":"Bing · abc123","refreshToken":"RT-abcdefghijklmnop","country":"CN"},
+                {"label":"只有 refresh_token 也算数","refreshToken":"RT-2"}
+              ]
+            }
+        """.trimIndent()
+        val parsed = ConfigTransferParser.parse(json)
+        assertEquals(2, parsed.bings.size)
+        assertEquals("bing_abc", parsed.bings[0].id)
+        assertEquals("CN", parsed.bings[0].country)
+        // 缺 id 时用序号兜底，不能整条丢掉
+        assertEquals("bing_1", parsed.bings[1].id)
+        assertTrue(parsed.errors.isEmpty())
+    }
+
+    @Test
+    fun skipsBingEntryWithoutRefreshToken() {
+        val json = """{"_format":"fewards-config","bings":[{"label":"没有凭据"}]}"""
+        val parsed = ConfigTransferParser.parse(json)
+        assertTrue(parsed.bings.isEmpty())
+        assertEquals(1, parsed.errors.size)
+    }
+
+    @Test
+    fun bundleWithoutBingSectionStillParses() {
+        // 老配置（加 Bing 之前导出的）必须继续能导入
+        val json = """{"_format":"fewards-config","version":1,"mihoyos":[],"workbuddies":[]}"""
+        val parsed = ConfigTransferParser.parse(json)
+        assertTrue(parsed.bings.isEmpty())
+        assertTrue(parsed.errors.isEmpty())
+    }
+
+    @Test
     fun skipsIncompleteMihoyoEntries() {
         val json = """{"_format":"fewards-config","mihoyos":[{"stoken":"only"}],"workbuddies":[{"token":""}]}"""
         val parsed = ConfigTransferParser.parse(json)

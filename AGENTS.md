@@ -13,7 +13,7 @@ README 为**英文主文档**（`README.md`）+ **中文全量翻译**（`doc/RE
 
 ## 这是什么
 
-Android 自动签到 App：米游社（游戏社区签到 + 米游币任务）+ WorkBuddy（每日积分）。Kotlin + Compose，**界面只有 Miuix**。仓库：`https://github.com/functy23/fewards`。包名 `com.functy.fewards`。
+Android 自动签到 App：米游社（游戏社区签到 + 米游币任务）+ WorkBuddy（每日积分）+ 微软积分（Microsoft Rewards / Bing）。Kotlin + Compose，**界面只有 Miuix**。仓库：`https://github.com/functy23/fewards`。包名 `com.functy.fewards`。
 
 权威母本（只认这些，不要另找「更完整」的旧工程）：
 
@@ -22,10 +22,16 @@ Android 自动签到 App：米游社（游戏社区签到 + 米游币任务）+ 
 | UI / 导航 / 主题页手感 | [KernelSU manager](https://github.com/tiann/KernelSU)、导航与主题页可对照 [InstallerX-Revived](https://github.com/wxxsfxyzm/InstallerX-Revived) | Flutter、`rewards_runner`、autofewards 归档仓、本机 `fewards2` |
 | 米游社协议 / DS / retcode / 任务流 | [MiyoQian](https://github.com/Womsxd/MiyoQian) | 自造 salt、自造 act_id、用 `getTokenBySToken` 换 cookie |
 | WorkBuddy | 本仓 `WorkBuddyEngine` + 公开 HTTP（`copilot.tencent.com/billing/meter/*`） | `workbuddy-checkin` 空脚手架当实现、臆造头像接口 |
+| 微软积分协议 / dapi / OAuth | 本仓 `core/bing` + `docs/bing-rewards.md`（协议事实与来源都在那里） | legacy `rewards.bing.com/api/getuserinfo`、`/api/reportactivity`、`rewardsapp/*` 当主线；任何「自动搜索刷分」实现 |
 
 `rewards_runner` / Flutter 母本含难修细节与严重 BUG，**禁止参考、禁止对照、禁止移植**。旧文档里的「踩坑须知 / 需求细节」作废；只允许引用仍成立的工具链事实（镜像、坐标后缀），并以本文件与源码为准。
 
-产品范围停在：默认三游戏签到 + BBS 米游币 + WorkBuddy 每日积分。不要做云游戏、商城兑换、定时闹钟、导航徽标、Markdown 更新弹窗。
+产品范围停在：默认三游戏签到 + BBS 米游币 + WorkBuddy 每日积分 + 微软积分**领取**。不要做云游戏、商城兑换、定时闹钟、导航徽标、Markdown 更新弹窗。
+
+微软积分只做「领取」：活动卡片 / 更多促销 / 阅读赚分 + Bing App 每日连签 + 积分只读展示。
+**不要加自动搜索刷分**——搜索分只能靠真实搜索拿，微软官方明确禁止用程序 / bot 搜索
+（"Do not use programs, bots, or macros to help with searching"，违规可致积分作废甚至封号），
+而且 60 次搜索 × 4–11 秒会撞 WorkManager 的常规执行上限、必须引入前台服务。
 
 ## 动手前
 
@@ -47,6 +53,7 @@ Android 自动签到 App：米游社（游戏社区签到 + 米游币任务）+ 
 | 2.0.1 | 2000100（发布构建；本地构建位 +1 → 2000101） |
 | 2.0.2 | 2000200 |
 | 2.1.0 | 2010000 |
+| 3.0.0 | 3000000 |
 | 1.3.20 | 1032000 |
 
 小数位在 versionCode 里是两位定长，补零；`BB` 在发布包里为 `00`，本地出包时 +1（可递增到 99，进位到 `PP`）。
@@ -83,7 +90,8 @@ cp app/build/outputs/apk/release/app-release.apk ~/Downloads/Fewards-<versionNam
 - miuix 坐标必须带 `-android` 后缀（`miuix-ui-android` 等）。
 - **导航库互斥**：用 `top.yukonga.miuix.kmp:miuix-nav-android`（`miuixNav`）。`miuix-navigation3-ui-android` 的包名覆盖 `androidx.navigation3.ui`，与 `androidx.navigation3:navigation3-ui` **二选一**；两个都留会 Duplicate class。本仓只要 `miuix-nav` + `androidx.navigation3:navigation3-runtime`。
 - Room / DataStore 在 gradle 里有坐标，**源码未使用**。设置与账号走 SharedPreferences。不要顺手接 Room。
-- 已删除 commonmark / webkit 依赖，不要为「关于页 Markdown」加回来。
+- 已删除 commonmark / webkit 依赖，不要为「关于页 Markdown」加回来。注意区分：这里说的是那个 Compose WebView 封装库；
+  微软积分登录用的是 **Android 框架自带**的 `android.webkit.WebView`（`BingAuthWebView`），不需要任何依赖，别把它一起删了。
 
 ## 目录
 
@@ -92,6 +100,7 @@ app/src/main/java/com/functy/fewards/
   FewardsApplication.kt   # okhttp、今日状态水合、WorkManager Configuration.Provider
   core/mihoyo/            # DsSign、constants、HTTP、engine、头像/昵称补全
   core/workbuddy/         # check-in engine、JWT 标签
+  core/bing/              # 微软积分：dapi 客户端、OAuth、领取判定、指纹
   data/repository/        # settings、accounts、config transfer
   ui/screen/              # home, account, settings, colorpalette, about（全 Miuix）
   ui/viewmodel/           # TaskRunner = 执行逻辑；入队不在这里
@@ -102,6 +111,7 @@ scripts/workbuddy-token.sh
 app/src/test/java/com/functy/fewards/
   core/mihoyo/            # DS、cookie、retcode、constants 契约、profile hydrator
   core/workbuddy/         # 签到判定、JWT 标签
+  core/bing/              # OAuth URL/回跳/换 token、promotion 可领判定、领奖结果、指纹
   data/repository/        # 配置导入解析
 ```
 
@@ -112,9 +122,14 @@ app/src/test/java/com/functy/fewards/
 首页「开始执行」与控制中心「签到」磁贴走同一条链：
 
 1. `TaskNotifier.startRun`（立刻出通知）
-2. `TaskWorker.enqueue(context, runWb, runMhy)`（WorkManager 一次性任务）
-3. `TaskWorker.doWork` → `TaskRunner.execute`
-4. wb / mhy 并行；`finally` 里 `running = false` 并 `RunTasksTileService.refresh`
+2. `TaskWorker.enqueue(context, runWb, runMhy, runBing)`（WorkManager 一次性任务）
+3. `TaskWorker.doWork` → `TaskRunner.execute(runWb, runMhy, runBing)`
+4. wb / mhy / bing 三者并行；`finally` 里 `running = false` 并 `RunTasksTileService.refresh`
+
+三个任务的形状是**成对字段**：`HomeUiState` 的 `wb*` / `mhy*` / `bing*`、`HomeSummary`、
+`HomeActions.onRun`、`TaskRunner.TaskUiState`、`RunTasksTileService`。
+再加第四个任务时，`HomeUiState.summary()` 里的 `visibleStates` 是可见性/完成判定的单一事实来源，
+把新任务加进那个列表即可；其余位置逐个补字段。
 
 磁贴：执行中 `Tile.STATE_ACTIVE`，结束 `INACTIVE`。执行中再点不取消。无已配置任务则保持关。Manifest 里 `WorkManagerInitializer` 被 `tools:node="remove"` 掉了，所以 `FewardsApplication` **必须**实现 `Configuration.Provider`（`workManagerConfiguration`）。缺这个，一点「开始执行」就会 `WorkManager is not initialized properly` 崩。
 
@@ -146,6 +161,28 @@ app/src/test/java/com/functy/fewards/
   - 本地会话 TTL 5 分钟（`STATE_TTL_MS`），轮询 2 秒一次。轮询期间没有单独的「已扫码」信号。
   - 扫码成功后**只纳管，不自动签到**；签到仍由首页「开始执行」统一触发。
 
+## 微软积分（Microsoft Rewards / Bing）
+
+协议细节、端点来源与「为什么不用那几个仓库的代码」都在 `docs/bing-rewards.md`，改这里之前先读它。要点：
+
+- **走 dapi，不走 legacy**。列表 `GET prod.rewardsplatform.microsoft.com/dapi/me?channel=SAAndroid&options=511`；
+  领取 `POST /dapi/me/activities`（`type:101` + `attributes.offerid` 领卡片，`type:103` + `channel:SAAndroid` 是 Bing App 每日连签）。
+  `rewards.bing.com/api/getuserinfo`、`/api/reportactivity`、`bing.com/rewardsapp/*` 那套是 legacy，只作兜底参考，别当主线。
+- **鉴权是 OAuth 授权码 + refresh_token**（公开客户端，无 client_secret）：
+  `login.live.com/oauth20_authorize.srf`（`client_id=0000000040170455`、`scope=service::prod.rewardsplatform.microsoft.com::MBI_SSL`、
+  `redirect_uri=https://login.live.com/oauth20_desktop.srf`）→ `oauth20_token.srf` 换码 / 刷新。
+  登录在**应用内 WebView**（`BingAuthWebView`）完成：拦到 `oauth20_desktop.srf` 回跳就取 `code`，**不加载那个页面**。
+  回跳要校验 `state`（`bingAuthCsrf`）。换 token 的响应可能是 JSON 也可能是 urlencoded——`BingOAuth.parseTokenResponse` 两种都认，别退回只认 JSON。
+- **只领不搜**。`BingPromotions.isClaimable` 就是白名单：`urlreward` / `msnreadearn` / `checkin`（签到卡即使 `hidden` 也可领）；`search` 与其余类型一律不领。
+  不要为了让「搜索进度」变成绿色去加自动搜索，理由见本文档开头。
+- 判定：`BingOutcome.interpretClaim`。`response.activity.p` = 到账分数；`isDuplicate` = 今天已领过（算成功）；
+  `error` / `success==false` / `response.success==false` = 被拒绝；**HTTP 2xx 但没有 activity 也没有 isDuplicate 一律算失败**，不能因为「有 response」就当成功。
+- 账号：`AccountRepository.BingAccount`（`sec.bing.accounts`）。只存 refresh_token（+ access_token 缓存、`expiresAt`、`country`、`lastBalance` 快照）。
+  本地 id 用 refresh_token 的**不可逆指纹** `BingIdentity.accountId`，绝不把 token 本身当 id 或写进日志。
+- 地区默认 `BingConstants.DEFAULT_COUNTRY`（国区 = `CN`，常量不是设置项）；拉到 `profile.attributes.country` 后以服务端返回值为准并落库。
+- 多账号：同一条链里 `BingEngine` 顺序跑；token 过期由引擎自动 refresh，用户不需要重登。
+- `profile` 里除 `country` 外的显示名候选字段是**防御性**的（`BingOutcome.DISPLAY_NAME_KEYS`），取不到就用指纹兜底标签，不要在别处依赖它们一定存在。
+
 ## 账号与配置
 
 - 凭据只存在本机 SharedPreferences（`AccountRepository` / `SettingsRepositoryImpl`）。日志禁止打印 token / cookie / stoken。
@@ -164,13 +201,15 @@ app/src/test/java/com/functy/fewards/
 - 主题颜色模式用轮廓 Tab（不是下拉）。
 - 主页图标 28.dp；复选框行文字 `weight(1f)`，Checkbox 靠右。
 - 图标/头像圆角：miuix `squircleClip(cornerRadius = size * 0.30f)`（`SquircleIcon` / 账号头像共用）。禁止自写 `G2SquircleShape`：`mid = √2−1` 会把 45° 点放到 0.414r，四角内缩约 2×。也不要用普通 `RoundedCornerShape` 充 squircle。
-- 图标 png 在 `drawable-nodpi/`（`miyoushe`、`workbuddy`）。README 宣传图在 `docs/screenshots/`，每个页面**浅色深色各一张**：`<page>-light.png` / `<page>-dark.png`（page = home / account / settings / theme），README 里两行分别展示。换界面后两套都要同步更新。
+- 图标 png 在 `drawable-nodpi/`（`miyoushe`、`workbuddy`、`bing`）。README 宣传图在 `docs/screenshots/`，每个页面**浅色深色各一张**：`<page>-light.png` / `<page>-dark.png`（page = home / account / settings / theme），README 里两行分别展示。换界面后两套都要同步更新。
 - 账号头像网络图：`AccountMiuix.UrlImage`（OkHttp + G2 裁剪）。加载中 `InfiniteProgressIndicator`，失败回落到字母头像。
-- **添加账号弹窗只有一份**：`ui/component/miuix/AddAccountDialog`（米游社与 WorkBuddy 共用）。不要再各写一份二维码弹窗。
-  - 账号页只列**已登录账号**，米游社 / WorkBuddy 用灰色小标题（`SectionHeader`）分组；没有账号时显示 `account_empty` 提示。
-  - 右上角「+」用 `WindowListPopup` 弹「添加米游社账号 / 添加 WorkBuddy 账号」；两项都打开同一个 `AddAccountDialog`。菜单行是本文件里的 `AddMenuRow`，**不要换回 miuix `DropdownImpl`**：它恒定给尾部选中勾留 `CheckIconStartPadding + CheckIconSize`（≈32dp），这里没有选中态，那段槽位就是文字后面的一截空白。`WindowListPopup` 要传 `horizontalMargin = 12.dp`，否则菜单右边缘贴着屏幕右边。
+- **添加账号弹窗只有一份**：`ui/component/miuix/AddAccountDialog`（米游社 / WorkBuddy / 微软积分共用）。不要再各写一份二维码弹窗。
+  - 账号页只列**已登录账号**，米游社 / WorkBuddy / 微软积分用灰色小标题（`SectionHeader`）分组；没有账号时显示 `account_empty` 提示。
+  - 右上角「+」用 `WindowListPopup` 弹三项（米游社 / WorkBuddy / 微软积分）；三项都打开同一个 `AddAccountDialog`。菜单行是本文件里的 `AddMenuRow`，**不要换回 miuix `DropdownImpl`**：它恒定给尾部选中勾留 `CheckIconStartPadding + CheckIconSize`（≈32dp），这里没有选中态，那段槽位就是文字后面的一截空白。`WindowListPopup` 要传 `horizontalMargin = 12.dp`，否则菜单右边缘贴着屏幕右边。
   - 「+」是**带圈按钮**（`IconButton` + `backgroundColor = surfaceContainerHigh`；minWidth/minHeight 与默认 cornerRadius 都是 40dp，给底色即正圆）。它和大标题同一条中线：`TopAppBar` 把 actions 垂直居中在 52dp 的收起高度里，大标题却排在 52dp 之下，所以用 `Modifier.offset` 下移「半个收起高度 + 半个 title1 行高」，再按 `scrollBehavior.state.collapsedFraction` 收回原位。
-  - 弹窗内用 `TabRowWithContour` 切「扫码登录 / 凭据登录」：扫码页生成二维码，凭据页是输入框 + 导入。WorkBuddy 的凭据 Tab 是 Token 粘贴。
+  - 弹窗内用 `TabRowWithContour` 切「主登录方式 / 凭据登录」：默认主区是二维码，凭据区是输入框 + 导入。
+    WorkBuddy 的凭据是 Token 粘贴；**微软积分没有二维码**，它传 `primaryContent` 把主区换成 `BingAuthWebView`，凭据是 refresh_token 粘贴。
+    说明文案与「重新获取」按钮由 `QrFooter` 渲染，两种主区共用——所以 `primaryContent` 只负责主媒体区，不要把文案搬进去。
   - 开合由调用方的 `show` 状态驱动，只有 `QrState.Confirmed` 才自动关；过期/失败保持打开以露出「重新获取」。凭据导入成功（`onImportCredential` 返回 true）也自动关。
   - 弹窗的**挂载**由调用方的 `mounted` 标志控制（不是 `qrState`）：切到凭据 Tab 会立刻把 `qrState` 归零，只按 `qrState` 判断会让关闭动画演一半就消失。关闭走 `WindowDialog` 下滑淡出动画，`onDismissFinished` 里才置 `mounted=false` 并取消轮询。
   - 二维码申请以「弹窗开合 + Tab」为 key 的 `LaunchedEffect` 驱动，弹出动画结束（`delay(450)`）后才申请；切走再切回扫码 Tab 会重新申请一张新码，过期/失败后重开能自愈。
@@ -201,6 +240,11 @@ app/src/test/java/com/functy/fewards/
 `./gradlew :app:testDebugUnitTest`，CI：`.github/workflows/test.yml`。
 
 改了下面这些必须有/更新 JVM 测试：DS 签名、cookie 解析与 `buildFetchedWebCookie`、米游社已签判定、WorkBuddy `interpretDailyCheckin`、WorkBuddy 扫码协议（`WorkBuddyLoginTest`：信封 code 优先、11217 视为等待、驼峰字段、缺 uid 未就绪、缺 code 不算成功）、`ConfigTransferParser`、`SIGN_GAME_KEYS` / act_id / 域名。头像 hydrator 的「要不要拉」用 `MihoyoProfileHydratorTest` 钉，JWT 的 uid/exp 用 `WorkBuddyLabelTest` 钉。
+
+微软积分侧：`BingOAuthTest`（授权 URL 参数、回跳 / code / state / 拒绝解析、JSON 与 urlencoded 两种换 token 响应、缺 access_token 不算成功）、
+`BingPromotionTest`（字段大小写、无 offerid 丢弃、`checkin` 虽 hidden 可领、hidden 非签到不可领、搜索类型不可领）、
+`BingOutcomeTest`（401/403 = token 失效、`activity.p` 到账、`isDuplicate` 算成功、三种 rejected、2xx 无 activity 算失败、`parseMe` 容错）、
+`BingIdentityTest`（指纹稳定 / 不可逆 / 空 token 中性值）。首页三任务形状用 `HomeSummaryTest` 钉；导入导出的 Bing 分支用 `ConfigTransferParserTest` 钉。
 
 ## 提交
 

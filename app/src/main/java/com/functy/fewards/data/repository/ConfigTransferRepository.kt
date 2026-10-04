@@ -1,6 +1,7 @@
 package com.functy.fewards.data.repository
 
 import com.functy.fewards.core.AppLog
+import com.functy.fewards.core.bing.BingIdentity
 import com.functy.fewards.core.mihoyo.MihoyoApi
 import com.functy.fewards.core.mihoyo.MihoyoProfileHydrator
 import com.functy.fewards.core.workbuddy.WorkBuddyLabel
@@ -11,7 +12,7 @@ import org.json.JSONObject
 
 /**
  * 配置导入/导出：
- * 导出 JSON：{"_format":"fewards-config","version":1,"mihoyos":[{...}],"workbuddies":[{...}]}
+ * 导出 JSON：{"_format":"fewards-config","version":1,"mihoyos":[{...}],"workbuddies":[{...}],"bings":[{...}]}
  * 导入：解析上述格式（兼容裸 cookie / 裸 JWT），逐条合并入账号仓储。
  */
 class ConfigTransferRepository(
@@ -49,10 +50,26 @@ class ConfigTransferRepository(
             )
         }
         root.put("workbuddies", wbArr)
+        val bingArr = JSONArray()
+        accounts.bingAccounts().forEach { a ->
+            bingArr.put(
+                JSONObject()
+                    .put("id", a.id)
+                    .put("label", a.label)
+                    .put("refreshToken", a.refreshToken)
+                    .put("country", a.country)
+            )
+        }
+        root.put("bings", bingArr)
         root.toString(2)
     }
 
-    data class ImportResult(val mihoyo: Int, val workbuddy: Int, val errors: List<String>)
+    data class ImportResult(
+        val mihoyo: Int,
+        val workbuddy: Int,
+        val bing: Int = 0,
+        val errors: List<String>,
+    )
 
     suspend fun import(json: String): ImportResult = withContext(Dispatchers.IO) {
         val parsed = ConfigTransferParser.parse(json)
@@ -84,6 +101,18 @@ class ConfigTransferRepository(
                 )
             )
         }
+        parsed.bings.forEach { d ->
+            // 按 refresh_token 的不可逆指纹生成 id，保证重复导入同一份配置不会多出账号
+            val token = d.refreshToken
+            accounts.addBingAccount(
+                AccountRepository.BingAccount(
+                    id = d.id.ifEmpty { BingIdentity.accountId(token) },
+                    label = d.label.ifEmpty { BingIdentity.fallbackLabel(token) },
+                    refreshToken = token,
+                    country = d.country,
+                )
+            )
+        }
         val api = MihoyoApi(MihoyoApi.defaultClient())
         accounts.mihoyoAccounts()
             .filter { MihoyoProfileHydrator.needsHydration(it) }
@@ -92,7 +121,11 @@ class ConfigTransferRepository(
                 val next = MihoyoProfileHydrator.hydrate(api, acc)
                 if (next != acc) accounts.addMihoyoAccount(next)
             }
-        AppLog.i("SYS", "导入完成：米游社 " + parsed.mihoyos.size + " 个，WorkBuddy " + parsed.workbuddies.size + " 个")
-        ImportResult(parsed.mihoyos.size, parsed.workbuddies.size, parsed.errors)
+        AppLog.i(
+            "SYS",
+            "导入完成：米游社 " + parsed.mihoyos.size + " 个，WorkBuddy " + parsed.workbuddies.size +
+                " 个，Bing " + parsed.bings.size + " 个"
+        )
+        ImportResult(parsed.mihoyos.size, parsed.workbuddies.size, parsed.bings.size, parsed.errors)
     }
 }

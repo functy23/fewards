@@ -32,4 +32,9 @@ interface SettingsRepository {
 
     // WorkBuddy
     var wbMasterEnabled: Boolean
+
+    // Bing
+    var bingMasterEnabled: Boolean
+    /** 是否同时领取 Bing App 每日连签（dapi type 103，15 分/天）。 */
+    var bingAppCheckIn: Boolean
 }

@@ -42,6 +42,8 @@ fun SettingPager(
         onSetMhyCaptchaPolicy = viewModel::setMhyCaptchaPolicy,
         onSetMhyCaptchaApiUrl = viewModel::setMhyCaptchaApiUrl,
         onSetWbMaster = viewModel::setWbMasterEnabled,
+        onSetBingMaster = viewModel::setBingMasterEnabled,
+        onSetBingAppCheckIn = viewModel::setBingAppCheckIn,
         onSetTaskNotification = viewModel::setTaskNotification,
         onSetOverviewAutoDismiss = viewModel::setOverviewAutoDismiss,
         onSetOverviewHoldSeconds = viewModel::setOverviewHoldSeconds,

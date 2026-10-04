@@ -45,7 +45,24 @@
     <string name="account_add">添加账号</string>
     <string name="account_add_miyoushe">添加米游社账号</string>
     <string name="account_add_workbuddy">添加 WorkBuddy 账号</string>
+    <string name="account_add_bing">添加 Bing 账号</string>
     <string name="account_empty">还没有账号，点右上角 + 添加</string>
+
+    <!-- Bing -->
+    <string name="bing_rewards">Bing</string>
+    <string name="bing_login_web">微软登录</string>
+    <string name="bing_login_token">令牌登录</string>
+    <string name="bing_web_hint">登录 Microsoft 账号，完成后自动返回</string>
+    <string name="bing_web_processing">正在完成授权…</string>
+    <string name="bing_token_hint">粘贴 refresh_token</string>
+    <string name="bing_token_import">导入</string>
+    <string name="bing_logout">删除</string>
+    <string name="bing_balance">积分 %1$d</string>
+    <string name="bing_balance_unknown">尚未同步</string>
+    <string name="settings_bing_master">Bing 自动领取总开关</string>
+    <string name="settings_bing_master_summary">关闭后 Bing 领取停用。</string>
+    <string name="settings_bing_app_checkin">Bing App 每日连签</string>
+    <string name="settings_bing_app_checkin_summary">一并领取 Bing App 的每日连签积分。</string>
 
     <!-- 通用扫码弹窗 -->
     <string name="qr_retry">重新获取</string>

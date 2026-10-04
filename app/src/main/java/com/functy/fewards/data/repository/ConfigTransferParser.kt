@@ -30,9 +30,21 @@ object ConfigTransferParser {
         val expiresAt: Long = 0L,
     )
 
+    /**
+     * Bing 只导出 refresh_token —— access_token 是几小时就过期的缓存，
+     * 导出它没有意义；refresh_token 才是「换个设备也能继续用」的那份凭据。
+     */
+    data class BingDraft(
+        val id: String,
+        val label: String,
+        val refreshToken: String,
+        val country: String = "",
+    )
+
     data class Parsed(
         val mihoyos: List<MihoyoDraft> = emptyList(),
         val workbuddies: List<WorkBuddyDraft> = emptyList(),
+        val bings: List<BingDraft> = emptyList(),
         val errors: List<String> = emptyList(),
         val recognized: Boolean = true,
     )
@@ -86,6 +98,24 @@ object ConfigTransferParser {
                 )
             )
         }
+        val bingArr = root.optJSONArray("bings") ?: JSONArray()
+        val bings = mutableListOf<BingDraft>()
+        for (i in 0 until bingArr.length()) {
+            val o = bingArr.getJSONObject(i)
+            val refreshToken = o.optString("refreshToken")
+            if (refreshToken.isEmpty()) {
+                errors.add("Bing 账号 #$i 缺少 refreshToken，跳过")
+                continue
+            }
+            bings.add(
+                BingDraft(
+                    id = o.optString("id").ifEmpty { "bing_$i" },
+                    label = o.optString("label").ifEmpty { "Bing 账号" },
+                    refreshToken = refreshToken,
+                    country = o.optString("country"),
+                )
+            )
+        }
         val wbArr = root.optJSONArray("workbuddies") ?: JSONArray()
         for (i in 0 until wbArr.length()) {
             val o = wbArr.getJSONObject(i)
@@ -106,7 +136,12 @@ object ConfigTransferParser {
                 )
             )
         }
-        return Parsed(mihoyos = mihoyos, workbuddies = workbuddies, errors = errors)
+        return Parsed(
+            mihoyos = mihoyos,
+            workbuddies = workbuddies,
+            bings = bings,
+            errors = errors,
+        )
     }
 
     private fun parseBareCookie(text: String): Parsed {

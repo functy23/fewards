@@ -47,6 +47,9 @@ class SettingsViewModel(
                     mhyCaptchaApiUrl = repo.mhyCaptchaApiUrl,
                     // WorkBuddy
                     wbMasterEnabled = repo.wbMasterEnabled,
+                    // Bing
+                    bingMasterEnabled = repo.bingMasterEnabled,
+                    bingAppCheckIn = repo.bingAppCheckIn,
                     // 通知与完成总览
                     taskNotification = repo.taskNotification,
                     overviewAutoDismiss = repo.overviewAutoDismiss,
@@ -178,6 +181,18 @@ class SettingsViewModel(
     fun setWbMasterEnabled(enabled: Boolean) {
         repo.wbMasterEnabled = enabled
         _uiState.update { it.copy(wbMasterEnabled = enabled) }
+    }
+
+    // ==================== Bing ====================
+
+    fun setBingMasterEnabled(enabled: Boolean) {
+        repo.bingMasterEnabled = enabled
+        _uiState.update { it.copy(bingMasterEnabled = enabled) }
+    }
+
+    fun setBingAppCheckIn(enabled: Boolean) {
+        repo.bingAppCheckIn = enabled
+        _uiState.update { it.copy(bingAppCheckIn = enabled) }
     }
 
     // ==================== 通知与完成总览 ====================
