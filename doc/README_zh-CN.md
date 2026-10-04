@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🎁 Fewards
+<img src="../docs/images/app-icon.png" width="112" alt="Fewards" />
+
+# Fewards
 
 **Android 自动签到：米游社（HoYoLAB）、WorkBuddy 与微软积分（Microsoft Rewards），一键跑完全部日常任务。**
 

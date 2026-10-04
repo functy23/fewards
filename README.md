@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🎁 Fewards
+<img src="docs/images/app-icon.png" width="112" alt="Fewards" />
+
+# Fewards
 
 **Android auto check-in for HoYoLAB (米游社), WorkBuddy and Microsoft Rewards — one tap runs every daily task.**
 
