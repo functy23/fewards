@@ -45,6 +45,7 @@ class MainActivityViewModel(
         return MainActivityUiState(
             appSettings = ThemeController.getAppSettings(),
             pageScale = settingRepo.pageScale,
+            enableBlur = settingRepo.enableBlur,
             enableFloatingBottomBar = settingRepo.enableFloatingBottomBar,
             enableFloatingBottomBarBlur = settingRepo.enableFloatingBottomBarBlur,
             predictiveBackAnimation = settingRepo.predictiveBackAnimation,
@@ -59,6 +60,7 @@ class MainActivityViewModel(
             "color_spec",
             "miuix_monet",
             "page_scale",
+            "enable_blur",
             "enable_floating_bottom_bar",
             "enable_floating_bottom_bar_blur",
             "predictive_back_animation",

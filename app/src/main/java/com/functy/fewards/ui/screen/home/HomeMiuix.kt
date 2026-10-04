@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,7 +53,6 @@ import com.functy.fewards.core.AppLog
 import com.functy.fewards.ui.component.SquircleIcon
 import com.functy.fewards.ui.theme.isInDarkTheme
 import com.functy.fewards.ui.theme.themeTransitionSpec
-import com.functy.fewards.ui.util.rememberBlurBackdrop
 import com.functy.fewards.ui.viewmodel.TaskRunner
 import com.functy.fewards.ui.viewmodel.TaskViewModel
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -66,8 +64,7 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.glass.GlassTopAppBar
+import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
@@ -80,19 +77,15 @@ fun HomePagerMiuix(
     bottomInnerPadding: androidx.compose.ui.unit.Dp,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    val listState = rememberLazyListState()
     val state by taskViewModel.uiState.collectAsStateWithLifecycle()
     val logs by AppLog.logs.collectAsStateWithLifecycle()
     val actions = taskViewModel.homeActions
-    val backdrop = rememberBlurBackdrop()
 
     Scaffold(
         topBar = {
-            // miuix-glass 顶栏（PR #423）：材质、遮罩与大标题模糊都由库驱动。
-            GlassTopAppBar(
+            TopAppBar(
+                color = colorScheme.surface,
                 title = stringResource(R.string.app_name),
-                isContentScrolled = listState.canScrollBackward,
-                backdrop = backdrop,
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -100,10 +93,8 @@ fun HomePagerMiuix(
         contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         LazyColumn(
-            state = listState,
             modifier = Modifier
                 .fillMaxHeight()
-                .layerBackdrop(backdrop)
                 .scrollEndHaptic()
                 .overScrollVertical()
                 .nestedScroll(scrollBehavior.nestedScrollConnection)

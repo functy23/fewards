@@ -14,15 +14,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Gamepad
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -41,6 +40,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.functy.fewards.fewardsApp
+import com.functy.fewards.work.TaskNotifier
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Recommend
@@ -56,6 +56,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
@@ -69,6 +70,8 @@ import com.functy.fewards.R
 import com.functy.fewards.ui.component.miuix.MultilineInputField
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.functy.fewards.ui.viewmodel.ConfigTransferViewModel
+import com.functy.fewards.ui.theme.LocalEnableBlur
+import com.functy.fewards.ui.util.BlurredBar
 import com.functy.fewards.ui.util.rememberBlurBackdrop
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -76,6 +79,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.Lifecycle
@@ -83,11 +87,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.glass.GlassDialog
-import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
@@ -107,9 +108,10 @@ fun SettingPagerMiuix(
     bottomInnerPadding: Dp,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    val listState = rememberLazyListState()
-    val backdrop = rememberBlurBackdrop()
-    var showCustomHold by rememberSaveable { mutableStateOf(false) }
+    val enableBlur = LocalEnableBlur.current
+    val backdrop = rememberBlurBackdrop(enableBlur)
+    val blurActive = backdrop != null
+    val barColor = if (blurActive) Color.Transparent else colorScheme.surface
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val view = LocalView.current
@@ -122,461 +124,440 @@ fun SettingPagerMiuix(
         dismissInput()
     }
 
-    // GlassDialog 是 inline 的 Box，不是走 popupHost 的弹窗：必须排在 Scaffold 之后
-    // 才画在页面之上，也不能待在 layerBackdrop 的录制子树里（玻璃表面在录制层内会自引用，
-    // RenderThread 会 prepareTreeImpl 无限递归到爆栈）。
-    // 页面与弹窗必须包进**同一个** Box：pager 的 page 槽只接受一个子节点，
-    // 两个平级兄弟会被裁掉 —— 真机表现就是弹窗永远不出现。
-    Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = {
-                // miuix-glass 顶栏（PR #423）：材质与滚动遮罩都由库驱动，
-                // 页面自己不再套 BlurredBar/textureBlur。
-                GlassTopAppBar(
+    Scaffold(
+        topBar = {
+            BlurredBar(backdrop) {
+                TopAppBar(
+                    color = barColor,
                     title = stringResource(R.string.settings),
-                    isContentScrolled = listState.canScrollBackward,
-                    backdrop = backdrop,
-                    scrollBehavior = scrollBehavior,
+                    scrollBehavior = scrollBehavior
                 )
-            },
-            contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal),
-        ) { innerPadding ->
-            Box(modifier = Modifier.layerBackdrop(backdrop)) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .scrollEndHaptic()
-                        .overScrollVertical()
-                        .nestedScroll(scrollBehavior.nestedScrollConnection)
-                        .pointerInput(Unit) {
-                            detectTapGestures(onTap = { dismissInput() })
-                        }
-                        .padding(horizontal = 12.dp),
-                    contentPadding = innerPadding,
-                    overscrollEffect = null,
-                ) {
-                    item {
-                        // ==================== 界面 ====================
-                        Card(
-                            modifier = Modifier
-                                .padding(top = 12.dp)
-                                .fillMaxWidth(),
-                        ) {
-                            ArrowPreference(
-                                title = stringResource(id = R.string.settings_theme),
-                                summary = stringResource(id = R.string.settings_theme_summary),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.Palette,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_theme),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                onClick = {
-                                    dismissInput()
-                                    actions.onOpenTheme()
-                                }
-                            )
-                        }
-
-                        // ==================== 米游社 ====================
-                        Card(
-                            modifier = Modifier
-                                .padding(top = 12.dp)
-                                .fillMaxWidth(),
-                        ) {
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_mhy_master),
-                                summary = stringResource(id = R.string.settings_mhy_master_summary),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.Shield,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_mhy_master),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                checked = uiState.mhyMasterEnabled,
-                                onCheckedChange = actions.onSetMhyMaster
-                            )
-                            AnimatedVisibility(
-                                visible = uiState.mhyMasterEnabled,
-                                enter = fadeIn() + expandVertically(),
-                                exit = fadeOut() + shrinkVertically(),
-                            ) {
-                                Column {
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_mhy_game_sign),
-                                summary = stringResource(id = R.string.settings_mhy_game_sign_summary),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.Gamepad,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_mhy_game_sign),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                checked = uiState.mhyGameSign,
-                                onCheckedChange = actions.onSetMhyGameSign
-                            )
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_mhy_bbs_sign),
-                                summary = stringResource(id = R.string.settings_mhy_bbs_sign_summary),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.WorkspacePremium,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_mhy_bbs_sign),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                checked = uiState.mhyBbsSign,
-                                onCheckedChange = actions.onSetMhyBbsSign
-                            )
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_mhy_read),
-                                summary = stringResource(id = R.string.settings_mhy_read_summary),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.Visibility,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_mhy_read),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                checked = uiState.mhyRead,
-                                onCheckedChange = actions.onSetMhyRead
-                            )
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_mhy_like),
-                                summary = stringResource(id = R.string.settings_mhy_like_summary),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.ThumbUp,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_mhy_like),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                checked = uiState.mhyLike,
-                                onCheckedChange = actions.onSetMhyLike
-                            )
-                            AnimatedVisibility(
-                                visible = uiState.mhyLike,
-                                enter = fadeIn() + expandVertically(),
-                                exit = fadeOut() + shrinkVertically(),
-                            ) {
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_mhy_cancel_like),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.Recommend,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_mhy_cancel_like),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                checked = uiState.mhyCancelLike,
-                                onCheckedChange = actions.onSetMhyCancelLike
-                            )
-                            }
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_mhy_share),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.Person,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_mhy_share),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                checked = uiState.mhyShare,
-                                onCheckedChange = actions.onSetMhyShare
-                            )
-                            OverlayDropdownPreference(
-                                title = stringResource(id = R.string.settings_mhy_captcha),
-                                items = listOf(
-                                    stringResource(id = R.string.settings_mhy_captcha_skip),
-                                    stringResource(id = R.string.settings_mhy_captcha_api),
-                                ),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.Shield,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_mhy_captcha),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                selectedIndex = uiState.mhyCaptchaPolicy,
-                                onSelectedIndexChange = actions.onSetMhyCaptchaPolicy
-                            )
-                            if (uiState.mhyCaptchaPolicy == 1) {
-                                MultilineInputField(
-                                    value = uiState.mhyCaptchaApiUrl,
-                                    onValueChange = actions.onSetMhyCaptchaApiUrl,
-                                    label = stringResource(id = R.string.settings_mhy_captcha_api_url),
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            }
+        },
+        contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal),
+    ) { innerPadding ->
+        Box(modifier = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .scrollEndHaptic()
+                    .overScrollVertical()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { dismissInput() })
+                    }
+                    .padding(horizontal = 12.dp),
+                contentPadding = innerPadding,
+                overscrollEffect = null,
+            ) {
+                item {
+                    // ==================== 界面 ====================
+                    Card(
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .fillMaxWidth(),
+                    ) {
+                        ArrowPreference(
+                            title = stringResource(id = R.string.settings_theme),
+                            summary = stringResource(id = R.string.settings_theme_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Palette,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_theme),
+                                    tint = colorScheme.onBackground
                                 )
+                            },
+                            onClick = {
+                                dismissInput()
+                                actions.onOpenTheme()
                             }
-                                }
-                            }
-                        }
+                        )
+                    }
 
-                        // ==================== WorkBuddy ====================
-                        Card(
-                            modifier = Modifier
-                                .padding(top = 12.dp)
-                                .fillMaxWidth(),
+                    // ==================== 米游社 ====================
+                    Card(
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .fillMaxWidth(),
+                    ) {
+                        SwitchPreference(
+                            title = stringResource(id = R.string.settings_mhy_master),
+                            summary = stringResource(id = R.string.settings_mhy_master_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Shield,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_mhy_master),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.mhyMasterEnabled,
+                            onCheckedChange = actions.onSetMhyMaster
+                        )
+                        AnimatedVisibility(
+                            visible = uiState.mhyMasterEnabled,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically(),
                         ) {
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_wb_master),
-                                summary = stringResource(id = R.string.settings_wb_master_summary),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.Shield,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_wb_master),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                checked = uiState.wbMasterEnabled,
-                                onCheckedChange = actions.onSetWbMaster
+                            Column {
+                        SwitchPreference(
+                            title = stringResource(id = R.string.settings_mhy_game_sign),
+                            summary = stringResource(id = R.string.settings_mhy_game_sign_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Gamepad,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_mhy_game_sign),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.mhyGameSign,
+                            onCheckedChange = actions.onSetMhyGameSign
+                        )
+                        SwitchPreference(
+                            title = stringResource(id = R.string.settings_mhy_bbs_sign),
+                            summary = stringResource(id = R.string.settings_mhy_bbs_sign_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.WorkspacePremium,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_mhy_bbs_sign),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.mhyBbsSign,
+                            onCheckedChange = actions.onSetMhyBbsSign
+                        )
+                        SwitchPreference(
+                            title = stringResource(id = R.string.settings_mhy_read),
+                            summary = stringResource(id = R.string.settings_mhy_read_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Visibility,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_mhy_read),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.mhyRead,
+                            onCheckedChange = actions.onSetMhyRead
+                        )
+                        SwitchPreference(
+                            title = stringResource(id = R.string.settings_mhy_like),
+                            summary = stringResource(id = R.string.settings_mhy_like_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.ThumbUp,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_mhy_like),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.mhyLike,
+                            onCheckedChange = actions.onSetMhyLike
+                        )
+                        AnimatedVisibility(
+                            visible = uiState.mhyLike,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically(),
+                        ) {
+                        SwitchPreference(
+                            title = stringResource(id = R.string.settings_mhy_cancel_like),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Recommend,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_mhy_cancel_like),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.mhyCancelLike,
+                            onCheckedChange = actions.onSetMhyCancelLike
+                        )
+                        }
+                        SwitchPreference(
+                            title = stringResource(id = R.string.settings_mhy_share),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Person,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_mhy_share),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.mhyShare,
+                            onCheckedChange = actions.onSetMhyShare
+                        )
+                        OverlayDropdownPreference(
+                            title = stringResource(id = R.string.settings_mhy_captcha),
+                            items = listOf(
+                                stringResource(id = R.string.settings_mhy_captcha_skip),
+                                stringResource(id = R.string.settings_mhy_captcha_api),
+                            ),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Shield,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_mhy_captcha),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            selectedIndex = uiState.mhyCaptchaPolicy,
+                            onSelectedIndexChange = actions.onSetMhyCaptchaPolicy
+                        )
+                        if (uiState.mhyCaptchaPolicy == 1) {
+                            MultilineInputField(
+                                value = uiState.mhyCaptchaApiUrl,
+                                onValueChange = actions.onSetMhyCaptchaApiUrl,
+                                label = stringResource(id = R.string.settings_mhy_captcha_api_url),
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                             )
                         }
+                            }
+                        }
+                    }
 
-                        // ==================== 通知与完成总览 ====================
-                        Card(
-                            modifier = Modifier
-                                .padding(top = 12.dp)
-                                .fillMaxWidth(),
-                        ) {
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_notification),
-                                summary = stringResource(id = R.string.settings_notification_summary),
+                    // ==================== WorkBuddy ====================
+                    Card(
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .fillMaxWidth(),
+                    ) {
+                        SwitchPreference(
+                            title = stringResource(id = R.string.settings_wb_master),
+                            summary = stringResource(id = R.string.settings_wb_master_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Shield,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_wb_master),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.wbMasterEnabled,
+                            onCheckedChange = actions.onSetWbMaster
+                        )
+                    }
+
+                    // ==================== 通知与完成总览 ====================
+                    Card(
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .fillMaxWidth(),
+                    ) {
+                        SwitchPreference(
+                            title = stringResource(id = R.string.settings_notification),
+                            summary = stringResource(id = R.string.settings_notification_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Notifications,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_notification),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.taskNotification,
+                            onCheckedChange = actions.onSetTaskNotification
+                        )
+                        val context = LocalContext.current
+                        var granted = remember {
+                            mutableStateOf(
+                                ContextCompat.checkSelfPermission(fewardsApp, Manifest.permission.POST_NOTIFICATIONS) ==
+                                    PackageManager.PERMISSION_GRANTED
+                            )
+                        }
+                        val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+                        androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+                            val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                                    granted.value = android.os.Build.VERSION.SDK_INT < 33 ||
+                                        ContextCompat.checkSelfPermission(
+                                            fewardsApp, Manifest.permission.POST_NOTIFICATIONS
+                                        ) == PackageManager.PERMISSION_GRANTED
+                                }
+                            }
+                            lifecycleOwner.lifecycle.addObserver(observer)
+                            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+                        }
+                        val launcher = rememberLauncherForActivityResult(
+                            ActivityResultContracts.RequestPermission()
+                        ) { result -> granted.value = result }
+                        if (uiState.taskNotification && !granted.value && android.os.Build.VERSION.SDK_INT >= 33) {
+                            ArrowPreference(
+                                title = stringResource(id = R.string.settings_request_notification),
+                                summary = stringResource(R.string.settings_notification_denied),
                                 startAction = {
                                     Icon(
                                         Icons.Rounded.Notifications,
                                         modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_notification),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                checked = uiState.taskNotification,
-                                onCheckedChange = actions.onSetTaskNotification
-                            )
-                            val context = LocalContext.current
-                            var granted = remember {
-                                mutableStateOf(
-                                    ContextCompat.checkSelfPermission(fewardsApp, Manifest.permission.POST_NOTIFICATIONS) ==
-                                        PackageManager.PERMISSION_GRANTED
-                                )
-                            }
-                            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-                            androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
-                                val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-                                    if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
-                                        granted.value = android.os.Build.VERSION.SDK_INT < 33 ||
-                                            ContextCompat.checkSelfPermission(
-                                                fewardsApp, Manifest.permission.POST_NOTIFICATIONS
-                                            ) == PackageManager.PERMISSION_GRANTED
-                                    }
-                                }
-                                lifecycleOwner.lifecycle.addObserver(observer)
-                                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-                            }
-                            val launcher = rememberLauncherForActivityResult(
-                                ActivityResultContracts.RequestPermission()
-                            ) { result -> granted.value = result }
-                            if (uiState.taskNotification && !granted.value && android.os.Build.VERSION.SDK_INT >= 33) {
-                                ArrowPreference(
-                                    title = stringResource(id = R.string.settings_request_notification),
-                                    summary = stringResource(R.string.settings_notification_denied),
-                                    startAction = {
-                                        Icon(
-                                            Icons.Rounded.Notifications,
-                                            modifier = Modifier.padding(end = 6.dp),
-                                            contentDescription = stringResource(id = R.string.settings_request_notification),
-                                            tint = colorScheme.onBackground
-                                        )
-                                    },
-                                    onClick = {
-                                        launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                    },
-                                )
-                            }
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_overview_auto),
-                                summary = stringResource(id = R.string.settings_overview_auto_summary),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.HourglassBottom,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_overview),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                checked = uiState.overviewAutoDismiss,
-                                onCheckedChange = actions.onSetOverviewAutoDismiss
-                            )
-                            val holdLabels = OVERVIEW_HOLD_PRESETS.map { seconds ->
-                                stringResource(R.string.settings_overview_hold_seconds, formatHoldSeconds(seconds))
-                            } + stringResource(R.string.settings_overview_hold_custom)
-                            val holdSelected = OVERVIEW_HOLD_PRESETS.indexOfFirst { it == uiState.overviewHoldSeconds }
-                                .takeIf { it >= 0 } ?: OVERVIEW_HOLD_PRESETS.size
-                            OverlaySpinnerPreference(
-                                title = stringResource(id = R.string.settings_overview_hold),
-                                summary = stringResource(
-                                    R.string.settings_overview_hold_seconds,
-                                    formatHoldSeconds(uiState.overviewHoldSeconds),
-                                ),
-                                items = holdLabels.map { DropdownItem(title = it) },
-                                selectedIndex = holdSelected,
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.Schedule,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_overview_hold),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                onSelectedIndexChange = { index ->
-                                    if (index in OVERVIEW_HOLD_PRESETS.indices) {
-                                        actions.onSetOverviewHoldSeconds(OVERVIEW_HOLD_PRESETS[index])
-                                    } else {
-                                        showCustomHold = true
-                                    }
-                                },
-                            )
-                        }
-
-                        // ==================== 导入 / 导出 ====================
-                        Card(
-                            modifier = Modifier
-                                .padding(top = 12.dp)
-                                .fillMaxWidth(),
-                        ) {
-                            val transferViewModel = viewModel<ConfigTransferViewModel>()
-                            val transferStatus by transferViewModel.status.collectAsStateWithLifecycle()
-                            var importText by rememberSaveable { mutableStateOf("") }
-                            if (transferStatus.isNotEmpty()) {
-                                Text(
-                                    text = transferStatus,
-                                    fontSize = 12.sp,
-                                    color = colorScheme.onSurfaceVariantSummary,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                                )
-                            }
-                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                TextButton(
-                                    text = "导出配置",
-                                    onClick = {
-                                        dismissInput()
-                                        transferViewModel.exportToClipboard()
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Spacer(Modifier.width(12.dp))
-                                TextButton(
-                                    text = "从剪贴板导入",
-                                    onClick = {
-                                        dismissInput()
-                                        transferViewModel.importFromClipboard()
-                                    },
-                                    colors = ButtonDefaults.textButtonColorsPrimary(),
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                MultilineInputField(
-                                    value = importText,
-                                    onValueChange = { importText = it },
-                                    label = "粘贴配置 JSON / Cookie / Token 导入",
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Spacer(Modifier.width(12.dp))
-                                TextButton(
-                                    text = "导入",
-                                    onClick = {
-                                        transferViewModel.importFromText(importText)
-                                        importText = ""
-                                        dismissInput()
-                                    },
-                                    colors = ButtonDefaults.textButtonColorsPrimary(),
-                                )
-                            }
-                        }
-
-                        // ==================== 关于 ====================
-                        Card(
-                            modifier = Modifier
-                                .padding(vertical = 12.dp)
-                                .fillMaxWidth(),
-                        ) {
-                            ArrowPreference(
-                                title = stringResource(id = R.string.about),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.Info,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.about),
+                                        contentDescription = stringResource(id = R.string.settings_request_notification),
                                         tint = colorScheme.onBackground
                                     )
                                 },
                                 onClick = {
-                                    dismissInput()
-                                    actions.onOpenAbout()
+                                    launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
                                 },
                             )
                         }
-                        Spacer(Modifier.height(bottomInnerPadding))
+                        SwitchPreference(
+                            title = stringResource(id = R.string.settings_overview_auto),
+                            summary = stringResource(id = R.string.settings_overview_auto_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.HourglassBottom,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_overview),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.overviewAutoDismiss,
+                            onCheckedChange = actions.onSetOverviewAutoDismiss
+                        )
+                        var showCustomHold by rememberSaveable { mutableStateOf(false) }
+                        val holdLabels = OVERVIEW_HOLD_PRESETS.map { seconds ->
+                            stringResource(R.string.settings_overview_hold_seconds, formatHoldSeconds(seconds))
+                        } + stringResource(R.string.settings_overview_hold_custom)
+                        val holdSelected = OVERVIEW_HOLD_PRESETS.indexOfFirst { it == uiState.overviewHoldSeconds }
+                            .takeIf { it >= 0 } ?: OVERVIEW_HOLD_PRESETS.size
+                        OverlaySpinnerPreference(
+                            title = stringResource(id = R.string.settings_overview_hold),
+                            summary = stringResource(
+                                R.string.settings_overview_hold_seconds,
+                                formatHoldSeconds(uiState.overviewHoldSeconds),
+                            ),
+                            items = holdLabels.map { DropdownItem(title = it) },
+                            selectedIndex = holdSelected,
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Schedule,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_overview_hold),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            onSelectedIndexChange = { index ->
+                                if (index in OVERVIEW_HOLD_PRESETS.indices) {
+                                    actions.onSetOverviewHoldSeconds(OVERVIEW_HOLD_PRESETS[index])
+                                } else {
+                                    showCustomHold = true
+                                }
+                            },
+                        )
+                        OverviewHoldCustomDialog(
+                            show = showCustomHold,
+                            currentSeconds = uiState.overviewHoldSeconds,
+                            onConfirm = {
+                                actions.onSetOverviewHoldSeconds(it)
+                                showCustomHold = false
+                            },
+                            onDismiss = { showCustomHold = false },
+                        )
                     }
+
+                    // ==================== 导入 / 导出 ====================
+                    Card(
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .fillMaxWidth(),
+                    ) {
+                        val transferViewModel = viewModel<ConfigTransferViewModel>()
+                        val transferStatus by transferViewModel.status.collectAsStateWithLifecycle()
+                        var importText by rememberSaveable { mutableStateOf("") }
+                        if (transferStatus.isNotEmpty()) {
+                            Text(
+                                text = transferStatus,
+                                fontSize = 12.sp,
+                                color = colorScheme.onSurfaceVariantSummary,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                            )
+                        }
+                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                            TextButton(
+                                text = "导出配置",
+                                onClick = {
+                                    dismissInput()
+                                    transferViewModel.exportToClipboard()
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            TextButton(
+                                text = "从剪贴板导入",
+                                onClick = {
+                                    dismissInput()
+                                    transferViewModel.importFromClipboard()
+                                },
+                                colors = ButtonDefaults.textButtonColorsPrimary(),
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            MultilineInputField(
+                                value = importText,
+                                onValueChange = { importText = it },
+                                label = "粘贴配置 JSON / Cookie / Token 导入",
+                                modifier = Modifier.weight(1f),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            TextButton(
+                                text = "导入",
+                                onClick = {
+                                    transferViewModel.importFromText(importText)
+                                    importText = ""
+                                    dismissInput()
+                                },
+                                colors = ButtonDefaults.textButtonColorsPrimary(),
+                            )
+                        }
+                    }
+
+                    // ==================== 关于 ====================
+                    Card(
+                        modifier = Modifier
+                            .padding(vertical = 12.dp)
+                            .fillMaxWidth(),
+                    ) {
+                        ArrowPreference(
+                            title = stringResource(id = R.string.about),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Info,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.about),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            onClick = {
+                                dismissInput()
+                                actions.onOpenAbout()
+                            },
+                        )
+                    }
+                    Spacer(Modifier.height(bottomInnerPadding))
                 }
             }
         }
-        // GlassDialog 是 inline 的 Box，不是走 popupHost 的弹窗：
-        // 它必须排在 Scaffold 之后（否则被页面盖住），而且不能待在 layerBackdrop 的录制子树里
-        // ——玻璃表面在录制层内会自引用，渲染线程会一路递归到爆栈。
-        OverviewHoldCustomDialog(
-            show = showCustomHold,
-            backdrop = backdrop,
-            currentSeconds = uiState.overviewHoldSeconds,
-            onConfirm = {
-                actions.onSetOverviewHoldSeconds(it)
-                showCustomHold = false
-            },
-            onDismiss = { showCustomHold = false },
-        )
     }
 }
 
 @Composable
 private fun OverviewHoldCustomDialog(
     show: Boolean,
-    backdrop: LayerBackdrop,
     currentSeconds: Float,
     onConfirm: (Float) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var text by remember(show) { mutableStateOf(formatHoldSeconds(currentSeconds)) }
-    GlassDialog(
-        visible = show,
+    OverlayDialog(
+        show = show,
+        title = stringResource(R.string.settings_overview_hold_custom_title),
         onDismissRequest = onDismiss,
-        backdrop = backdrop,
-    ) {
-        // GlassDialog 没有标题槽，标题自己画。
-        Text(
-            text = stringResource(R.string.settings_overview_hold_custom_title),
-            style = MiuixTheme.textStyles.title4,
-            color = colorScheme.onSurface,
-        )
-        Spacer(Modifier.height(12.dp))
-        Column(modifier = Modifier.fillMaxWidth()) {
+        content = {
             TextField(
                 modifier = Modifier.padding(bottom = 16.dp),
                 value = text,
@@ -610,6 +591,6 @@ private fun OverviewHoldCustomDialog(
                     colors = ButtonDefaults.textButtonColorsPrimary(),
                 )
             }
-        }
-    }
+        },
+    )
 }

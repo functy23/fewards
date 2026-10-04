@@ -61,8 +61,9 @@ import com.functy.fewards.ui.screen.home.HomePager
 import com.functy.fewards.ui.screen.settings.SettingPager
 import com.functy.fewards.ui.theme.FewardsTheme
 import com.functy.fewards.ui.theme.LocalColorMode
+import com.functy.fewards.ui.theme.LocalEnableBlur
 import com.functy.fewards.ui.theme.LocalEnableFloatingBottomBar
-import com.functy.fewards.ui.theme.LocalFloatingBottomBarGlass
+import com.functy.fewards.ui.theme.LocalEnableFloatingBottomBarBlur
 import com.functy.fewards.ui.animation.predictiveback.PredictiveBackAnimation
 import com.functy.fewards.ui.animation.predictiveback.installerNavTransition
 import com.functy.fewards.ui.util.rememberBlurBackdrop
@@ -126,8 +127,9 @@ class MainActivity : ComponentActivity() {
                 LocalNavigator provides navigator,
                 LocalDensity provides density,
                 LocalColorMode provides appSettings.colorMode.value,
+                LocalEnableBlur provides uiState.enableBlur,
                 LocalEnableFloatingBottomBar provides uiState.enableFloatingBottomBar,
-                LocalFloatingBottomBarGlass provides uiState.enableFloatingBottomBarBlur,
+                LocalEnableFloatingBottomBarBlur provides uiState.enableFloatingBottomBarBlur,
             ) {
                 FewardsTheme(appSettings = appSettings) {
                     val mainScreenEntry = @Composable {
@@ -202,8 +204,9 @@ fun MainScreen(
     onPageChanged: (Int) -> Unit = {},
 ) {
     val navController = LocalNavigator.current
+    val enableBlur = LocalEnableBlur.current
     val enableFloatingBottomBar = LocalEnableFloatingBottomBar.current
-    val floatingBottomBarGlass = LocalFloatingBottomBarGlass.current
+    val enableFloatingBottomBarBlur = LocalEnableFloatingBottomBarBlur.current
     val useNavigationRail = useNavigationRail(enableFloatingBottomBar)
     val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { MainPagerConfig.PAGE_COUNT })
     val mainPagerState = rememberMainPagerState(
@@ -212,7 +215,7 @@ fun MainScreen(
     )
 
     val surfaceColor = MiuixTheme.colorScheme.surface
-    val blurBackdrop = rememberBlurBackdrop()
+    val blurBackdrop = rememberBlurBackdrop(enableBlur)
 
     val backdrop = rememberLayerBackdrop {
         drawRect(surfaceColor)
@@ -236,10 +239,10 @@ fun MainScreen(
     ) {
         val contentReady = rememberContentReady()
         val pagerContent = @Composable { bottomInnerPadding: Dp ->
-            Box(modifier = Modifier.layerBackdrop(blurBackdrop)) {
+            Box(modifier = if (blurBackdrop != null) Modifier.layerBackdrop(blurBackdrop) else Modifier) {
                 HorizontalPager(
                     modifier = Modifier
-                        .then(if (enableFloatingBottomBar && floatingBottomBarGlass) Modifier.layerBackdrop(backdrop) else Modifier),
+                        .then(if (enableFloatingBottomBar && enableFloatingBottomBarBlur) Modifier.layerBackdrop(backdrop) else Modifier),
                     state = mainPagerState.pagerState,
                     beyondViewportPageCount = if (contentReady) 2 else 0,
                     overscrollEffect = null,
