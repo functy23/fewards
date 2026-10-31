@@ -20,10 +20,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Gamepad
-import androidx.compose.material.icons.rounded.Info
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -31,8 +27,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material.icons.rounded.HourglassBottom
-import androidx.compose.material.icons.rounded.Notifications
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -41,14 +35,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.functy.fewards.fewardsApp
 import com.functy.fewards.work.TaskNotifier
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Recommend
-import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.Shield
-import androidx.compose.material.icons.rounded.ThumbUp
-import androidx.compose.material.icons.rounded.Visibility
-import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -97,6 +83,22 @@ import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Alarm
+import top.yukonga.miuix.kmp.icon.extended.Favorites
+import top.yukonga.miuix.kmp.icon.extended.FavoritesFill
+import top.yukonga.miuix.kmp.icon.extended.Info
+import top.yukonga.miuix.kmp.icon.extended.Lock
+import top.yukonga.miuix.kmp.icon.extended.Messages
+import top.yukonga.miuix.kmp.icon.extended.Play
+import top.yukonga.miuix.kmp.icon.extended.Promotions
+import top.yukonga.miuix.kmp.icon.extended.Scan
+import top.yukonga.miuix.kmp.icon.extended.Send
+import top.yukonga.miuix.kmp.icon.extended.Share
+import top.yukonga.miuix.kmp.icon.extended.Show
+import top.yukonga.miuix.kmp.icon.extended.Stopwatch
+import top.yukonga.miuix.kmp.icon.extended.Theme
+import top.yukonga.miuix.kmp.icon.extended.Timer
 
 /**
  * 设置页（Miuix）：大标题「设置」，从上到下为界面组、米游社板块、WorkBuddy 板块、通知与完成总览、关于。
@@ -162,7 +164,7 @@ fun SettingPagerMiuix(
                             summary = stringResource(id = R.string.settings_theme_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Palette,
+                                    MiuixIcons.Theme,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_theme),
                                     tint = colorScheme.onBackground
@@ -186,7 +188,7 @@ fun SettingPagerMiuix(
                             summary = stringResource(id = R.string.settings_mhy_master_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Shield,
+                                    MiuixIcons.Lock,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_master),
                                     tint = colorScheme.onBackground
@@ -206,7 +208,7 @@ fun SettingPagerMiuix(
                             summary = stringResource(id = R.string.settings_mhy_game_sign_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Gamepad,
+                                    MiuixIcons.Play,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_game_sign),
                                     tint = colorScheme.onBackground
@@ -220,7 +222,7 @@ fun SettingPagerMiuix(
                             summary = stringResource(id = R.string.settings_mhy_bbs_sign_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.WorkspacePremium,
+                                    MiuixIcons.Promotions,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_bbs_sign),
                                     tint = colorScheme.onBackground
@@ -234,7 +236,7 @@ fun SettingPagerMiuix(
                             summary = stringResource(id = R.string.settings_mhy_read_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Visibility,
+                                    MiuixIcons.Show,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_read),
                                     tint = colorScheme.onBackground
@@ -248,7 +250,7 @@ fun SettingPagerMiuix(
                             summary = stringResource(id = R.string.settings_mhy_like_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.ThumbUp,
+                                    MiuixIcons.Favorites,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_like),
                                     tint = colorScheme.onBackground
@@ -266,7 +268,7 @@ fun SettingPagerMiuix(
                             title = stringResource(id = R.string.settings_mhy_cancel_like),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Recommend,
+                                    MiuixIcons.FavoritesFill,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_cancel_like),
                                     tint = colorScheme.onBackground
@@ -280,7 +282,7 @@ fun SettingPagerMiuix(
                             title = stringResource(id = R.string.settings_mhy_share),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Person,
+                                    MiuixIcons.Share,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_share),
                                     tint = colorScheme.onBackground
@@ -297,7 +299,7 @@ fun SettingPagerMiuix(
                             ),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Shield,
+                                    MiuixIcons.Scan,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_mhy_captcha),
                                     tint = colorScheme.onBackground
@@ -330,7 +332,7 @@ fun SettingPagerMiuix(
                             summary = stringResource(id = R.string.settings_wb_master_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Shield,
+                                    MiuixIcons.Lock,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_wb_master),
                                     tint = colorScheme.onBackground
@@ -352,7 +354,7 @@ fun SettingPagerMiuix(
                             summary = stringResource(id = R.string.settings_bing_master_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.WorkspacePremium,
+                                    MiuixIcons.Promotions,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_bing_master),
                                     tint = colorScheme.onBackground
@@ -372,7 +374,7 @@ fun SettingPagerMiuix(
                                     summary = stringResource(id = R.string.settings_bing_app_checkin_summary),
                                     startAction = {
                                         Icon(
-                                            Icons.Rounded.Notifications,
+                                            MiuixIcons.Alarm,
                                             modifier = Modifier.padding(end = 6.dp),
                                             contentDescription = stringResource(id = R.string.settings_bing_app_checkin),
                                             tint = colorScheme.onBackground
@@ -396,7 +398,7 @@ fun SettingPagerMiuix(
                             summary = stringResource(id = R.string.settings_notification_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Notifications,
+                                    MiuixIcons.Messages,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_notification),
                                     tint = colorScheme.onBackground
@@ -434,7 +436,7 @@ fun SettingPagerMiuix(
                                 summary = stringResource(R.string.settings_notification_denied),
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.Notifications,
+                                        MiuixIcons.Send,
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.settings_request_notification),
                                         tint = colorScheme.onBackground
@@ -450,7 +452,7 @@ fun SettingPagerMiuix(
                             summary = stringResource(id = R.string.settings_overview_auto_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.HourglassBottom,
+                                    MiuixIcons.Timer,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_overview),
                                     tint = colorScheme.onBackground
@@ -475,7 +477,7 @@ fun SettingPagerMiuix(
                             selectedIndex = holdSelected,
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Schedule,
+                                    MiuixIcons.Stopwatch,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_overview_hold),
                                     tint = colorScheme.onBackground
@@ -570,7 +572,7 @@ fun SettingPagerMiuix(
                             title = stringResource(id = R.string.about),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Info,
+                                    MiuixIcons.Info,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.about),
                                     tint = colorScheme.onBackground

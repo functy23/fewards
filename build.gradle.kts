@@ -9,5 +9,5 @@ extra["androidCompileSdkVersion"] = 37
 extra["androidBuildToolsVersion"] = "37.0.0"
 extra["androidSourceCompatibility"] = JavaVersion.VERSION_21
 extra["androidTargetCompatibility"] = JavaVersion.VERSION_21
-extra["fewardsVersionCode"] = 3000200
-extra["fewardsVersionName"] = "3.0.2"
+extra["fewardsVersionCode"] = 3000300
+extra["fewardsVersionName"] = "3.0.3"

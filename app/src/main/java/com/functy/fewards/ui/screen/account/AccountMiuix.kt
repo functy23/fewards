@@ -23,10 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -81,6 +77,10 @@ import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import top.yukonga.miuix.kmp.window.WindowListPopup
 import kotlin.math.roundToInt
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Add
+import top.yukonga.miuix.kmp.icon.extended.Copy
+import top.yukonga.miuix.kmp.icon.extended.Delete
 
 /**
  * 账号页（Miuix）：
@@ -343,7 +343,7 @@ fun AccountPagerMiuix(
                             backgroundColor = colorScheme.surfaceContainerHigh,
                         ) {
                             Icon(
-                                Icons.Rounded.Add,
+                                MiuixIcons.Add,
                                 contentDescription = stringResource(R.string.account_add),
                                 tint = colorScheme.onSurface,
                             )
@@ -439,7 +439,7 @@ fun AccountPagerMiuix(
                                             },
                                         ) {
                                             Icon(
-                                                Icons.Rounded.Delete,
+                                                MiuixIcons.Delete,
                                                 contentDescription = stringResource(R.string.miyoushe_logout),
                                                 tint = colorScheme.onSurfaceVariantSummary,
                                             )
@@ -486,7 +486,7 @@ fun AccountPagerMiuix(
                                             },
                                         ) {
                                             Icon(
-                                                Icons.Rounded.ContentCopy,
+                                                MiuixIcons.Copy,
                                                 contentDescription = stringResource(R.string.workbuddy_copy),
                                                 tint = colorScheme.onSurfaceVariantSummary,
                                             )
@@ -498,7 +498,7 @@ fun AccountPagerMiuix(
                                             },
                                         ) {
                                             Icon(
-                                                Icons.Rounded.Delete,
+                                                MiuixIcons.Delete,
                                                 contentDescription = stringResource(R.string.workbuddy_logout),
                                                 tint = colorScheme.onSurfaceVariantSummary,
                                             )
@@ -537,7 +537,7 @@ fun AccountPagerMiuix(
                                             },
                                         ) {
                                             Icon(
-                                                Icons.Rounded.Delete,
+                                                MiuixIcons.Delete,
                                                 contentDescription = stringResource(R.string.bing_logout),
                                                 tint = colorScheme.onSurfaceVariantSummary,
                                             )

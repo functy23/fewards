@@ -32,16 +32,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.MenuOpen
-import androidx.compose.material.icons.rounded.AspectRatio
-import androidx.compose.material.icons.rounded.BlurOn
-import androidx.compose.material.icons.rounded.CallToAction
-import androidx.compose.material.icons.rounded.Colorize
-import androidx.compose.material.icons.rounded.DesignServices
-import androidx.compose.material.icons.rounded.Style
-import androidx.compose.material.icons.rounded.Wallpaper
-import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -96,6 +86,14 @@ import top.yukonga.miuix.kmp.preference.WindowSpinnerPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import top.yukonga.miuix.kmp.icon.extended.Background
+import top.yukonga.miuix.kmp.icon.extended.GridView
+import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
+import top.yukonga.miuix.kmp.icon.extended.Image
+import top.yukonga.miuix.kmp.icon.extended.Layers
+import top.yukonga.miuix.kmp.icon.extended.Theme
+import top.yukonga.miuix.kmp.icon.extended.Tune
+import top.yukonga.miuix.kmp.icon.extended.ZoomOut
 
 @Composable
 fun ColorPaletteScreenMiuix(
@@ -211,7 +209,7 @@ fun ColorPaletteScreenMiuix(
                             title = stringResource(id = R.string.settings_monet),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Wallpaper,
+                                    MiuixIcons.Image,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_monet),
                                     tint = colorScheme.onBackground
@@ -251,7 +249,7 @@ fun ColorPaletteScreenMiuix(
                                     items = colorItems.map { DropdownItem(title = it) },
                                     startAction = {
                                         Icon(
-                                            Icons.Rounded.Colorize,
+                                            MiuixIcons.Tune,
                                             modifier = Modifier.padding(end = 6.dp),
                                             contentDescription = stringResource(id = R.string.settings_key_color),
                                             tint = colorScheme.onBackground
@@ -272,7 +270,7 @@ fun ColorPaletteScreenMiuix(
                                             title = stringResource(R.string.settings_color_style),
                                             startAction = {
                                                 Icon(
-                                                    Icons.Rounded.Style,
+                                                    MiuixIcons.Theme,
                                                     modifier = Modifier.padding(end = 6.dp),
                                                     contentDescription = stringResource(id = R.string.settings_color_style),
                                                     tint = colorScheme.onBackground
@@ -290,7 +288,7 @@ fun ColorPaletteScreenMiuix(
                                             title = stringResource(R.string.settings_color_spec),
                                             startAction = {
                                                 Icon(
-                                                    Icons.Rounded.DesignServices,
+                                                    MiuixIcons.GridView,
                                                     modifier = Modifier.padding(end = 6.dp),
                                                     contentDescription = stringResource(id = R.string.settings_color_spec),
                                                     tint = colorScheme.onBackground
@@ -320,7 +318,7 @@ fun ColorPaletteScreenMiuix(
                                 summary = stringResource(id = R.string.settings_enable_blur_summary),
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.BlurOn,
+                                        MiuixIcons.Background,
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.settings_enable_blur),
                                         tint = colorScheme.onBackground
@@ -337,7 +335,7 @@ fun ColorPaletteScreenMiuix(
                             summary = stringResource(id = R.string.settings_floating_bottom_bar_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.CallToAction,
+                                    MiuixIcons.HorizontalSplit,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_floating_bottom_bar),
                                     tint = colorScheme.onBackground
@@ -354,7 +352,7 @@ fun ColorPaletteScreenMiuix(
                                 summary = stringResource(id = R.string.settings_enable_glass_summary),
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.WaterDrop,
+                                        MiuixIcons.Layers,
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.settings_enable_glass),
                                         tint = colorScheme.onBackground
@@ -385,7 +383,7 @@ fun ColorPaletteScreenMiuix(
                                 ).map { DropdownItem(title = it) },
                                 startAction = {
                                     Icon(
-                                        Icons.AutoMirrored.Rounded.MenuOpen,
+                                        MiuixIcons.Back,
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.settings_back_animation),
                                         tint = colorScheme.onBackground
@@ -401,7 +399,7 @@ fun ColorPaletteScreenMiuix(
                             summary = stringResource(id = R.string.settings_page_scale_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.AspectRatio,
+                                    MiuixIcons.ZoomOut,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_page_scale),
                                     tint = colorScheme.onBackground

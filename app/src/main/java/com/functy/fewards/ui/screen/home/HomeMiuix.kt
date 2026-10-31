@@ -28,11 +28,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.material.icons.rounded.CheckCircleOutline
 import androidx.compose.material.icons.rounded.ErrorOutline
-import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -70,6 +67,10 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Favorites
+import top.yukonga.miuix.kmp.icon.extended.Notes
+import top.yukonga.miuix.kmp.icon.extended.Refresh
 
 @Composable
 fun HomePagerMiuix(
@@ -237,7 +238,7 @@ private fun StatusCard(
                 Icon(
                     modifier = Modifier.size(110.dp),
                     imageVector = when {
-                        running -> Icons.Rounded.Sync
+                        running -> MiuixIcons.Refresh
                         done -> Icons.Rounded.CheckCircleOutline
                         else -> Icons.Rounded.ErrorOutline
                     },
@@ -522,7 +523,7 @@ private fun SupportLinks(modifier: Modifier = Modifier) {
             summary = stringResource(R.string.home_support_content),
             startAction = {
                 Icon(
-                    imageVector = Icons.Filled.VolunteerActivism,
+                    imageVector = MiuixIcons.Favorites,
                     contentDescription = stringResource(R.string.home_support_title),
                     modifier = Modifier.padding(end = 6.dp),
                     tint = colorScheme.onBackground,
@@ -535,7 +536,7 @@ private fun SupportLinks(modifier: Modifier = Modifier) {
             summary = stringResource(R.string.home_learn_more_content),
             startAction = {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                    imageVector = MiuixIcons.Notes,
                     contentDescription = stringResource(R.string.home_learn_more),
                     modifier = Modifier.padding(end = 6.dp),
                     tint = colorScheme.onBackground,

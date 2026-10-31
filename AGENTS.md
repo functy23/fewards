@@ -208,6 +208,9 @@ app/src/test/java/com/functy/fewards/
 ## UI 约定
 
 - **只有 Miuix。** 不要加回 MD3 / 双 UI。
+- **图标只用 Miuix**：`MiuixIcons.<Name>`（`import top.yukonga.miuix.kmp.icon.extended.<Name>`）。不要再用 `androidx.compose.material.icons`。
+  唯一例外：主页「已完成 / 未完成」状态卡片上的那枚大图标（`Icons.Rounded.CheckCircleOutline` / `ErrorOutline`）保持 Material，其余一律 Miuix。
+  品牌图标（米游社 / WorkBuddy / Bing 的 png、启动图标、通知栏 `ic_stat_task`）是位图资产，不参与这条规则。
 - 设置子项跟父开关 **展开/收起**（Monet 模式），不要灰掉。
 - 停留时间选择用 **OverlaySpinnerPreference**（列表 + 确定），不要一排 TextButton。
 - 主题页：WindowSpinnerPreference；不要把 `Scaffold.popupHost` 置空。
