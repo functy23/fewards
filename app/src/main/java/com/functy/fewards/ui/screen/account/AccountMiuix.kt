@@ -1,5 +1,6 @@
 package com.functy.fewards.ui.screen.account
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -97,6 +100,7 @@ fun AccountPagerMiuix(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val view = LocalView.current
+    val context = LocalContext.current
     val dismissInput = {
         focusManager.clearFocus(force = true)
         keyboardController?.hide()
@@ -458,11 +462,7 @@ fun AccountPagerMiuix(
                             state.wbAccounts.forEach { account ->
                                 BasicComponent(
                                     title = account.label,
-                                    summary = if (account.uid.isNotEmpty()) {
-                                        "uid=${account.uid}"
-                                    } else {
-                                        "token=${account.token.take(6)}****"
-                                    },
+                                    summary = wbSummary(account),
                                     startAction = {
                                         AccountFace(
                                             url = account.avatarUrl,
@@ -471,6 +471,26 @@ fun AccountPagerMiuix(
                                         )
                                     },
                                     endActions = {
+                                        IconButton(
+                                            onClick = {
+                                                dismissInput()
+                                                val copied = actions.onCopyWb(account.id)
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(
+                                                        if (copied) R.string.workbuddy_copied
+                                                        else R.string.workbuddy_copy_failed
+                                                    ),
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                            },
+                                        ) {
+                                            Icon(
+                                                Icons.Rounded.ContentCopy,
+                                                contentDescription = stringResource(R.string.workbuddy_copy),
+                                                tint = colorScheme.onSurfaceVariantSummary,
+                                            )
+                                        }
                                         IconButton(
                                             onClick = {
                                                 dismissInput()
@@ -578,6 +598,24 @@ private fun AddMenuRow(
             color = colorScheme.onSurfaceContainer,
         )
     }
+}
+
+/**
+ * WorkBuddy 账号的副标题：uid + 续期能力。
+ * 有 refreshToken = 到期能自动换新；没有就只能等它过期后重新授权。
+ */
+@Composable
+private fun wbSummary(account: com.functy.fewards.data.repository.AccountRepository.WorkBuddyAccount): String {
+    val identity = if (account.uid.isNotEmpty()) {
+        "uid=" + account.uid
+    } else {
+        "token=" + account.token.take(6) + "****"
+    }
+    val renew = stringResource(
+        if (account.refreshToken.isNotEmpty()) R.string.workbuddy_auto_renew
+        else R.string.workbuddy_manual_renew
+    )
+    return identity + " · " + renew
 }
 
 /**

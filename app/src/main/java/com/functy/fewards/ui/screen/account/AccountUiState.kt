@@ -42,9 +42,11 @@ data class AccountActions(
     /** 返回 true 表示凭据被接受（弹窗据此关闭）；false 保留输入让用户改。 */
     val onImportCookie: (String) -> Boolean,
     val onRemoveMihoyo: (String) -> Unit,
-    /** 同上：返回 true 表示 token 被接受。 */
+    /** 同上：返回 true 表示凭据被接受。 */
     val onImportWbToken: (String) -> Boolean,
     val onRemoveWb: (String) -> Unit,
+    /** 复制 AccessToken / RefreshToken 两行文本；false 表示没有可复制的凭据。 */
+    val onCopyWb: (String) -> Boolean,
     val onSetWbLoginMode: (Int) -> Unit,
     val onStartWbQr: () -> Unit,
     val onCancelWbQr: () -> Unit,

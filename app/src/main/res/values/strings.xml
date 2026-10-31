@@ -35,9 +35,14 @@
     <string name="miyoushe_logout">退出登录</string>
     <string name="miyoushe_qr_wait_scan">等待扫码…</string>
     <string name="miyoushe_qr_scanned">已扫码，请在手机上确认</string>
-    <string name="workbuddy_token_hint">粘贴 Access Token</string>
+    <string name="workbuddy_token_hint">粘贴 AccessToken / RefreshToken</string>
     <string name="workbuddy_token_import">导入</string>
     <string name="workbuddy_logout">删除</string>
+    <string name="workbuddy_copy">复制凭据</string>
+    <string name="workbuddy_copied">已复制 AccessToken / RefreshToken</string>
+    <string name="workbuddy_copy_failed">没有可复制的凭据</string>
+    <string name="workbuddy_auto_renew">可自动续期</string>
+    <string name="workbuddy_manual_renew">无 RefreshToken</string>
     <string name="workbuddy_login_qr">扫码登录</string>
     <string name="workbuddy_login_token">Token 登录</string>
     <string name="workbuddy_qr_wait_scan">用微信 / QQ 扫码授权</string>

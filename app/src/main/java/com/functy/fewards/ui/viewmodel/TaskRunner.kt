@@ -139,7 +139,13 @@ object TaskRunner {
                         _state.value = _state.value.copy(wbRunning = false, wbStatus = TaskStatus.UNCONFIGURED)
                         return@async
                     }
-                    val engine = WorkBuddyEngine(MihoyoApi.defaultClient(), list)
+                    // 续期成功的新 token 必须立刻写回仓储：refreshToken 会轮换，
+                    // 只改内存等于把旧 RT 留在磁盘上，下次刷新必然 12153
+                    val engine = WorkBuddyEngine(
+                        MihoyoApi.defaultClient(),
+                        list,
+                        onTokensRefreshed = { accounts.addWorkBuddyAccount(it) },
+                    )
                     val ok = engine.runAll()
                     if (ok) accounts.markDoneToday("wb")
                     _state.value = _state.value.copy(

@@ -160,6 +160,19 @@ app/src/test/java/com/functy/fewards/
   - 统一信封 `{code,msg,data}`：判定只看 `code`。**缺 `code` 字段必须算失败**（`hasOkCode`），不能因为「没有 code」就当成功。
   - 本地会话 TTL 5 分钟（`STATE_TTL_MS`），轮询 2 秒一次。轮询期间没有单独的「已扫码」信号。
   - 扫码成功后**只纳管，不自动签到**；签到仍由首页「开始执行」统一触发。
+- **自动续期**（`WorkBuddyAuth`，协议对齐 dsh-workbuddy-panel 内核 workbuddy2api 的 `RefreshToken`）：
+  `POST /v2/plugin/auth/token/refresh`，body `{}`，头 `X-Refresh-Token: <RT>` + `X-Auth-Refresh-Source: plugin` + `Authorization: Bearer <AT>`；
+  响应 `{code:0,data:{accessToken,refreshToken,expiresIn,domain}}`。
+  - `12153`（含 HTTP 401/403 且带该码）是**会话终态**：RT 已被判死，只能重新扫码，不要重试。
+  - 上游对 RT **反重放**：同一 RT 被消费后再用会撞 12153 并废掉整条 RT 链。所以同账号刷新必须**单飞**
+    （`WorkBuddyAuth` 里按账号 id 分桶的 Mutex），且刷新响应里轮换后的新 RT **必须写回**账号仓储
+    （`WorkBuddyEngine.onTokensRefreshed`，TaskRunner 接到 `addWorkBuddyAccount`）——只改内存等于把旧 RT 留在磁盘上。
+  - 时机：签到前 `WorkBuddyAuth.needsRefresh`（提前 10 分钟；过期时间未知但有 RT 也先换），
+    签到途中撞 401/403 再用 RT 换一次并重试一轮。没有 RT 的账号（手填 accessToken 导入）不参与续期。
+- **凭据复制格式**（`WorkBuddyCredential`，账号页复制按钮）：固定两行
+  `AccessToken: …` / `RefreshToken: …`；粘贴侧更宽容——认单行折叠版（输入框 singleLine 会把换行变空格）、
+  `AcessToken` 拼写容错、`access_token=` snake_case、配置导出的 JSON、裸 JWT，以及**只贴 RefreshToken**
+  （先落库再用它换一对 token）。
 
 ## 微软积分（Microsoft Rewards / Bing）
 
@@ -239,7 +252,9 @@ app/src/test/java/com/functy/fewards/
 
 `./gradlew :app:testDebugUnitTest`，CI：`.github/workflows/test.yml`。
 
-改了下面这些必须有/更新 JVM 测试：DS 签名、cookie 解析与 `buildFetchedWebCookie`、米游社已签判定、WorkBuddy `interpretDailyCheckin`、WorkBuddy 扫码协议（`WorkBuddyLoginTest`：信封 code 优先、11217 视为等待、驼峰字段、缺 uid 未就绪、缺 code 不算成功）、`ConfigTransferParser`、`SIGN_GAME_KEYS` / act_id / 域名。头像 hydrator 的「要不要拉」用 `MihoyoProfileHydratorTest` 钉，JWT 的 uid/exp 用 `WorkBuddyLabelTest` 钉。
+改了下面这些必须有/更新 JVM 测试：DS 签名、cookie 解析与 `buildFetchedWebCookie`、米游社已签判定、WorkBuddy `interpretDailyCheckin`、WorkBuddy 扫码协议（`WorkBuddyLoginTest`：信封 code 优先、11217 视为等待、驼峰字段、缺 uid 未就绪、缺 code 不算成功）、
+WorkBuddy 自动续期（`WorkBuddyAuthTest`：提前量判定、刷新信封、12153 终态、X-Refresh-Token 只出现在刷新端点）、
+WorkBuddy 凭据文本（`WorkBuddyCredentialTest`：复制格式、单行折叠、AcessToken 拼写容错、JSON、裸 JWT、只贴 RT）、`ConfigTransferParser`、`SIGN_GAME_KEYS` / act_id / 域名。头像 hydrator 的「要不要拉」用 `MihoyoProfileHydratorTest` 钉，JWT 的 uid/exp 用 `WorkBuddyLabelTest` 钉。
 
 微软积分侧：`BingOAuthTest`（授权 URL 参数、回跳 / code / state / 拒绝解析、JSON 与 urlencoded 两种换 token 响应、缺 access_token 不算成功）、
 `BingPromotionTest`（字段大小写、无 offerid 丢弃、`checkin` 虽 hidden 可领、hidden 非签到不可领、搜索类型不可领）、

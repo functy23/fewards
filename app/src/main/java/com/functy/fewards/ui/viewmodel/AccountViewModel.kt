@@ -1,5 +1,8 @@
 package com.functy.fewards.ui.viewmodel
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.functy.fewards.core.AppLog
@@ -9,6 +12,8 @@ import com.functy.fewards.core.bing.BingIdentity
 import com.functy.fewards.core.bing.BingOAuth
 import com.functy.fewards.core.mihoyo.MihoyoApi
 import com.functy.fewards.core.mihoyo.MihoyoProfileHydrator
+import com.functy.fewards.core.workbuddy.WorkBuddyAuth
+import com.functy.fewards.core.workbuddy.WorkBuddyCredential
 import com.functy.fewards.core.workbuddy.WorkBuddyLabel
 import com.functy.fewards.core.workbuddy.WorkBuddyLogin
 import com.functy.fewards.data.repository.AccountRepository
@@ -33,6 +38,7 @@ class AccountViewModel : ViewModel() {
     private val accounts = AccountRepository()
     private val api = MihoyoApi(MihoyoApi.defaultClient())
     private val wbLogin = WorkBuddyLogin(fewardsApp.okhttpClient)
+    private val wbAuth = WorkBuddyAuth(fewardsApp.okhttpClient)
     private val bingOAuth = BingOAuth(fewardsApp.okhttpClient)
 
     private val _uiState = MutableStateFlow(AccountUiState())
@@ -202,7 +208,15 @@ class AccountViewModel : ViewModel() {
                         expiresAt = result.expiresAt,
                     )
                 )
-                AppLog.i("WB", "账号 ${result.nickname} 扫码授权成功${if (existed) "（已更新）" else ""}")
+                AppLog.i(
+                    "WB",
+                    "账号 ${result.nickname} 扫码授权成功${if (existed) "（已更新）" else ""}" +
+                        if (result.refreshToken.isNotEmpty()) {
+                            "，已获取 refreshToken（自动续期可用）"
+                        } else {
+                            "，未获取 refreshToken（到期需重新授权）"
+                        }
+                )
                 _uiState.update { it.copy(wbQrState = QrState.Confirmed) }
                 publishAccounts()
             } catch (t: Throwable) {
@@ -222,14 +236,36 @@ class AccountViewModel : ViewModel() {
         _uiState.update { it.copy(wbQrState = QrState.Idle) }
     }
 
-    /** 返回 false 表示 token 为空，弹窗保留输入让用户改。 */
-    fun importWbToken(token: String): Boolean {
-        val trimmed = token.trim()
-        if (trimmed.isEmpty()) {
-            AppLog.e("WB", "token 为空")
+    /**
+     * 粘贴凭据导入。认三种形状（见 [WorkBuddyCredential]）：
+     *  - 账号页复制出来的 "AccessToken: ... / RefreshToken: ..."；
+     *  - 裸 accessToken（老用法，导入后没有续期能力）；
+     *  - 只有 refreshToken——先落库，再立刻用它换一对 token（换不到就只留日志）。
+     * 返回 false 表示一个凭据都解析不出来，弹窗保留输入让用户改。
+     */
+    fun importWbToken(raw: String): Boolean {
+        val credential = WorkBuddyCredential.parse(raw)
+        if (credential == null || (!credential.hasRefreshToken && credential.accessToken.isEmpty())) {
+            AppLog.e("WB", "凭据无效：既没有 accessToken 也没有 refreshToken")
             return false
         }
-        val profile = WorkBuddyLabel.decodeProfile(trimmed)
+        if (credential.accessToken.isEmpty()) {
+            // 只贴了 refreshToken：先纳管，再异步换号（换到 accessToken 才能签到 / 解昵称）
+            val pending = AccountRepository.WorkBuddyAccount(
+                id = "wb_" + System.currentTimeMillis(),
+                label = "Work Buddy 账号",
+                token = "",
+                refreshToken = credential.refreshToken,
+                expiresAt = 0L,
+            )
+            accounts.addWorkBuddyAccount(pending)
+            AppLog.i("WB", "已纳管 refreshToken，正在换取 accessToken")
+            viewModelScope.launch { renewWorkBuddy(pending) }
+            refresh()
+            return true
+        }
+        val token = credential.accessToken
+        val profile = WorkBuddyLabel.decodeProfile(token)
         val uid = profile.uid
         // 老账号（扫码前导入的）没有 uid，退回按昵称判定，避免同一账号出现两条
         val existed = accounts.workBuddyAccounts().any {
@@ -241,14 +277,84 @@ class AccountViewModel : ViewModel() {
                 // 同账号重复导入 = 更新，不再新增一条
                 id = if (uid.isNotEmpty()) "wb_$uid" else "wb_" + System.currentTimeMillis(),
                 label = profile.label ?: "Work Buddy 账号",
-                token = trimmed,
+                token = token,
                 avatarUrl = profile.avatarUrl.orEmpty(),
                 uid = uid,
+                refreshToken = credential.refreshToken,
                 expiresAt = profile.expiresAt,
             )
         )
-        AppLog.i("WB", "WorkBuddy token 导入成功")
+        AppLog.i(
+            "WB",
+            "WorkBuddy 凭据导入成功" + if (credential.hasRefreshToken) {
+                "（含 refreshToken，已开启自动续期）"
+            } else {
+                "（仅 accessToken，过期后需要重新导入）"
+            }
+        )
         refresh()
+        return true
+    }
+
+    /**
+     * 用 refreshToken 换一对新 token 并更新本地账号（只贴 RT 的导入路径）。
+     * 失败只记日志：账号仍在列表里，用户可删掉或重新扫码。
+     */
+    private suspend fun renewWorkBuddy(account: AccountRepository.WorkBuddyAccount) {
+        when (val result = wbAuth.refresh(account.token, account.refreshToken, account.uid, account.id)) {
+            is WorkBuddyAuth.Result.Success -> {
+                val tokens = result.tokens
+                val profile = WorkBuddyLabel.decodeProfile(tokens.accessToken)
+                accounts.addWorkBuddyAccount(
+                    account.copy(
+                        label = profile.label ?: account.label,
+                        token = tokens.accessToken,
+                        refreshToken = tokens.refreshToken.ifEmpty { account.refreshToken },
+                        uid = account.uid.ifEmpty { profile.uid },
+                        avatarUrl = account.avatarUrl.ifEmpty { profile.avatarUrl.orEmpty() },
+                        expiresAt = if (tokens.expiresAt > 0) tokens.expiresAt else account.expiresAt,
+                    )
+                )
+                AppLog.i("WB", "refreshToken 换取 accessToken 成功")
+                publishAccounts()
+            }
+            WorkBuddyAuth.Result.SessionDead -> {
+                AppLog.e("WB", "refreshToken 已失效（12153），请重新扫码授权")
+            }
+            is WorkBuddyAuth.Result.Failed -> {
+                AppLog.e(
+                    "WB",
+                    "refreshToken 换 token 失败：" + result.reason +
+                        "（可改用扫码授权，或粘贴完整的 AccessToken / RefreshToken）"
+                )
+            }
+        }
+    }
+
+    /**
+     * 复制该账号的凭据，格式固定为两行：
+     *   AccessToken: ...
+     *   RefreshToken: ...
+     * 返回 false 表示账号不存在 / 没有可复制的值（调用方据此提示）。
+     */
+    fun copyWbCredential(id: String): Boolean {
+        val account = accounts.workBuddyAccounts().firstOrNull { it.id == id }
+        if (account == null) {
+            AppLog.w("WB", "复制失败：账号不存在")
+            return false
+        }
+        val text = WorkBuddyCredential.format(account.token, account.refreshToken)
+        if (text.isEmpty()) {
+            AppLog.w("WB", "复制失败：没有可复制的凭据")
+            return false
+        }
+        val cm = fewardsApp.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText("fewards-workbuddy", text))
+        AppLog.i(
+            "WB",
+            "已复制 " + WorkBuddyCredential.LABEL_ACCESS +
+                if (account.refreshToken.isNotEmpty()) " / " + WorkBuddyCredential.LABEL_REFRESH else ""
+        )
         return true
     }
 
@@ -421,6 +527,7 @@ class AccountViewModel : ViewModel() {
         onRemoveMihoyo = ::removeMihoyo,
         onImportWbToken = ::importWbToken,
         onRemoveWb = ::removeWb,
+        onCopyWb = ::copyWbCredential,
         onSetWbLoginMode = ::setWbLoginMode,
         onStartWbQr = ::startWbQrLogin,
         onCancelWbQr = ::cancelWbQr,

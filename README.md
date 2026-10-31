@@ -57,7 +57,7 @@ Download the latest `Fewards-<version>-release.apk` (release + R8) from [Release
 | | |
 |---|---|
 | **HoYoLAB (米游社)** | QR-code login (stoken v2) or Cookie; daily check-in for Genshin Impact / Honkai: Star Rail / Zenless Zone Zero; 米游币 (Miyoushe Coin) tasks (community check-in / read posts / like / share); CAPTCHA strategy (skipped by default, optional captcha-solving API) |
-| **WorkBuddy** | WeChat / QQ QR-code authorization, or paste the desktop accessToken; automatic daily points check-in |
+| **WorkBuddy** | WeChat / QQ QR-code authorization, or paste an accessToken / refreshToken pair; the access token renews itself from the refresh token, so you stay signed in; automatic daily points check-in |
 | **Bing** (Microsoft Rewards) | Sign in to your Microsoft account in an embedded WebView (OAuth authorization code + refresh_token, so you stay signed in); claims the daily set / more promotions / read-to-earn cards and the Bing app daily check-in, and shows your points balance. **Claiming only — it never automates searches** |
 
 - **Multiple accounts** — HoYoLAB (米游社), WorkBuddy and Microsoft Rewards all support several accounts; re-authorizing the same account updates it instead of adding a new one
@@ -67,7 +67,7 @@ Download the latest `Fewards-<version>-release.apk` (release + R8) from [Release
 
 ## Usage
 
-1. **Accounts** — add one with "+" in the top-right corner: scan the QR code for HoYoLAB (米游社), or paste a Cookie containing stoken + mid; for WorkBuddy, authorize by scanning with WeChat / QQ, or paste the desktop accessToken; for Microsoft Rewards, sign in with your Microsoft account in the built-in page, or paste a refresh_token
+1. **Accounts** — add one with "+" in the top-right corner: scan the QR code for HoYoLAB (米游社), or paste a Cookie containing stoken + mid; for WorkBuddy, authorize by scanning with WeChat / QQ, or paste an accessToken / refreshToken pair (the account list's copy button gives you "AccessToken: …" and "RefreshToken: …" on two lines); for Microsoft Rewards, sign in with your Microsoft account in the built-in page, or paste a refresh_token
 2. **Settings** — toggle individual tasks, the CAPTCHA strategy, notifications and the completion overview
 3. **Home** — tick the tasks → Start
 
